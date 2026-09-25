@@ -59,6 +59,7 @@ model Company {
   history          String?  @db.Text
   vision           String?  @db.Text
   mission          String?  @db.Text
+  values           String?  @db.Text
   address          String?  @db.Text
   phoneDisplay     String?  @db.VarChar(50)
   phoneHref        String?  @db.VarChar(30)
@@ -73,10 +74,23 @@ model Company {
   seoDescription   String?  @db.VarChar(160)
   logoMediaId      String?  @db.VarChar(30)
   logoMedia        Media?   @relation("CompanyLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  gallery          CompanyMedia[]
   createdAt        DateTime @default(now()) @db.Timestamptz(3)
   updatedAt        DateTime @updatedAt @db.Timestamptz(3)
 
   @@index([logoMediaId])
+}
+
+model CompanyMedia {
+  companyId String  @db.VarChar(30)
+  mediaId   String  @db.VarChar(30)
+  sortOrder Int     @default(0)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([companyId, mediaId])
+  @@unique([companyId, sortOrder])
+  @@index([mediaId])
 }
 
 /// แบนเนอร์หน้าแรก พร้อมรูป ปุ่ม ลำดับ และสถานะเผยแพร่
@@ -351,6 +365,7 @@ model Media {
   createdAt       DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime       @updatedAt @db.Timestamptz(3)
   companyLogos    Company[]      @relation("CompanyLogo")
+  companyGallery  CompanyMedia[]
   bannerImages    Banner[]       @relation("BannerImage")
   serviceCovers   Service[]      @relation("ServiceCover")
   productCovers   Product[]      @relation("ProductCover")

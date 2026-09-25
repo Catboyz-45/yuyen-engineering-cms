@@ -14,13 +14,13 @@ import { formatThaiDate } from "@/lib/date";
 
 export const metadata = createMetadata({ title: "หน้าแรก", description: "บริการจำหน่าย ติดตั้ง ล้าง และซ่อมบำรุงระบบปรับอากาศ พร้อมงานระบบ M&E", path: "/" });
 export const dynamic = "force-dynamic";
-import { companyPublicConfig as fallbackCompany } from "@/lib/public-config";
+import { resolvePublicCompany } from "@/lib/company-display";
 
 /** สร้างส่วนหน้าจอ HomePage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export default async function HomePage() {
   const content = new PublicContentService();
   const [serviceRecords, productResult, projectRecords, newsResult, banner, companyRecord] = await Promise.all([content.listServices(), content.listProducts({ pageSize: 4 }), content.listProjects({ pageSize: 3 }), content.listNews({ pageSize: 3 }), content.getHomeBanner(), content.getCompany()]);
-  const company = { phoneHref: companyRecord?.phoneHref ?? fallbackCompany.phoneHref };
+  const company = resolvePublicCompany(companyRecord);
   const services = serviceRecords.slice(0, 4).map(item => ({ slug: item.slug, title: item.title, eyebrow: item.eyebrow ?? "SERVICE", description: item.summary, icon: "snowflake" }));
   const products = productResult.items.map(item => ({ slug: item.slug, name: item.name, brand: item.brand.name, type: item.productType.name, btu: item.btuMin && item.btuMax ? `${item.btuMin.toLocaleString()}–${item.btuMax.toLocaleString()} BTU` : "สอบถามขนาด", feature: item.summary, tone: "silver", media: item.coverMedia }));
   const projects = projectRecords.items.map(item => ({ slug: item.slug, title: item.title, category: item.projectType, area: item.area, summary: item.summary, tone: "office", media: item.coverMedia }));
@@ -55,7 +55,7 @@ export default async function HomePage() {
 
       <section className="section" style={{ background: "var(--cream-100)" }}><div className="container"><div className="section-head"><div><p className="eyebrow">NEWS & KNOWLEDGE</p><h2 className="heading">ข่าวสารและสาระน่ารู้</h2></div><SectionLink href="/news">ดูทั้งหมด</SectionLink></div><div className="grid-3">{news.map(item => <StoryCard key={item.slug} item={item} type="news" />)}</div></div></section>
 
-      <section className="section"><div className="container"><div className="cta"><div><p className="eyebrow" style={{ color: "var(--lime-400)" }}>LET&apos;S TALK</p><h2 className="heading">กำลังมองหาทีมดูแลระบบปรับอากาศ?</h2><p style={{ color: "rgba(255,255,255,.7)" }}>พูดคุยกับเราเพื่อรับคำแนะนำเบื้องต้นโดยไม่มีค่าใช้จ่าย</p></div><div className="cluster cta-actions"><a className="btn btn-white" href={`tel:${company.phoneHref}`}><Phone size={18} /> โทรหาเรา</a><Link className="btn btn-primary" href="/contact"><MapPin size={18} /> ช่องทางติดต่อ</Link></div></div></div></section>
+      <section className="section"><div className="container"><div className="cta"><div><p className="eyebrow" style={{ color: "var(--lime-400)" }}>LET&apos;S TALK</p><h2 className="heading">กำลังมองหาทีมดูแลระบบปรับอากาศ?</h2><p style={{ color: "rgba(255,255,255,.7)" }}>พูดคุยกับเราเพื่อรับคำแนะนำเบื้องต้นโดยไม่มีค่าใช้จ่าย</p></div><div className="cluster cta-actions">{company.phoneHref && <a className="btn btn-white" href={`tel:${company.phoneHref}`}><Phone size={18} /> โทรหาเรา</a>}<Link className="btn btn-primary" href="/contact"><MapPin size={18} /> ช่องทางติดต่อ</Link></div></div></div></section>
     </>
   );
 }

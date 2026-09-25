@@ -153,11 +153,15 @@ npm run media:cleanup
 
 ## Confirmed public contact data
 
-Public contact actions read from `NEXT_PUBLIC_COMPANY_*` values documented in
-`.env.example`. Until the company owner confirms a value, LINE, Facebook, the
-office address, and Google Maps are deliberately shown as pending instead of
-linking visitors to an invented destination. Restart the development server
-after changing public environment values.
+Company details, contact channels, logo, and About-page photos are edited in
+the CMS (ข้อมูลบริษัท). The first save creates the company record; no seed is
+needed in production. Once that record exists, the site shows only CMS values
+and hides empty fields.
+
+`NEXT_PUBLIC_COMPANY_*` values in `.env.example` are used only before the first
+CMS save, with a visible sample-data label. Until then, LINE, Facebook, the
+office address, and Google Maps are shown as pending instead of linking to an
+invented destination.
 
 Product catalog downloads use approved PDFs from the configured private
 S3-compatible storage. Products without an attached catalog return 404.

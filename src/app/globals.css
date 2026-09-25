@@ -360,6 +360,12 @@ a {
   color: var(--lime-400);
   font-weight: 900;
 }
+.brand-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+}
 .brand-copy {
   display: grid;
   line-height: 1.1;

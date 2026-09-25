@@ -1,6 +1,7 @@
 /** ทดสอบหน้านโยบายและยืนยันว่า Google Maps ติดต่อภายนอกหลังผู้ใช้เลือกเท่านั้น */
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { PrismaClient } from "@prisma/client";
 
 const policies = [
   { path: "/privacy", title: "นโยบายความเป็นส่วนตัว" },
@@ -42,6 +43,10 @@ test("ล็อกอินมีข้อความแจ้งข้อม�
 
 test("แผนที่รอการเลือก ปิดได้ และไม่จำความยินยอมข้ามการเปิดหน้า", async ({ page, context }) => {
   test.skip(!process.env.NEXT_PUBLIC_COMPANY_MAPS_EMBED_URL, "ใช้ฐานข้อมูลทดสอบว่างและกำหนด URL แผนที่ตามคู่มือ PRIVACY-OPERATIONS-TH.md");
+  // ข้อมูลบริษัทใน CMS มีผลเหนือค่า environment จึงต้องใช้ฐานทดสอบที่ยังไม่มีข้อมูลบริษัทตามคู่มือ
+  const database = new PrismaClient();
+  const companyRows = await database.company.count().finally(() => database.$disconnect());
+  expect(companyRows, "ต้องใช้ฐานข้อมูลทดสอบที่ยังไม่มีข้อมูลบริษัท (ไม่รัน seed) ตาม PRIVACY-OPERATIONS-TH.md").toBe(0);
   let googleRequests = 0;
   // ตอบด้วยหน้า HTML จำลองเพื่อไม่ส่งข้อมูลผู้ทดสอบไป Google จริง
   await context.route(/^https:\/\/(www|maps)\.google\.com\//, async (route) => {

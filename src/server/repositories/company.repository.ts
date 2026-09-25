@@ -14,6 +14,7 @@ const companyPublicSelect = {
   history: true,
   vision: true,
   mission: true,
+  values: true,
   address: true,
   phoneDisplay: true,
   phoneHref: true,
@@ -27,6 +28,7 @@ const companyPublicSelect = {
   seoTitle: true,
   seoDescription: true,
   logoMedia: { select: { id: true, objectKey: true, altText: true, width: true, height: true } },
+  gallery: { orderBy: { sortOrder: "asc" }, select: { media: { select: { id: true, altText: true, width: true, height: true } } } },
 } satisfies Prisma.CompanySelect;
 
 export class CompanyRepository {

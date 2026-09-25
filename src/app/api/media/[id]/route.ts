@@ -14,7 +14,7 @@ const querySchema = z.object({ width: z.coerce.number().int().min(1).max(3000).o
 async function publiclyReferenced(id: string) {
   const published = { status: "PUBLISHED" as const, deletedAt: null, publishedAt: { lte: new Date() } };
   const counts = await db.$transaction([
-    db.company.count({ where: { logoMediaId: id } }), db.banner.count({ where: { imageId: id, ...published } }), db.service.count({ where: { coverMediaId: id, ...published } }),
+    db.company.count({ where: { logoMediaId: id } }), db.companyMedia.count({ where: { mediaId: id } }), db.banner.count({ where: { imageId: id, ...published } }), db.service.count({ where: { coverMediaId: id, ...published } }),
     db.product.count({ where: { coverMediaId: id, ...published } }), db.product.count({ where: { catalogMediaId: id, ...published } }), db.productMedia.count({ where: { mediaId: id, product: published } }),
     db.project.count({ where: { coverMediaId: id, ...published } }), db.projectMedia.count({ where: { mediaId: id, project: published } }), db.news.count({ where: { coverMediaId: id, ...published } }),
   ]);

@@ -8,7 +8,8 @@ import { db } from "@/server/db";
 import { updateAdminSafely } from "@/server/auth/admin-users";
 import { ContentService } from "@/server/cms/content.service";
 import { TaxonomyService } from "@/server/cms/taxonomy.service";
-import { companyInputSchema } from "@/server/services/company.service";
+import { CompanyService, companyInputSchema } from "@/server/services/company.service";
+import { referenceCount } from "@/server/media/references";
 import { uploadRequestSchema } from "@/server/media/validation";
 
 const suite = describe.runIf(process.env.RUN_INTEGRATION === "1");
@@ -171,6 +172,44 @@ suite("CMS database integration workflows", () => {
     await taxonomies.transition("brands", taxonomy.id, "delete", actor, { ...context, requestId: `${prefix}-taxonomy-delete` });
     expect(await db.brand.findUnique({ where: { id: taxonomy.id } })).toBeNull();
     await expect(taxonomies.remove("brands", brandId, actor, context)).rejects.toMatchObject({ code: "IN_USE" });
+  });
+
+  it("creates company data without a seed, rejects stale writes, and keeps gallery media referenced", async () => {
+    const service = new CompanyService();
+    const images = await Promise.all([1, 2].map(index => db.media.create({ data: { kind: "IMAGE", objectKey: `media/integration/${prefix}-company-${index}.webp`, mimeType: "image/webp", sizeBytes: BigInt(1024), status: "READY", orphanExpiresAt: new Date(Date.now() + 60_000), uploadedById: adminId } })));
+    const [first, second] = images;
+    try {
+      // A production install has no seeded company row; the first CMS save must create it.
+      await db.company.deleteMany({ where: { singletonKey: "PRIMARY" } });
+      const base = { legalName: `บริษัททดสอบ ${prefix} จำกัด`, displayName: `บริษัททดสอบ ${prefix}`, values: "จริงใจ" };
+      const created = await service.save(base, { actorId: adminId, expectedUpdatedAt: null, context });
+      expect(created).toMatchObject({ displayName: base.displayName, values: "จริงใจ", gallery: [] });
+      expect(await db.auditLog.findFirst({ where: { requestId: context.requestId, action: "COMPANY_CREATED", targetId: created.id } })).not.toBeNull();
+
+      await expect(service.save(base, { actorId: adminId, expectedUpdatedAt: null, context })).rejects.toMatchObject({ code: "CONFLICT" });
+      await expect(service.save(base, { actorId: adminId, expectedUpdatedAt: new Date(0).toISOString(), context })).rejects.toMatchObject({ code: "CONFLICT" });
+
+      const withGallery = await service.save({ ...base, logoMediaId: first.id, galleryMediaIds: [second.id, first.id] }, { actorId: adminId, expectedUpdatedAt: created.updatedAt.toISOString(), context });
+      expect(withGallery.gallery.map(entry => entry.media.id)).toEqual([second.id, first.id]);
+      expect(await db.media.findUniqueOrThrow({ where: { id: second.id } })).toMatchObject({ orphanExpiresAt: null });
+      expect(await referenceCount(second.id)).toBe(1);
+      expect(await referenceCount(first.id)).toBe(2);
+
+      // Omitting galleryMediaIds keeps the gallery; an empty list clears it.
+      const kept = await service.save({ ...base, logoMediaId: first.id }, { actorId: adminId, expectedUpdatedAt: withGallery.updatedAt.toISOString(), context });
+      expect(kept.gallery).toHaveLength(2);
+      const cleared = await service.save({ ...base, logoMediaId: null, galleryMediaIds: [] }, { actorId: adminId, expectedUpdatedAt: kept.updatedAt.toISOString(), context });
+      expect(cleared.gallery).toEqual([]);
+      expect(await referenceCount(first.id)).toBe(0);
+
+      await expect(service.save({ ...base, galleryMediaIds: ["missing-media-id"] }, { actorId: adminId, expectedUpdatedAt: cleared.updatedAt.toISOString(), context })).rejects.toMatchObject({ code: "INVALID_MEDIA" });
+      expect(companyInputSchema.safeParse({ ...base, galleryMediaIds: [first.id, first.id] }).success).toBe(false);
+      expect(companyInputSchema.safeParse({ ...base, galleryMediaIds: Array.from({ length: 13 }, (_, index) => `media-${index}`) }).success).toBe(false);
+    } finally {
+      await db.companyMedia.deleteMany({ where: { mediaId: { in: images.map(image => image.id) } } });
+      await db.company.updateMany({ where: { logoMediaId: { in: images.map(image => image.id) } }, data: { logoMediaId: null } });
+      await db.media.deleteMany({ where: { id: { in: images.map(image => image.id) } } });
+    }
   });
 
   it("validates and persists upload metadata without contacting object storage", async () => {

@@ -10,8 +10,11 @@ import { useUI } from "./ui-feedback";
 import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { LoadingLabel } from "./loading-label";
 import { FieldErrors, fieldMessage, focusFirstInvalid, readFieldErrors } from "@/lib/form-validation";
-type Company = Record<string, string | null>;
-const limits: Record<string, number> = { legalName: 200, displayName: 160, shortDescription: 500, history: 20000, vision: 10000, mission: 10000, address: 2000, phoneDisplay: 50, phoneHref: 30, email: 254, lineLabel: 100, lineUrl: 500, facebookUrl: 500, mapsUrl: 1000, mapsEmbedUrl: 2000, businessHours: 200, seoTitle: 60, seoDescription: 160 };
+import { MediaUploader } from "./admin/editor-ui";
+type MediaPreview = { id: string; originalName?: string | null; altText?: string | null };
+type Company = Record<string, unknown> & { logoMedia?: MediaPreview | null; gallery?: { media: MediaPreview }[] };
+const GALLERY_LIMIT = 12;
+const limits: Record<string, number> = { legalName: 200, displayName: 160, shortDescription: 500, history: 20000, vision: 10000, mission: 10000, values: 10000, address: 2000, phoneDisplay: 50, phoneHref: 30, email: 254, lineLabel: 100, lineUrl: 500, facebookUrl: 500, mapsUrl: 1000, mapsEmbedUrl: 2000, businessHours: 200, seoTitle: 60, seoDescription: 160 };
 const urlFields = new Set(["lineUrl", "facebookUrl", "mapsUrl", "mapsEmbedUrl"]);
 const fields = [
   ["legalName", "ชื่อบริษัทตามกฎหมาย", true],
@@ -20,6 +23,7 @@ const fields = [
   ["history", "ประวัติบริษัท", false],
   ["vision", "วิสัยทัศน์", false],
   ["mission", "พันธกิจ", false],
+  ["values", "คุณค่าของเรา", false],
   ["address", "ที่อยู่", false],
   ["phoneDisplay", "เบอร์โทรที่แสดง", false],
   ["phoneHref", "เบอร์โทรสำหรับลิงก์", false],
@@ -66,10 +70,21 @@ export function CompanyForm() {
     setError("");
     setFieldErrors({});
     const form = new FormData(formElement);
-    const payload = Object.fromEntries(
-      fields.map(([key]) => [key, String(form.get(key) ?? "").trim() || null]),
-    );
-    const expectedUpdatedAt = company?.updatedAt;
+    const galleryMediaIds = form.getAll("galleryMediaIds").map(String);
+    if (galleryMediaIds.length > GALLERY_LIMIT) {
+      setSaving(false);
+      setError(`รูปบริษัทใส่ได้ไม่เกิน ${GALLERY_LIMIT} รูป`);
+      return;
+    }
+    const payload = {
+      ...Object.fromEntries(
+        fields.map(([key]) => [key, String(form.get(key) ?? "").trim() || null]),
+      ),
+      logoMediaId: String(form.get("logoMediaId") ?? "") || null,
+      galleryMediaIds,
+    };
+    // ยังไม่มีเวอร์ชันแปลว่าบันทึกครั้งแรก เซิร์ฟเวอร์จะสร้างข้อมูลบริษัทให้
+    const expectedUpdatedAt = typeof company?.updatedAt === "string" ? company.updatedAt : undefined;
     try {
       const response = await fetch("/api/admin/company", {
         method: "PATCH",
@@ -122,6 +137,7 @@ export function CompanyForm() {
             "history",
             "vision",
             "mission",
+            "values",
             "address",
             "seoDescription",
           ].includes(key) ? (
@@ -130,7 +146,7 @@ export function CompanyForm() {
               name={key}
               className="field"
               rows={3}
-              defaultValue={company[key] ?? ""}
+              defaultValue={text(company[key])}
               required={required}
               maxLength={limits[key]}
               aria-invalid={Boolean(message)}
@@ -141,7 +157,7 @@ export function CompanyForm() {
               id={key}
               name={key}
               className="field"
-              defaultValue={company[key] ?? ""}
+              defaultValue={text(company[key])}
               required={required}
               type={key === "email" ? "email" : urlFields.has(key) ? "url" : "text"}
               maxLength={limits[key]}
@@ -155,6 +171,20 @@ export function CompanyForm() {
           })()}
         </div>
       ))}
+      <MediaUploader
+        name="logoMediaId"
+        title="โลโก้บริษัท"
+        multiple={false}
+        initial={preview(company.logoMedia)}
+        onDirty={markDirty}
+      />
+      <MediaUploader
+        name="galleryMediaIds"
+        title={`รูปบริษัทสำหรับหน้าเกี่ยวกับเรา (สูงสุด ${GALLERY_LIMIT} รูป รูปแรกเป็นภาพหลัก)`}
+        initial={(company.gallery ?? []).flatMap((entry) => preview(entry.media))}
+        onDirty={markDirty}
+      />
+      <p className="help">ช่องที่เว้นว่างจะไม่แสดงบนหน้าเว็บ</p>
       <button className="btn btn-dark" disabled={saving} aria-busy={saving}>
         <LoadingLabel busy={saving} busyText="กำลังบันทึก…">
           <>
@@ -164,4 +194,12 @@ export function CompanyForm() {
       </button>
     </form>
   );
+}
+
+function text(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function preview(media: MediaPreview | null | undefined) {
+  return media ? [{ id: media.id, name: media.originalName ?? "ไฟล์เดิม", preview: `/api/media/${media.id}?width=640`, altText: media.altText ?? "" }] : [];
 }

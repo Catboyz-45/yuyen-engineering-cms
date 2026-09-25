@@ -107,6 +107,48 @@ test.describe("authenticated CMS interaction", () => {
     }
   });
 
+  test("แก้ข้อมูลบริษัท โลโก้ และรูปบริษัทจากหลังบ้าน แล้วหน้าเว็บแสดงตามจริง", async ({ page }) => {
+    test.skip(!process.env.S3_ENDPOINT, "ต้องมี object storage และ ClamAV สำหรับอัปโหลดรูป");
+    const database = new PrismaClient();
+    const original = await database.company.findUnique({ where: { singletonKey: "PRIMARY" }, include: { gallery: true } });
+    const cleanup = await authenticateTemporaryAdmin(page);
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAACAAAAASCAIAAAC1qksFAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAJ0lEQVQ4jWNQKHChKWIYtaBgNIhcRlORwmhGcxktKhRGS9MC2lY4ALoY3RAnTlWmAAAAAElFTkSuQmCC", "base64");
+    const values = `คุณค่าทดสอบ ${randomUUID().slice(0, 8)}`;
+    try {
+      await page.goto("/admin/company");
+      await expect(page.getByLabel("ชื่อบริษัทตามกฎหมาย")).toBeVisible();
+      await page.getByLabel("คุณค่าของเรา").fill(values);
+      await page.getByLabel("เบอร์โทรที่แสดง").fill("");
+      await page.getByLabel("เบอร์โทรสำหรับลิงก์").fill("");
+      await page.getByLabel("โลโก้บริษัท", { exact: true }).setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
+      await page.getByLabel(/รูปบริษัทสำหรับหน้าเกี่ยวกับเรา/).setInputFiles({ name: "office.png", mimeType: "image/png", buffer: png });
+      await expect(page.locator('input[type="hidden"][name="logoMediaId"]')).toHaveCount(1, { timeout: 30_000 });
+      await expect(page.locator('input[type="hidden"][name="galleryMediaIds"]')).toHaveCount(1, { timeout: 30_000 });
+      await page.getByRole("button", { name: "บันทึกการเปลี่ยนแปลง" }).click();
+      await expect(page.getByText("บันทึกข้อมูลบริษัทเรียบร้อยแล้ว")).toBeVisible();
+
+      await page.goto("/about");
+      await expect(page.getByText(values)).toBeVisible();
+      const photo = page.locator("main picture img").first();
+      await expect(photo).toBeVisible();
+      // โหลดผ่าน /api/media -> signed URL ของ storage จริง จึงยืนยัน CSP img-src และ redirect ไปพร้อมกัน
+      await expect.poll(() => photo.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+      await expect.poll(() => page.locator("header .brand-logo").evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+
+      await page.goto("/contact");
+      await expect(page.getByRole("link", { name: "โทรหาเรา" })).toHaveCount(0);
+      await expect(page.getByText("ข้อมูลตัวอย่างสำหรับการพัฒนาระบบ")).toHaveCount(0);
+    } finally {
+      if (original) {
+        const { id, createdAt: _createdAt, updatedAt: _updatedAt, gallery, ...data } = original;
+        await database.companyMedia.deleteMany({ where: { companyId: id } });
+        await database.company.update({ where: { id }, data: { ...data, gallery: { create: gallery.map(({ mediaId, sortOrder }) => ({ mediaId, sortOrder })) } } });
+      }
+      await database.$disconnect();
+      await cleanup();
+    }
+  });
+
   test("เพิ่ม เผยแพร่ ย้ายลงถังขยะ และกู้คืนเนื้อหา", async ({ page }) => {
     const cleanup = await authenticateTemporaryAdmin(page);
     const headers = { Origin: process.env.APP_URL ?? baseURL };

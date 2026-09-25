@@ -25,7 +25,8 @@ function orderBy(sort: string, titleField: "title" | "name" = "title") {
   if (sort === "title-desc") return [{ [titleField]: "desc" as const }];
   return [{ updatedAt: "desc" as const }];
 }
-async function assertMedia(tx: Prisma.TransactionClient, images: Array<string | null | undefined>, pdfs: Array<string | null | undefined> = []) {
+/** ตรวจว่าไฟล์พร้อมใช้และถูกชนิด แล้วยกเลิกกำหนดลบไฟล์กำพร้า ใช้ร่วมกับข้อมูลบริษัทด้วย */
+export async function assertMedia(tx: Prisma.TransactionClient, images: Array<string | null | undefined>, pdfs: Array<string | null | undefined> = []) {
   const imageIds = [...new Set(images.filter((id): id is string => Boolean(id)))]; const pdfIds = [...new Set(pdfs.filter((id): id is string => Boolean(id)))];
   const [imageCount, pdfCount] = await Promise.all([tx.media.count({ where: { id: { in: imageIds }, kind: "IMAGE", status: "READY", deletedAt: null } }), tx.media.count({ where: { id: { in: pdfIds }, kind: "PDF", status: "READY", deletedAt: null } })]);
   if (imageCount !== imageIds.length || pdfCount !== pdfIds.length) throw new CmsError("INVALID_MEDIA", "ไฟล์สื่อไม่พร้อมใช้งานหรือชนิดไฟล์ไม่ถูกต้อง");
