@@ -9,6 +9,8 @@ import type { ContentKind } from "@/server/cms/schemas";
 
 /** ยกเลิกหรือล้างข้อมูลผ่าน invalidatePublicContent; โค้ดส่วนนี้คำนึงถึงการอ้างอิงและผลกระทบก่อนเปลี่ยนข้อมูล */
 export function invalidatePublicContent(kind?: ContentKind) {
-  revalidateTag("public-content", "max");
-  if (kind) revalidateTag(kind, "max");
+  // expire: 0 ไม่ให้เสิร์ฟข้อมูลเก่าอีกแม้แต่คำขอเดียว: เนื้อหาที่ยกเลิกเผยแพร่หรือย้ายลงถังขยะต้องหายจากหน้าเว็บทันที
+  // ("max" คือ stale-while-revalidate ซึ่งยังส่งฉบับเก่าให้ผู้เข้าชมคนถัดไป; updateTag ใช้ใน Route Handler ไม่ได้)
+  revalidateTag("public-content", { expire: 0 });
+  if (kind) revalidateTag(kind, { expire: 0 });
 }
