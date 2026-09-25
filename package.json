@@ -11,7 +11,7 @@
     "test:visual": "playwright test tests/visual-accessibility.spec.ts",
     "test:unit": "vitest run --exclude '**/*.integration.test.ts'",
     "test:integration": "RUN_INTEGRATION=1 vitest run tests/database.integration.test.ts",
-    "test:e2e": "playwright test tests/security.e2e.spec.ts tests/cms-auth.e2e.spec.ts",
+    "test:e2e": "playwright test tests/security.e2e.spec.ts tests/cms-auth.e2e.spec.ts tests/cms-workflows.e2e.spec.ts",
     "test:security": "npm run test:unit && npm audit --audit-level=high",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
