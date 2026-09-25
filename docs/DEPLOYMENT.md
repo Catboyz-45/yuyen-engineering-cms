@@ -27,6 +27,14 @@ docker build \
 
 ห้ามใช้ `prisma migrate dev`, `prisma db push` หรือ development seed ใน production
 
+## แพลตฟอร์มที่รองรับ
+
+ระบบออกแบบให้รันเป็น container ต่อเนื่อง (Docker Compose หรือบริการที่รัน container ได้)
+Production บังคับ `MALWARE_SCAN_MODE=required` จึงต้องเข้าถึง ClamAV (`CLAMAV_HOST`/`CLAMAV_PORT`)
+ได้จากแอป บริการแบบ serverless เช่น Vercel ไม่มี ClamAV ให้ ถ้าใช้จะอัปโหลดไฟล์ไม่ได้และ
+`/api/health/ready` จะตอบ 503 ห้ามปิดการสแกนใน production เพื่อเลี่ยงปัญหานี้ และห้ามส่งไฟล์
+ไป clamd ข้ามอินเทอร์เน็ตโดยไม่มีช่องทางเข้ารหัส งาน cleanup ตามรอบก็ต้องมี scheduler ภายนอกเช่นกัน
+
 ## Reverse proxy และ IP สำหรับ Rate Limit
 
 ค่าเริ่มต้น `AUTH_TRUSTED_PROXY_HOPS=0` จะไม่เชื่อ `X-Forwarded-For` ที่ผู้ใช้ส่งมา

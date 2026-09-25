@@ -7,8 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl \
 
 FROM base AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json package-lock.json prisma.config.ts ./
+COPY prisma ./prisma
+# postinstall runs `prisma generate`, which needs the schema; prisma.config.ts requires DATABASE_URL even though generate never connects.
+RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build?schema=public npm ci
 
 FROM base AS builder
 WORKDIR /app
