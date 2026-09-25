@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isGoogleMapsEmbedUrl } from "@/lib/maps";
 import { CompanyRepository } from "@/server/repositories/company.repository";
 
 const optionalUrl = z.union([z.literal(""), z.string().url()]).transform((value) => value || null);
@@ -18,7 +19,7 @@ export const companyInputSchema = z.object({
   lineUrl: optionalUrl.nullable().optional(),
   facebookUrl: optionalUrl.nullable().optional(),
   mapsUrl: optionalUrl.nullable().optional(),
-  mapsEmbedUrl: optionalUrl.nullable().optional(),
+  mapsEmbedUrl: optionalUrl.refine(value => value === null || isGoogleMapsEmbedUrl(value), "ต้องเป็นลิงก์ฝังแผนที่ของ Google Maps (https://www.google.com/maps/embed?...)").nullable().optional(),
   businessHours: z.string().trim().max(200).nullable().optional(),
   seoTitle: z.string().trim().max(60).nullable().optional(),
   seoDescription: z.string().trim().max(160).nullable().optional(),

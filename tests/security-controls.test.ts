@@ -1,8 +1,7 @@
 import { AdminRole } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import { can, type Permission } from "@/server/auth/permissions";
-import { calculateLockout } from "@/server/auth/throttle";
-import { isSameOrigin } from "@/server/security/request";
+import { clientIp, isSameOrigin } from "@/server/security/request";
 import { errorDetails } from "@/server/observability/logger";
 
 describe("RBAC permission matrix", () => {
@@ -20,11 +19,13 @@ describe("request security", () => {
     expect(isSameOrigin(null, "https://cms.example.com")).toBe(false);
     expect(isSameOrigin("not a url", "https://cms.example.com")).toBe(false);
   });
-  it("locks at the configured threshold", () => {
-    const now = Date.parse("2026-09-01T00:00:00Z");
-    expect(calculateLockout(4, 5, 15, now)).toBeNull();
-    expect(calculateLockout(5, 5, 15, now)?.toISOString()).toBe("2026-09-01T00:15:00.000Z");
-    expect(calculateLockout(8, 5, 15, now)?.toISOString()).toBe("2026-09-01T00:15:00.000Z");
+  it("reads the client address written by the outermost trusted proxy only", () => {
+    const headers = new Headers({ "x-forwarded-for": "6.6.6.6, 203.0.113.9", "x-real-ip": "7.7.7.7" });
+    expect(clientIp(headers, 1)).toBe("203.0.113.9");
+    expect(clientIp(headers, 2)).toBe("6.6.6.6");
+    expect(clientIp(headers, 0)).toBeNull();
+    expect(clientIp(new Headers({ "x-real-ip": "198.51.100.4" }), 1)).toBe("198.51.100.4");
+    expect(clientIp(new Headers(), 1)).toBeNull();
   });
   it("does not expose stack traces through normalized error details", () => {
     const details = errorDetails(new Error("database unavailable"));

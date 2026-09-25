@@ -3,6 +3,7 @@ import { Prisma, type AdminRole } from "@prisma/client";
 import { db } from "@/server/db";
 import { hashPassword, randomToken } from "@/server/security/crypto";
 import { revokeUserSessions } from "./session";
+import { clearAdminThrottles } from "./throttle";
 
 export async function createAdmin(input: { username: string; displayName: string; role: AdminRole }) {
   const temporaryPassword = `${randomToken(12)}Aa!1`; const passwordHash = await hashPassword(temporaryPassword);
@@ -26,10 +27,12 @@ export async function updateAdminSafely(userId: string, input: { displayName?: s
 
 export async function resetAdminPassword(userId: string) {
   const temporaryPassword = `${randomToken(12)}Aa!1`; const passwordHash = await hashPassword(temporaryPassword);
-  await db.admin.update({ where: { id: userId }, data: { passwordHash, mustChangePassword: true } }); await revokeUserSessions(userId);
+  const user = await db.admin.update({ where: { id: userId }, data: { passwordHash, mustChangePassword: true } }); await revokeUserSessions(userId);
+  await clearAdminThrottles(user);
   return temporaryPassword;
 }
 
 export async function resetAdminTwoFactor(userId: string) {
-  await db.$transaction([db.admin.update({ where: { id: userId }, data: { twoFactorEnabled: false, totpSecretEncrypted: null, totpKeyVersion: null } }), db.recoveryCode.deleteMany({ where: { adminId: userId } }), db.session.updateMany({ where: { adminId: userId, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: "TWO_FACTOR_RESET" } })]);
+  const [user] = await db.$transaction([db.admin.update({ where: { id: userId }, data: { twoFactorEnabled: false, totpSecretEncrypted: null, totpKeyVersion: null } }), db.recoveryCode.deleteMany({ where: { adminId: userId } }), db.session.updateMany({ where: { adminId: userId, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: "TWO_FACTOR_RESET" } })]);
+  await clearAdminThrottles(user);
 }
