@@ -12,6 +12,7 @@ import { LoadingLabel } from "./loading-label";
 import { FieldErrors, fieldMessage, focusFirstInvalid, readFieldErrors } from "@/lib/form-validation";
 import { MediaUploader } from "./admin/editor-ui";
 import { initialSiteCopy, readSiteCopy, SiteCopyFields } from "./admin/site-copy-fields";
+import { SectionNav } from "./admin/section-nav";
 type MediaPreview = { id: string; originalName?: string | null; altText?: string | null };
 type Company = Record<string, unknown> & { logoMedia?: MediaPreview | null; gallery?: { media: MediaPreview }[] };
 const GALLERY_LIMIT = 12;
@@ -187,10 +188,7 @@ export function CompanyForm() {
           <p className="help">มีผลกับหน้าเว็บทันทีหลังบันทึก ช่องที่เว้นว่างจะไม่แสดงบนหน้าเว็บ</p>
           <a className="btn btn-outline" href="/about" target="_blank" rel="noreferrer"><ExternalLink size={16} aria-hidden="true" /> ดูหน้าเกี่ยวกับเรา</a>
         </section>
-        <nav className="form-section section-nav" aria-label="ไปยังส่วนของฟอร์ม">
-          <h2>ในหน้านี้</h2>
-          <ul>{sectionLinks.map(link => <li key={link.id}><a href={`#${link.id}`}>{link.title}</a></li>)}</ul>
-        </nav>
+        <SectionNav links={sectionLinks} label="ไปยังส่วนของฟอร์ม" />
       </aside>
     </form>
   );

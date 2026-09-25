@@ -409,8 +409,9 @@ export function MediaUploader({
         </div>
       )}
       <p className="help">
-        ระบบตรวจ signature จริง ลบ metadata ปรับ orientation และสร้าง WebP, AVIF
-        และ thumbnails อัตโนมัติ
+        {pdf
+          ? "ระบบตรวจว่าเป็นไฟล์ PDF จริงก่อนบันทึก"
+          : "ระบบตรวจไฟล์ ลบข้อมูลแฝงในรูป หมุนรูปให้ตรง และย่อขนาดให้โหลดเร็วโดยอัตโนมัติ"}
       </p>
     </div>
   );

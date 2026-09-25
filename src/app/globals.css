@@ -1703,17 +1703,11 @@ a.metric-card:hover {
   background: #fdecea;
   color: var(--danger);
 }
-.skeleton {
+/* แถวโหลดในตารางหลังบ้าน ใช้ .skeleton เดียวกับหน้าเว็บ แค่กำหนดความสูงของแถบข้อความ */
+.skeleton-row .skeleton {
   display: block;
   height: 12px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #edf1ee 25%, #f6f8f6 50%, #edf1ee 75%);
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.4s ease-in-out infinite;
-}
-@keyframes skeleton-shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
 }
 .table-meta {
   display: block;
@@ -1793,9 +1787,6 @@ a.metric-card:hover {
   display: inline;
   vertical-align: -2px;
 }
-@media (prefers-reduced-motion: reduce) {
-  .skeleton { animation: none; }
-}
 
 /* ฟอร์มข้อมูลบริษัท */
 .form-grid {
@@ -1854,6 +1845,12 @@ a.metric-card:hover {
 .section-nav a:hover {
   color: var(--green-800);
   background: var(--mint-100);
+}
+.section-nav a.active {
+  color: var(--green-900);
+  background: var(--mint-100);
+  box-shadow: inset 3px 0 0 var(--green-700);
+  font-weight: 750;
 }
 .copy-group {
   margin: 0 0 22px;
@@ -2360,6 +2357,11 @@ a.metric-card:hover {
 .dropzone:hover {
   border-color: var(--green-700);
   background: var(--mint-100);
+}
+/* ไอคอน svg เป็น block ตามค่าเริ่มต้นของ Tailwind จึงไม่ตาม text-align: center ต้องจัดกึ่งกลางด้วย grid */
+.dropzone > span {
+  display: grid;
+  justify-items: center;
 }
 .dropzone strong {
   display: block;
