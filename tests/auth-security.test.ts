@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
+  currentTotpKeyVersion,
   decryptSecret,
   encryptSecret,
   hashPassword,
@@ -44,9 +45,14 @@ describe("authentication cryptography", () => {
     const second = encryptSecret(secret);
     expect(first).not.toBe(second);
     expect(first.startsWith("v1.")).toBe(true);
-    expect(decryptSecret(first)).toBe(secret);
-    const replacement = first.endsWith("x") ? "y" : "x";
-    expect(() => decryptSecret(`${first.slice(0, -1)}${replacement}`)).toThrow();
+    // encryptSecret uses the current key version, which is not 1 when a keyring is configured.
+    const keyVersion = currentTotpKeyVersion();
+    expect(decryptSecret(first, keyVersion)).toBe(secret);
+    // Flip a real ciphertext byte; swapping the last base64url character can touch only padding bits.
+    const [version, iv, tag, encrypted] = first.split(".");
+    const tampered = Buffer.from(encrypted, "base64url");
+    tampered[0] ^= 1;
+    expect(() => decryptSecret([version, iv, tag, tampered.toString("base64url")].join("."), keyVersion)).toThrow();
   });
   it("returns the exact accepted TOTP time-step", () => {
     const secret = createTotpSecret();

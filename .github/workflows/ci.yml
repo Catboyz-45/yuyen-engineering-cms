@@ -50,8 +50,10 @@ jobs:
       CI: true
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_test?schema=public
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_test?schema=public
-      APP_URL: http://127.0.0.1:3000
-      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      # Must match Playwright's localhost baseURL: the production session cookie is Secure,
+      # and Playwright only returns Secure cookies over plain HTTP to localhost.
+      APP_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
       SESSION_SECRET: ci-only-session-secret-at-least-32-characters
       TOTP_ENCRYPTION_KEY: Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=
       TOTP_ENCRYPTION_KEYS: '{"1":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=","2":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDE="}'
@@ -125,8 +127,10 @@ jobs:
       CI: true
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_e2e?schema=public
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_e2e?schema=public
-      APP_URL: http://127.0.0.1:3000
-      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      # Must match Playwright's localhost baseURL: the production session cookie is Secure,
+      # and Playwright only returns Secure cookies over plain HTTP to localhost.
+      APP_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
       SESSION_SECRET: ci-only-session-secret-at-least-32-characters
       TOTP_ENCRYPTION_KEY: Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=
       TOTP_ENCRYPTION_KEYS: '{"1":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=","2":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDE="}'
