@@ -94,6 +94,23 @@ model CompanyMedia {
   @@index([mediaId])
 }
 
+/// ข้อมูลที่บริษัทต้องยืนยันในหน้านโยบาย และการรับรองประกาศใช้โดย Super Admin (มีแถวเดียว)
+model LegalNotice {
+  id               String    @id @default(cuid()) @db.VarChar(30)
+  singletonKey     String    @unique @default("PRIMARY") @db.VarChar(20)
+  privacyEmail     String?   @db.VarChar(254)
+  serviceProviders String?   @db.Text
+  retention        String?   @db.Text
+  approvedAt       DateTime? @db.Timestamptz(3)
+  approvedRevision String?   @db.VarChar(40)
+  approvedById     String?   @db.VarChar(30)
+  approvedBy       Admin?    @relation(fields: [approvedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([approvedById])
+}
+
 /// แบนเนอร์หน้าแรก พร้อมรูป ปุ่ม ลำดับ และสถานะเผยแพร่
 model Banner {
   id          String        @id @default(cuid()) @db.VarChar(30)
@@ -438,6 +455,7 @@ model Admin {
   recoveryCodes       RecoveryCode[]
   auditLogs           AuditLog[]
   uploadedMedia       Media[]
+  approvedLegalNotices LegalNotice[]
 
   @@index([role, isActive])
   @@index([deletedAt, purgeAt])

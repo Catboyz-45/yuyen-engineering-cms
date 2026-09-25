@@ -159,6 +159,50 @@ test.describe("authenticated CMS interaction", () => {
     }
   });
 
+  test("Super Admin ยืนยันข้อมูลนโยบายและรับรองจากหลังบ้าน แล้วหน้านโยบายเลิกเป็นฉบับร่าง", async ({ page }) => {
+    const database = new PrismaClient();
+    const original = await database.legalNotice.findUnique({ where: { singletonKey: "PRIMARY" } });
+    const cleanup = await authenticateTemporaryAdmin(page);
+    const email = `privacy-${randomUUID().slice(0, 8)}@example.test`;
+    try {
+      await database.legalNotice.deleteMany({ where: { singletonKey: "PRIMARY" } });
+      await page.goto("/admin/legal");
+      await expect(page.getByText(/^ฉบับร่าง/)).toBeVisible();
+      await page.getByLabel("อีเมลรับคำร้องเรื่องข้อมูลส่วนบุคคล").fill(email);
+      await page.getByLabel(/รับรองและประกาศใช้นโยบาย/).check();
+      await page.getByRole("button", { name: "บันทึก", exact: true }).click();
+      // รับรองไม่ได้จนกว่าจะกรอกข้อมูลที่บริษัทต้องยืนยันครบ
+      await expect(page.getByText("ต้องระบุผู้ให้บริการก่อนรับรอง")).toBeVisible();
+      await page.getByLabel("ผู้ให้บริการและพื้นที่จัดเก็บข้อมูล").fill("โฮสติ้งทดสอบ (ประเทศไทย)\nที่เก็บไฟล์ทดสอบ (สิงคโปร์)");
+      await page.getByLabel("ระยะเวลาเก็บข้อมูลที่บริษัทกำหนด").fill("ประวัติระบบเก็บ 1 ปี แล้วลบ");
+      await page.getByRole("button", { name: "บันทึก", exact: true }).click();
+      await expect(page.getByText("บันทึกและประกาศใช้นโยบายเรียบร้อยแล้ว")).toBeVisible();
+      await expect(page.getByText(/^ประกาศใช้แล้ว/)).toBeVisible();
+
+      await page.goto("/privacy");
+      await expect(page.getByLabel("สถานะเอกสาร")).toHaveCount(0);
+      await expect(page.locator('meta[name="robots"]')).not.toHaveAttribute("content", /noindex/);
+      await expect(page.getByRole("link", { name: email })).toHaveAttribute("href", `mailto:${email}`);
+      await expect(page.getByText("ที่เก็บไฟล์ทดสอบ (สิงคโปร์)")).toBeVisible();
+      await expect(page.getByText("ประวัติระบบเก็บ 1 ปี แล้วลบ")).toBeVisible();
+      await expect(page.getByText(/Vercel|Neon/)).toHaveCount(0);
+      expect(await (await page.request.get("/sitemap.xml")).text()).toContain("/privacy</loc>");
+
+      await page.goto("/admin/legal");
+      await page.getByLabel(/รับรองและประกาศใช้นโยบาย/).uncheck();
+      await page.getByRole("button", { name: "บันทึก", exact: true }).click();
+      await expect(page.getByText("บันทึกข้อมูลนโยบายเรียบร้อยแล้ว (ฉบับร่าง)")).toBeVisible();
+      await page.goto("/terms");
+      await expect(page.getByLabel("สถานะเอกสาร")).toBeVisible();
+      await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    } finally {
+      await database.legalNotice.deleteMany({ where: { singletonKey: "PRIMARY" } });
+      if (original) await database.legalNotice.create({ data: original });
+      await database.$disconnect();
+      await cleanup();
+    }
+  });
+
   test("เพิ่ม เผยแพร่ ย้ายลงถังขยะ และกู้คืนเนื้อหา", async ({ page }) => {
     const cleanup = await authenticateTemporaryAdmin(page);
     const headers = { Origin: process.env.APP_URL ?? baseURL };

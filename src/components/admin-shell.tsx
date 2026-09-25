@@ -8,7 +8,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Boxes, BriefcaseBusiness, Building2, ChevronRight, FileText, Image, LayoutDashboard, Menu, Newspaper, Package, Settings, ShieldCheck, Tags, Trash2, Users, X } from "lucide-react";
+import { Boxes, BriefcaseBusiness, Building2, ChevronRight, FileText, Image, LayoutDashboard, Menu, Newspaper, Package, Scale, Settings, ShieldCheck, Tags, Trash2, Users, X } from "lucide-react";
 import { Logo } from "./logo";
 import { LogoutButton } from "./logout-button";
 
@@ -22,6 +22,7 @@ const nav = [
   ["/admin/news", "ข่าวสาร", Newspaper],
   ["/admin/taxonomies/news-categories", "หมวดหมู่", Tags],
   ["/admin/admins", "ผู้ดูแลระบบ", Users],
+  ["/admin/legal", "นโยบายเว็บไซต์", Scale],
   ["/admin/audit", "ประวัติการทำงาน", FileText],
   ["/admin/trash", "ถังขยะ", Trash2],
 ] as const;

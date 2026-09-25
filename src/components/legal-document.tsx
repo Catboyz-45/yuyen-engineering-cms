@@ -2,21 +2,25 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { legalRevision } from "@/lib/legal";
-import { getLegalSettings } from "@/server/config/legal";
+import type { PublicLegalNotice } from "@/server/services/legal-notice.service";
 
 type Section = { id: string; title: string; content: ReactNode };
 
+const thaiDate = new Intl.DateTimeFormat("th-TH", { dateStyle: "long", timeZone: "Asia/Bangkok" });
+
 /** แสดงหัวข้ออย่างเป็นลำดับ อ่านด้วยคีย์บอร์ดและโปรแกรมอ่านหน้าจอได้ */
-export function LegalDocument({ title, summary, sections }: { title: string; summary: string; sections: Section[] }) {
-  const settings = getLegalSettings();
+export function LegalDocument({ title, summary, sections, notice }: { title: string; summary: string; sections: Section[]; notice: PublicLegalNotice }) {
   return (
     <article className="container legal-document">
       <header className="stack">
         <p className="eyebrow">ข้อมูลการใช้เว็บไซต์</p>
         <h1 className="heading">{title}</h1>
         <p className="lead">{summary}</p>
-        <p className="muted">ปรับปรุงล่าสุด {legalRevision}</p>
-        {settings.LEGAL_NOTICE_APPROVED !== "true" && (
+        <p className="muted">
+          ปรับปรุงล่าสุด {legalRevision}
+          {notice.approved && notice.approvedAt && <> · ประกาศใช้ {thaiDate.format(new Date(notice.approvedAt))}</>}
+        </p>
+        {!notice.approved && (
           <aside className="legal-review" aria-label="สถานะเอกสาร">
             ฉบับร่างเพื่อการตรวจทาน — บริษัทอยู่ระหว่างยืนยันช่องทางติดต่อ ระยะเวลาเก็บข้อมูล
             และรายละเอียดผู้ให้บริการก่อนประกาศใช้จริง
@@ -38,9 +42,8 @@ export function LegalDocument({ title, summary, sections }: { title: string; sum
   );
 }
 
-/** ใช้อีเมลที่บริษัทรับรองเท่านั้น ไม่หยิบอีเมลตัวอย่างจาก seed มาใช้รับคำร้อง */
-export function PrivacyContact() {
-  const { PRIVACY_CONTACT_EMAIL: email } = getLegalSettings();
+/** ใช้อีเมลที่ Super Admin ตั้งในหลังบ้านเท่านั้น ไม่หยิบอีเมลตัวอย่างหรืออีเมลทั่วไปของบริษัทมาใช้รับคำร้อง */
+export function PrivacyContact({ email }: { email: string | null }) {
   return email ? (
     <p>ติดต่อบริษัท อยู่เย็นเป็นสุข วิศวกรรม จำกัด เรื่องข้อมูลส่วนบุคคลได้ที่ <a href={`mailto:${email}`}>{email}</a> กรุณาระบุเรื่องที่ต้องการให้ช่วยและช่องทางตอบกลับ บริษัทอาจขอข้อมูลเท่าที่จำเป็นเพื่อยืนยันว่าเป็นเจ้าของข้อมูลก่อนดำเนินการ</p>
   ) : (

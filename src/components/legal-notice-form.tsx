@@ -1,0 +1,123 @@
+/**
+ * หน้าที่ของไฟล์นี้: ฟอร์มหลังบ้านสำหรับข้อมูลที่บริษัทต้องยืนยันในหน้านโยบาย และการรับรองประกาศใช้
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: การรับรองจะถอดป้ายฉบับร่าง เปิดให้เครื่องมือค้นหาเก็บหน้า และเพิ่มหน้าใน sitemap
+ */
+"use client";
+import { FormEvent, useEffect, useState } from "react";
+import { ExternalLink, Save } from "lucide-react";
+import { useUI } from "./ui-feedback";
+import { useDirtyForm } from "@/hooks/use-dirty-form";
+import { LoadingLabel } from "./loading-label";
+import { FieldErrors, fieldMessage, focusFirstInvalid, readFieldErrors } from "@/lib/form-validation";
+import { legalLinks } from "@/lib/legal";
+
+type Notice = { privacyEmail: string | null; serviceProviders: string | null; retention: string | null; approvedAt: string | null; approvedRevision: string | null; updatedAt: string; approvedBy: { displayName: string } | null };
+type State = { notice: Notice | null; revision: string; approved: boolean };
+
+const fields = [
+  { key: "privacyEmail", label: "อีเมลรับคำร้องเรื่องข้อมูลส่วนบุคคล", max: 254, help: "อีเมลที่มีผู้รับผิดชอบตอบคำร้องจริง แสดงในหัวข้อสิทธิของเจ้าของข้อมูล" },
+  { key: "serviceProviders", label: "ผู้ให้บริการและพื้นที่จัดเก็บข้อมูล", max: 2000, help: "เช่น ผู้ให้บริการโฮสติ้ง ฐานข้อมูล ที่เก็บรูป/PDF และสำเนาสำรอง พร้อมประเทศหรือภูมิภาคที่เก็บข้อมูล หนึ่งรายการต่อบรรทัด" },
+  { key: "retention", label: "ระยะเวลาเก็บข้อมูลที่บริษัทกำหนด", max: 2000, help: "ระยะเวลาเก็บสูงสุดของประวัติระบบ (อย่างน้อย 180 วัน) บันทึกโฮสติ้ง ข้อมูลติดต่อ และสำเนาสำรอง" },
+] as const;
+
+const thaiDateTime = new Intl.DateTimeFormat("th-TH", { dateStyle: "long", timeStyle: "short", timeZone: "Asia/Bangkok" });
+
+/** สร้างส่วนหน้าจอ LegalNoticeForm; โหลดข้อมูลเดิม แล้วบันทึกพร้อมกันการเขียนทับจากผู้ดูแลคนอื่น */
+export function LegalNoticeForm() {
+  const [state, setState] = useState<State | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const { toast } = useUI();
+  const { markDirty, markClean } = useDirtyForm();
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/admin/legal")
+      .then(async response => {
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error);
+        if (active) setState(body);
+      })
+      .catch(caught => { if (active) setError(caught instanceof Error ? caught.message : "โหลดข้อมูลไม่สำเร็จ"); });
+    return () => { active = false; };
+  }, []);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
+    setSaving(true);
+    setError("");
+    setFieldErrors({});
+    const payload = { ...Object.fromEntries(fields.map(({ key }) => [key, String(form.get(key) ?? "").trim() || null])), approved: form.get("approved") === "on" };
+    const expectedUpdatedAt = state?.notice?.updatedAt;
+    try {
+      const response = await fetch("/api/admin/legal", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(expectedUpdatedAt ? { "If-Unmodified-Since": expectedUpdatedAt } : {}) },
+        body: JSON.stringify(payload),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        const nextErrors = readFieldErrors(body);
+        setFieldErrors(nextErrors);
+        focusFirstInvalid(formElement, nextErrors);
+        throw new Error(body.error);
+      }
+      markClean();
+      setState(body);
+      toast(body.approved ? "บันทึกและประกาศใช้นโยบายเรียบร้อยแล้ว" : "บันทึกข้อมูลนโยบายเรียบร้อยแล้ว (ฉบับร่าง)");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "บันทึกไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!state) return <div className="card-body">{error || "กำลังโหลด…"}</div>;
+  const { notice, revision, approved } = state;
+  const staleApproval = !approved && notice?.approvedAt && notice.approvedRevision !== revision;
+  return (
+    <form key={notice?.updatedAt ?? "new"} className="card-body form-stack" style={{ maxWidth: 840, margin: 0 }} onSubmit={submit} onChange={markDirty} onInput={markDirty} aria-busy={saving}>
+      <div className={`auth-alert ${approved ? "success" : "warning"}`} role="status">
+        {approved && notice?.approvedAt
+          ? <>ประกาศใช้แล้ว (ข้อความฉบับ {revision}) เมื่อ {thaiDateTime.format(new Date(notice.approvedAt))}{notice.approvedBy ? ` โดย ${notice.approvedBy.displayName}` : ""}</>
+          : staleApproval
+            ? <>ข้อความนโยบายถูกปรับเป็นฉบับ {revision} หลังการรับรองครั้งก่อน (ฉบับ {notice.approvedRevision}) หน้าเว็บจึงกลับเป็นฉบับร่าง กรุณาตรวจและรับรองใหม่</>
+            : <>ฉบับร่าง — หน้านโยบายแสดงป้ายฉบับร่างและยังไม่ให้เครื่องมือค้นหาเก็บหน้า</>}
+      </div>
+      {error && <div className="auth-alert warning">{error}</div>}
+      <p className="help">
+        ข้อความส่วนอื่นของนโยบายอธิบายการทำงานของระบบ จึงแก้ผ่านนักพัฒนาเท่านั้น ตรวจหน้าจริงก่อนรับรอง:{" "}
+        {legalLinks.map((link, index) => <span key={link.href}>{index > 0 && " · "}<a href={link.href} target="_blank" rel="noreferrer">{link.label} (แท็บใหม่) <ExternalLink size={13} aria-hidden="true" /></a></span>)}
+      </p>
+      {fields.map(field => {
+        const message = fieldMessage(fieldErrors, field.key);
+        const errorId = `${field.key}-error`;
+        const helpId = `${field.key}-help`;
+        const value = notice?.[field.key] ?? "";
+        return (
+          <div className="form-group" key={field.key}>
+            <label htmlFor={field.key}>{field.label}</label>
+            {field.key === "privacyEmail"
+              ? <input id={field.key} name={field.key} className="field" type="email" maxLength={field.max} defaultValue={value} aria-invalid={Boolean(message)} aria-describedby={[helpId, message ? errorId : ""].filter(Boolean).join(" ")} />
+              : <textarea id={field.key} name={field.key} className="field" rows={4} maxLength={field.max} defaultValue={value} aria-invalid={Boolean(message)} aria-describedby={[helpId, message ? errorId : ""].filter(Boolean).join(" ")} />}
+            <p className="help" id={helpId}>{field.help}</p>
+            {message && <p className="field-error" id={errorId}>{message}</p>}
+          </div>
+        );
+      })}
+      <label className="cluster" style={{ alignItems: "flex-start", gap: 10 }}>
+        <input type="checkbox" name="approved" defaultChecked={approved} style={{ marginTop: 5 }} />
+        <span>
+          <strong>รับรองและประกาศใช้นโยบายฉบับ {revision}</strong>
+          <span className="help" style={{ display: "block" }}>ติ๊กเมื่อผู้รับผิดชอบข้อมูลหรือที่ปรึกษากฎหมายตรวจข้อความทั้ง 3 หน้าแล้ว ต้องกรอกทั้ง 3 ช่องด้านบน เอาติ๊กออกเพื่อกลับเป็นฉบับร่าง</span>
+        </span>
+      </label>
+      <button className="btn btn-dark" disabled={saving} aria-busy={saving}>
+        <LoadingLabel busy={saving} busyText="กำลังบันทึก…"><><Save size={17} /> บันทึก</></LoadingLabel>
+      </button>
+    </form>
+  );
+}

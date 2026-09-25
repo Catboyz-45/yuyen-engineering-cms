@@ -161,7 +161,14 @@ and hides empty fields.
 `NEXT_PUBLIC_COMPANY_*` values in `.env.example` are used only before the first
 CMS save, with a visible sample-data label. Until then, LINE, Facebook, the
 office address, and Google Maps are shown as pending instead of linking to an
-invented destination.
+invented destination. Built-in sample phone, email, and LINE values are used in
+development only; production hides any value that is not set.
+
+The privacy, cookie, and terms pages stay drafts (labelled and `noindex`) until
+a Super Admin fills in the privacy contact email, service providers, and
+retention periods under นโยบายเว็บไซต์ and approves them. The approval is tied
+to `legalRevision` in `src/lib/legal.ts`: change that value whenever the policy
+text changes, and the pages return to draft until they are approved again.
 
 Product catalog downloads use approved PDFs from the configured private
 S3-compatible storage. Products without an attached catalog return 404.

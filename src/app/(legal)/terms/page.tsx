@@ -2,11 +2,13 @@
 import Link from "next/link";
 import { LegalDocument } from "@/components/legal-document";
 import { createMetadata } from "@/lib/seo";
+import { getPublicLegalNotice } from "@/server/services/legal-notice.service";
 
 export const metadata = createMetadata({ title: "เงื่อนไขการใช้เว็บไซต์", description: "ขอบเขตข้อมูลสินค้า บริการ สิทธิในเนื้อหา และการใช้งานเว็บไซต์อย่างเหมาะสม", path: "/terms" });
 
-export default function TermsPage() {
-  return <LegalDocument title="เงื่อนไขการใช้เว็บไซต์" summary="ข้อควรรู้ในการอ่านข้อมูล ติดต่อบริษัท และใช้ระบบผู้ดูแล" sections={[
+export default async function TermsPage() {
+  const notice = await getPublicLegalNotice();
+  return <LegalDocument notice={notice} title="เงื่อนไขการใช้เว็บไซต์" summary="ข้อควรรู้ในการอ่านข้อมูล ติดต่อบริษัท และใช้ระบบผู้ดูแล" sections={[
     { id: "scope", title: "1. เว็บไซต์นี้ให้บริการอะไร", content: <p>เว็บไซต์ของบริษัท อยู่เย็นเป็นสุข วิศวกรรม จำกัด ใช้แนะนำบริษัท บริการ สินค้า ผลงาน ข่าว และช่องทางติดต่อ ไม่มีระบบซื้อสินค้า ชำระเงิน จองคิว หรือทำสัญญาออนไลน์ผ่านเว็บไซต์นี้</p> },
     { id: "information", title: "2. ข้อมูลสินค้าและบริการ", content: <p>รายละเอียดรุ่น รูปภาพ คุณสมบัติ การรับประกัน และข้อความราคาใช้เป็นข้อมูลประกอบการสอบถาม โปรดยืนยันรายละเอียด ขอบเขตงาน ราคา และเงื่อนไขกับบริษัทก่อนตกลงใช้บริการ ข้อมูลที่ระบุว่าเป็นตัวอย่างหรือรอการยืนยันไม่ใช่ข้อเสนอขายหรือคำรับรองจากบริษัท</p> },
     { id: "content", title: "3. การใช้รูปภาพและเนื้อหา", content: <p>เนื้อหา รูปภาพ โลโก้ และแคตตาล็อกอาจเป็นทรัพย์สินของบริษัทหรือเจ้าของสิทธิ์รายอื่น คุณสามารถอ่านและแชร์ลิงก์เพื่ออ้างอิงได้ การนำเนื้อหาไปเผยแพร่ซ้ำ ดัดแปลง หรือใช้เชิงพาณิชย์ต้องได้รับอนุญาตจากเจ้าของสิทธิ์ เว้นแต่กฎหมายอนุญาตไว้</p> },

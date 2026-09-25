@@ -10,6 +10,8 @@ import { updateAdminSafely } from "@/server/auth/admin-users";
 import { ContentService } from "@/server/cms/content.service";
 import { TaxonomyService } from "@/server/cms/taxonomy.service";
 import { CompanyService, companyInputSchema } from "@/server/services/company.service";
+import { LegalNoticeService, legalNoticeInputSchema } from "@/server/services/legal-notice.service";
+import { isLegalNoticeApproved, legalRevision } from "@/lib/legal";
 import { referenceCount } from "@/server/media/references";
 import { DEFAULT_SITE_COPY } from "@/lib/site-copy";
 import { uploadRequestSchema } from "@/server/media/validation";
@@ -214,6 +216,40 @@ suite("CMS database integration workflows", () => {
       await db.companyMedia.deleteMany({ where: { mediaId: { in: images.map(image => image.id) } } });
       await db.company.updateMany({ where: { logoMediaId: { in: images.map(image => image.id) } }, data: { logoMediaId: null } });
       await db.media.deleteMany({ where: { id: { in: images.map(image => image.id) } } });
+    }
+  });
+
+  it("keeps policies in draft until a Super Admin approves complete, company-confirmed details", async () => {
+    const service = new LegalNoticeService();
+    const snapshot = await db.legalNotice.findUnique({ where: { singletonKey: "PRIMARY" } });
+    const complete = { privacyEmail: "privacy@example.test", serviceProviders: "โฮสติ้งทดสอบ (ประเทศไทย)", retention: "ประวัติระบบ 1 ปี", approved: true };
+    try {
+      await db.legalNotice.deleteMany({ where: { singletonKey: "PRIMARY" } });
+      expect(legalNoticeInputSchema.safeParse({ ...complete, privacyEmail: "" }).success).toBe(false);
+      expect(legalNoticeInputSchema.safeParse({ ...complete, retention: null }).success).toBe(false);
+      expect(legalNoticeInputSchema.safeParse({ ...complete, approvedAt: new Date().toISOString() }).success).toBe(false);
+
+      const draft = await service.save({ ...complete, approved: false }, { actorId: adminId, expectedUpdatedAt: null, context });
+      expect(draft).toMatchObject({ privacyEmail: complete.privacyEmail, approvedAt: null, approvedById: null });
+      await expect(service.save(complete, { actorId: adminId, expectedUpdatedAt: new Date(0).toISOString(), context })).rejects.toMatchObject({ code: "CONFLICT" });
+
+      const approved = await service.save(complete, { actorId: adminId, expectedUpdatedAt: draft.updatedAt.toISOString(), context });
+      expect(approved).toMatchObject({ approvedRevision: legalRevision, approvedById: adminId, approvedBy: { displayName: "CMS Integration Admin" } });
+      expect(isLegalNoticeApproved(approved)).toBe(true);
+      // Re-saving unchanged details keeps the original approval date.
+      const unchanged = await service.save(complete, { actorId: adminId, expectedUpdatedAt: approved.updatedAt.toISOString(), context });
+      expect(unchanged.approvedAt).toEqual(approved.approvedAt);
+
+      const withdrawn = await service.save({ ...complete, approved: false }, { actorId: adminId, expectedUpdatedAt: unchanged.updatedAt.toISOString(), context });
+      expect(isLegalNoticeApproved(withdrawn)).toBe(false);
+      const actions = await db.auditLog.findMany({ where: { requestId: context.requestId, targetType: "LegalNotice" }, orderBy: { id: "asc" }, select: { action: true } });
+      expect(actions.map(entry => entry.action)).toEqual(["LEGAL_NOTICE_UPDATED", "LEGAL_NOTICE_APPROVED", "LEGAL_NOTICE_UPDATED", "LEGAL_NOTICE_WITHDRAWN"]);
+
+      // The database refuses an approval without the details the notice depends on.
+      await expect(db.legalNotice.update({ where: { id: withdrawn.id }, data: { privacyEmail: null, approvedAt: new Date(), approvedRevision: legalRevision } })).rejects.toThrow();
+    } finally {
+      await db.legalNotice.deleteMany({ where: { singletonKey: "PRIMARY" } });
+      if (snapshot) await db.legalNotice.create({ data: snapshot });
     }
   });
 

@@ -5,6 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ConsentMap } from "@/components/consent-map";
 import { safeMapEmbedUrl } from "@/lib/map-embed";
 import { getLegalSettings } from "@/server/config/legal";
+import { isLegalNoticeApproved, legalRevision } from "@/lib/legal";
 
 describe("map privacy", () => {
   it.each([
@@ -37,17 +38,20 @@ describe("map privacy", () => {
 });
 
 describe("policy publication", () => {
-  it("defaults to a draft with the same default retention as authentication", () => {
-    expect(getLegalSettings({})).toMatchObject({ LEGAL_NOTICE_APPROVED: "false", SESSION_ABSOLUTE_HOURS: 12, SESSION_IDLE_MINUTES: 30, AUTH_SESSION_RETENTION_DAYS: 30, AUTH_THROTTLE_RETENTION_DAYS: 7 });
+  const complete = { privacyEmail: "privacy@example.test", serviceProviders: "โฮสติ้งตัวอย่าง (ประเทศไทย)", retention: "ประวัติระบบ 1 ปี", approvedAt: new Date("2026-09-25T03:00:00Z"), approvedRevision: legalRevision };
+  it("is a draft until a Super Admin approves the current text with every confirmed detail", () => {
+    expect(isLegalNoticeApproved(null)).toBe(false);
+    expect(isLegalNoticeApproved({ ...complete, approvedAt: null })).toBe(false);
+    expect(isLegalNoticeApproved(complete)).toBe(true);
+    for (const missing of ["privacyEmail", "serviceProviders", "retention"] as const) expect(isLegalNoticeApproved({ ...complete, [missing]: null })).toBe(false);
   });
-  it("requires a valid contact before publication", () => {
-    expect(() => getLegalSettings({ LEGAL_NOTICE_APPROVED: "true" })).toThrow();
-    expect(() => getLegalSettings({ PRIVACY_CONTACT_EMAIL: "not-an-email" })).toThrow();
-    expect(getLegalSettings({ LEGAL_NOTICE_APPROVED: "true", PRIVACY_CONTACT_EMAIL: "privacy@example.test" }).LEGAL_NOTICE_APPROVED).toBe("true");
+  it("returns to draft when developers change the policy text after approval", () => {
+    expect(isLegalNoticeApproved(complete, "ฉบับถัดไป")).toBe(false);
+    expect(isLegalNoticeApproved({ ...complete, approvedRevision: "6 กันยายน 2569" })).toBe(false);
   });
-  it("uses configured lifetimes and rejects invalid configuration", () => {
+  it("uses the same default lifetimes as authentication and rejects invalid configuration", () => {
+    expect(getLegalSettings({})).toEqual({ SESSION_ABSOLUTE_HOURS: 12, SESSION_IDLE_MINUTES: 30, AUTH_SESSION_RETENTION_DAYS: 30, AUTH_THROTTLE_RETENTION_DAYS: 7 });
     expect(getLegalSettings({ SESSION_ABSOLUTE_HOURS: "8" }).SESSION_ABSOLUTE_HOURS).toBe(8);
     expect(() => getLegalSettings({ SESSION_ABSOLUTE_HOURS: "0" })).toThrow();
-    expect(() => getLegalSettings({ LEGAL_NOTICE_APPROVED: "yes" })).toThrow();
   });
 });

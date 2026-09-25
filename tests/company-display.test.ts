@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { resolvePublicCompany } from "@/lib/company-display";
-import { companyPublicConfig } from "@/lib/public-config";
+import { companyPublicConfig, publicValue } from "@/lib/public-config";
 
 describe("public company display", () => {
   it("uses labelled sample values only before the company is saved in the CMS", () => {
@@ -21,5 +21,11 @@ describe("public company display", () => {
 
   it("exposes only the logo id and alt text", () => {
     expect(resolvePublicCompany({ displayName: "บริษัทจริง", logoMedia: { id: "logo-1", altText: null } }).logo).toEqual({ id: "logo-1", altText: "" });
+  });
+
+  it("never shows built-in sample contact details in production", () => {
+    expect(publicValue(undefined, "02-000-0000", "development")).toBe("02-000-0000");
+    expect(publicValue("  ", "02-000-0000", "production")).toBeNull();
+    expect(publicValue("02-123-4567", "02-000-0000", "production")).toBe("02-123-4567");
   });
 });
