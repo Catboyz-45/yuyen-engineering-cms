@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { db } from "@/server/db";
+import { db } from "@/server/db/client";
 import { storage } from "@/server/storage/s3";
 import { optimizeImage } from "./images";
 import { matchesSignature, safeFilename } from "./validation";

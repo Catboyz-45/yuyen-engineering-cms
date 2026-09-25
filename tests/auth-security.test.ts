@@ -21,7 +21,9 @@ describe("authentication cryptography", () => {
     expect(first).not.toBe(second);
     expect(first.startsWith("v1.")).toBe(true);
     expect(decryptSecret(first)).toBe(secret);
-    expect(() => decryptSecret(`${first.slice(0, -1)}x`)).toThrow();
+    const [version, iv, tag, ciphertext] = first.split(".");
+    const tampered = `${ciphertext[0] === "A" ? "B" : "A"}${ciphertext.slice(1)}`;
+    expect(() => decryptSecret([version, iv, tag, tampered].join("."))).toThrow();
   });
   it("generates ten unique one-time recovery codes and stores different hashes", () => {
     const codes = generateRecoveryCodes();

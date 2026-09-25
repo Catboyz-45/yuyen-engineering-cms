@@ -10,12 +10,13 @@
 ## ขั้นตอนปล่อยระบบ
 
 1. สำรองฐานข้อมูลและทดสอบ restore ล่าสุด
-2. สร้าง image จาก commit/tag ที่ผ่าน GitHub Actions โดย public URL และ S3 origin เป็น build-time configuration:
+2. สร้าง image จาก commit/tag ที่ผ่าน GitHub Actions โดย public URL เป็น build-time configuration
+   ส่วน Content-Security-Policy คำนวณ origin ของ S3 จาก `S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION` และ
+   `S3_FORCE_PATH_STYLE` ตอน runtime จึงไม่ต้อง build image ใหม่เมื่อเปลี่ยน storage:
 
 ```bash
 docker build \
   --build-arg NEXT_PUBLIC_SITE_URL=https://www.example.co.th \
-  --build-arg S3_ENDPOINT=https://storage.example.co.th \
   -t yuyen:<tag> .
 ```
 3. ตรวจ migration: `docker compose run --rm ops db:migrate:status`
@@ -23,6 +24,14 @@ docker build \
 5. เริ่ม application: `docker compose up -d app`
 6. ตรวจ `/api/health/live` และ `/api/health/ready` ต้องตอบ HTTP 200
 7. Smoke test หน้าแรก, login, CMS, รูปภาพ และ audit log ก่อนสลับ traffic
+
+ตั้ง `TRUSTED_PROXY_COUNT` ให้เท่ากับจำนวน reverse proxy/load balancer ที่ต่อ `X-Forwarded-For` ก่อนถึงแอป
+(ปกติ 1) ถ้าให้แอปรับ traffic ตรงโดยไม่มี proxy ให้ตั้งเป็น 0 ค่าที่ผิดทำให้ IP ใน audit log และ rate limit
+ราย IP ไม่ถูกต้อง แต่ rate limit รายบัญชีและ 2FA ยังทำงานตามปกติ
+
+ระบบจำกัดการลองรหัสผ่านและรหัส 2FA ตาม `AUTH_RATE_LIMIT_ATTEMPTS` และ `AUTH_RATE_LIMIT_MINUTES` แยกตามบัญชี
+เมื่อครบจำนวนจะล็อกชั่วคราวและเพิ่มเวลาเป็นเท่าตัวทุกครั้งที่ผิดซ้ำ (สูงสุด 8 เท่า) หากบัญชีถูกล็อก Super Admin
+สามารถรีเซ็ตรหัสผ่านหรือ 2FA ให้ ซึ่งจะปลดล็อกบัญชีนั้นด้วย
 
 ห้ามใช้ `prisma migrate dev`, `prisma db push` หรือ development seed ใน production
 

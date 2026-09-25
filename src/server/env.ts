@@ -9,6 +9,7 @@ const schema = z.object({
   SESSION_ABSOLUTE_HOURS: z.coerce.number().int().min(1).max(72).default(12),
   AUTH_RATE_LIMIT_ATTEMPTS: z.coerce.number().int().min(3).max(20).default(5),
   AUTH_RATE_LIMIT_MINUTES: z.coerce.number().int().min(1).max(120).default(15),
+  TRUSTED_PROXY_COUNT: z.coerce.number().int().min(0).max(5).default(1),
   APP_URL: z.string().url(),
 });
 

@@ -76,8 +76,12 @@ jobs:
     env:
       CI: true
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_e2e?schema=public
-      APP_URL: http://127.0.0.1:3000
-      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      # Playwright serves the app on localhost; CSRF origin checks compare against APP_URL.
+      APP_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      # Throwaway credentials for the isolated CI database only.
+      E2E_ADMIN_USERNAME: e2e-owner
+      E2E_ADMIN_PASSWORD: ci-only-temporary-password-1A!
       SESSION_SECRET: ci-only-session-secret-at-least-32-characters
       TOTP_ENCRYPTION_KEY: Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=
       S3_REGION: auto
@@ -90,6 +94,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:generate && npm run db:migrate:deploy
+      - name: Create the first Super Admin for the E2E workflows
+        run: npm run auth:bootstrap
+        env:
+          BOOTSTRAP_ADMIN_USERNAME: ${{ env.E2E_ADMIN_USERNAME }}
+          BOOTSTRAP_ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4

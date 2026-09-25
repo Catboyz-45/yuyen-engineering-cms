@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { runtimeContentSecurityPolicy } from "@/server/security/csp";
 
 export function proxy(request: NextRequest) {
   const requestId = request.headers.get("x-request-id")?.slice(0, 128) || randomUUID();
@@ -7,6 +8,7 @@ export function proxy(request: NextRequest) {
   requestHeaders.set("x-request-id", requestId);
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("x-request-id", requestId);
+  response.headers.set("Content-Security-Policy", runtimeContentSecurityPolicy());
   if (request.nextUrl.pathname.startsWith("/admin") || request.nextUrl.pathname.startsWith("/api/admin")) response.headers.set("Cache-Control", "private, no-store");
   return response;
 }

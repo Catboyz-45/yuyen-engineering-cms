@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isSafeHref } from "@/lib/links";
 
 export const contentKinds = ["banners", "services", "products", "projects", "news"] as const;
 export const contentKindSchema = z.enum(contentKinds);
@@ -13,7 +14,7 @@ const common = {
 
 export const bannerSchema = z.object({
   title: z.string().trim().min(1).max(180), description: nullableText(500), buttonLabel: nullableText(80),
-  buttonUrl: nullableText(500), imageId: nullableId, sortOrder: z.coerce.number().int().min(0).max(100_000).default(0), ...common,
+  buttonUrl: nullableText(500).refine(value => value === null || isSafeHref(value), "ลิงก์ต้องขึ้นต้นด้วย https:// หรือ / (หน้าในเว็บไซต์)"), imageId: nullableId, sortOrder: z.coerce.number().int().min(0).max(100_000).default(0), ...common,
 }).strict();
 
 export const serviceSchema = z.object({
