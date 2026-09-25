@@ -2283,6 +2283,27 @@ select.filter-select {
   border: 0;
   display: block;
 }
+/* หน้านโยบาย: จำกัดความกว้างข้อความให้อ่านภาษาไทยง่าย และให้ตารางเลื่อนในจอเล็ก */
+.legal-document { max-width: 900px; padding-block: 48px; line-height: 1.85; overflow-wrap: anywhere; }
+.legal-document h1 { line-height: 1.4; }
+.legal-document a, .login-privacy a, .consent-map a { text-decoration: underline; text-underline-offset: 4px; }
+.legal-review { padding: 18px; border: 1px solid #d3ba76; border-radius: 12px; background: #fff9e8; color: #59451b; }
+.legal-toc { margin-block: 28px; }
+.legal-document ul { list-style: disc; padding-inline-start: 24px; }
+.legal-document li + li { margin-top: 10px; }
+.legal-section { margin-block: 32px; }
+.legal-section h2 { scroll-margin-top: 110px; margin-bottom: 14px; }
+.legal-section p + p { margin-top: 16px; }
+.legal-table-wrap { overflow-x: auto; }
+.legal-table-wrap table { min-width: 600px; width: 100%; border-collapse: collapse; }
+.legal-table-wrap caption { text-align: start; padding-bottom: 12px; }
+.legal-table-wrap th, .legal-table-wrap td { padding: 14px; border: 1px solid #c9d5ce; text-align: start; vertical-align: top; }
+.legal-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 32px; }
+.legal-links a { text-decoration: underline; text-underline-offset: 4px; }
+.login-privacy { margin-top: 24px; padding: 16px; background: #f0f6f2; border-radius: 12px; color: #244635; font-size: .875rem; line-height: 1.8; }
+.login-privacy p + p { margin-top: 8px; }
+.consent-map { width: 100%; }
+.consent-map .btn { white-space: normal; }
 .pending-contact {
   border: 1px dashed #c9d5ce;
   background: #f7f9f7;

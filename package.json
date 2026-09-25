@@ -16,6 +16,7 @@
     "test:e2e:critical": "RUN_CRITICAL_UI_E2E=1 RUN_ADMIN_E2E=1 RUN_AUTH_HARDENING_E2E=1 tsx scripts/run-with-test-env.ts playwright test --workers=1 tests/critical-ui.e2e.spec.ts tests/cms-auth.e2e.spec.ts tests/admin-accounts.e2e.spec.ts tests/auth-hardening.e2e.spec.ts",
     "test:e2e:admins": "RUN_ADMIN_E2E=1 tsx scripts/run-with-test-env.ts playwright test tests/admin-accounts.e2e.spec.ts",
     "test:e2e:media": "RUN_MEDIA_E2E=1 tsx scripts/run-with-test-env.ts playwright test tests/media-lifecycle.e2e.spec.ts",
+    "test:e2e:privacy": "tsx scripts/run-with-test-env.ts playwright test tests/privacy.e2e.spec.ts --workers=1",
     "test:security": "npm run test:unit && npm audit --audit-level=high",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",

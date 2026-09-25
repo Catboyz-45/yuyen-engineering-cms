@@ -5,6 +5,7 @@
  */
 import { z } from "zod";
 import { CompanyRepository } from "@/server/repositories/company.repository";
+import { safeMapEmbedUrl } from "@/lib/map-embed";
 
 const optionalUrl = z.union([z.literal(""), z.string().url()]).transform((value) => value || null);
 
@@ -23,7 +24,8 @@ export const companyInputSchema = z.object({
   lineUrl: optionalUrl.nullable().optional(),
   facebookUrl: optionalUrl.nullable().optional(),
   mapsUrl: optionalUrl.nullable().optional(),
-  mapsEmbedUrl: optionalUrl.nullable().optional(),
+  // ปฏิเสธ URL ภายนอกที่ไม่ใช่ Google Maps embed ตั้งแต่จุดบันทึกฝั่งเซิร์ฟเวอร์
+  mapsEmbedUrl: optionalUrl.refine(value => value === null || safeMapEmbedUrl(value) !== null, "กรุณาใช้ HTTPS Google Maps embed URL").nullable().optional(),
   businessHours: z.string().trim().max(200).nullable().optional(),
   seoTitle: z.string().trim().max(60).nullable().optional(),
   seoDescription: z.string().trim().max(160).nullable().optional(),

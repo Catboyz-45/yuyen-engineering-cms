@@ -5,6 +5,8 @@
  */
 import type { MetadataRoute } from "next";
 import { db } from "@/server/db";
+import { legalLinks } from "@/lib/legal";
+import { getLegalSettings } from "@/server/config/legal";
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yuyenengineering.co.th";
 export const dynamic = "force-dynamic";
@@ -19,6 +21,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     db.news.findMany({ where: published, select: { slug: true, updatedAt: true } }),
   ]);
   const staticPages = ["", "/about", "/services", "/products", "/projects", "/news", "/contact"];
+  // ใส่นโยบายใน sitemap เมื่อบริษัทรับรองแล้วเท่านั้น ฉบับร่างยังอ่านผ่านลิงก์ได้
+  if (getLegalSettings().LEGAL_NOTICE_APPROVED === "true") staticPages.push(...legalLinks.map(link => link.href));
   const entries = [
     ...staticPages.map((path) => ({ url: `${baseUrl}${path}`, changeFrequency: path === "" ? "weekly" as const : "monthly" as const, priority: path === "" ? 1 : 0.8 })),
     ...services.map((item) => ({ url: `${baseUrl}/services/${item.slug}`, changeFrequency: "monthly" as const, priority: 0.7, lastModified: item.updatedAt })),

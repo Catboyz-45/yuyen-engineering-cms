@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronRight, Menu, Phone, X } from "lucide-react";
 import { Logo } from "./logo";
 import { companyPublicConfig as fallbackCompany } from "@/lib/public-config";
+import { legalLinks } from "@/lib/legal";
 
 type ShellCompany = { phoneDisplay?: string | null; phoneHref?: string | null; lineLabel?: string | null; lineUrl?: string | null; businessHours?: string | null };
 
@@ -69,6 +70,7 @@ export function SiteFooter({ company }: { company?: ShellCompany | null }) {
           <div><h3>บริการ</h3><div className="footer-links"><Link href="/services">ติดตั้งเครื่องปรับอากาศ</Link><Link href="/services">ล้างและบำรุงรักษา</Link><Link href="/services">งานระบบ M&E</Link></div></div>
           <div><h3>ติดต่อ</h3><div className="footer-links"><a href={`tel:${value.phoneHref}`}>โทร {value.phoneDisplay}</a>{value.lineUrl ? <a href={value.lineUrl} target="_blank" rel="noreferrer">LINE {value.lineLabel}</a> : <span>LINE {value.lineLabel} (รอยืนยัน)</span>}<span>{value.businessHours}</span></div></div>
         </div>
+        <nav className="legal-links" aria-label="นโยบายและเงื่อนไข">{legalLinks.map(link => <Link key={link.href} href={link.href}>{link.label}</Link>)}</nav>
         <div className="footer-bottom"><span>© 2026 อยู่เย็นเป็นสุข วิศวกรรม จำกัด</span><span>ข้อมูลตัวอย่างสำหรับการพัฒนาระบบ</span></div>
       </div>
     </footer>

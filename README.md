@@ -43,6 +43,7 @@ See [docs/DATABASE.md](docs/DATABASE.md) before creating or migrating a database
 - [รายการ API ทั้งหมด](docs/API-REFERENCE-TH.md)
 - [คำอธิบายฐานข้อมูล 21 ตาราง](docs/DATABASE-GUIDE-TH.md)
 - [วิธีอ่านโค้ดและคอมเมนต์](docs/CODE-READING-GUIDE-TH.md)
+- [นโยบายความเป็นส่วนตัวและการประกาศใช้](docs/PRIVACY-OPERATIONS-TH.md)
 
 ```bash
 npm run db:generate
