@@ -88,6 +88,7 @@ export function MediaUploader({
   title = "รูปภาพ",
   multiple = true,
   pdf = false,
+  describe = true,
   initial = [],
   onDirty,
 }: {
@@ -95,6 +96,8 @@ export function MediaUploader({
   title?: string;
   multiple?: boolean;
   pdf?: boolean;
+  /** false สำหรับรูปตกแต่งที่มีข้อความเดียวกันอยู่ข้างๆ เช่น โลโก้ข้างชื่อบริษัท จึงไม่ต้องมีคำอธิบายรูป */
+  describe?: boolean;
   initial?: { id: string; name: string; preview?: string; altText?: string }[];
   onDirty?: () => void;
 }) {
@@ -361,7 +364,7 @@ export function MediaUploader({
                   <X size={14} />
                 </button>
               </div>
-              {!pdf && (
+              {!pdf && describe && (
                 <div>
                   <label
                     className="media-alt-label"

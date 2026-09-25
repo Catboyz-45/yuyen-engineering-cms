@@ -48,7 +48,7 @@ const groups = [
     field("mapsUrl", "ลิงก์ Google Maps", 1_000, { type: "url", help: "ใช้กับปุ่มเปิดเส้นทาง คัดลอกจากปุ่มแชร์ใน Google Maps" }),
     field("mapsEmbedUrl", "ลิงก์ฝังแผนที่", 2_000, { type: "url", help: "ใน Google Maps กด แชร์ → ฝังแผนที่ แล้วคัดลอกเฉพาะลิงก์ในเครื่องหมายคำพูดหลัง src= (ขึ้นต้นด้วย https://www.google.com/maps/embed)" }),
   ] },
-  { id: "company-media", title: "โลโก้และรูปบริษัท", description: "ใส่คำอธิบายรูปทุกรูปเพื่อผู้ใช้โปรแกรมอ่านหน้าจอ", fields: [] },
+  { id: "company-media", title: "โลโก้และรูปบริษัท", description: "รูปบริษัทควรมีคำอธิบายสั้นๆ ว่าในภาพมีอะไร เพื่อผู้ใช้ที่มองไม่เห็นภาพ", fields: [] },
   { id: "company-seo", title: "การแสดงผลในผลการค้นหา", description: "ชื่อและคำอธิบายของหน้าแรกเมื่อแสดงใน Google", fields: [
     field("seoTitle", "ชื่อหน้าในผลการค้นหา (SEO title)", 60, { help: "ไม่เกิน 60 ตัวอักษร" }),
     field("seoDescription", "คำอธิบายในผลการค้นหา (SEO description)", 160, { multiline: true, help: "ไม่เกิน 160 ตัวอักษร ใช้เป็นคำอธิบายเริ่มต้นของหน้าอื่นด้วย" }),
@@ -167,8 +167,8 @@ export function CompanyForm() {
             </div>
             {group.id === "company-media" ? (
               <div className="form-stack flush">
-                <MediaUploader name="logoMediaId" title="โลโก้บริษัท" multiple={false} initial={preview(company.logoMedia)} onDirty={markDirty} />
-                <p className="help">แสดงที่หัวเว็บและท้ายเว็บ ใช้ไฟล์สี่เหลี่ยมจัตุรัสพื้นหลังโปร่งใสหรือพื้นขาว</p>
+                <MediaUploader name="logoMediaId" title="โลโก้บริษัท" multiple={false} describe={false} initial={preview(company.logoMedia)} onDirty={markDirty} />
+                <p className="help">แสดงที่หัวเว็บและท้ายเว็บคู่กับชื่อบริษัท จึงไม่ต้องใส่คำอธิบายรูป ใช้ไฟล์สี่เหลี่ยมจัตุรัสพื้นหลังโปร่งใสหรือพื้นขาว</p>
                 <MediaUploader name="galleryMediaIds" title={`รูปบริษัทสำหรับหน้าเกี่ยวกับเรา (สูงสุด ${GALLERY_LIMIT} รูป รูปแรกเป็นภาพหลัก)`} initial={(company.gallery ?? []).flatMap(entry => preview(entry.media))} onDirty={markDirty} />
               </div>
             ) : (
