@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { isHttpsUrl } from "@/lib/links";
 import { isGoogleMapsEmbedUrl } from "@/lib/maps";
 import { CompanyRepository } from "@/server/repositories/company.repository";
 
-const optionalUrl = z.union([z.literal(""), z.string().url()]).transform((value) => value || null);
+const optionalUrl = z.union([z.literal(""), z.string().trim().max(2000).url().refine(isHttpsUrl, "ลิงก์ต้องขึ้นต้นด้วย https://")]).transform((value) => value || null);
 
 export const companyInputSchema = z.object({
   legalName: z.string().trim().min(2).max(200),
