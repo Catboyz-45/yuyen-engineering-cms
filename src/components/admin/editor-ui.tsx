@@ -6,20 +6,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   ArrowLeft,
-  Bold,
-  Check,
   Eye,
   FileText,
-  Heading2,
-  Info,
-  Italic,
-  Link2,
-  List,
   RotateCcw,
-  Save,
   Upload,
   X,
 } from "lucide-react";
@@ -43,49 +35,6 @@ export function FormSection({
       </div>
       {children}
     </section>
-  );
-}
-
-/** สร้างส่วนหน้าจอ RichTextField; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function RichTextField({
-  id,
-  label,
-  defaultValue = "",
-}: {
-  id: string;
-  label: string;
-  defaultValue?: string;
-}) {
-  return (
-    <div className="form-group">
-      <label className="required" htmlFor={id}>
-        {label}
-      </label>
-      <div>
-        <div className="rich-toolbar" aria-label={`เครื่องมือแก้ไข ${label}`}>
-          {[Bold, Italic, Heading2, List, Link2].map((Icon, index) => (
-            <button
-              type="button"
-              key={index}
-              aria-label={
-                ["ตัวหนา", "ตัวเอียง", "หัวข้อ", "รายการ", "ลิงก์"][index]
-              }
-            >
-              <Icon size={16} />
-            </button>
-          ))}
-        </div>
-        <textarea
-          id={id}
-          className="field rich-editor"
-          rows={8}
-          defaultValue={defaultValue}
-        />
-      </div>
-      <p className="help">
-        รองรับหัวข้อ รายการ ลิงก์ และการจัดรูปแบบข้อความพื้นฐาน
-      </p>
-    </div>
   );
 }
 
@@ -467,203 +416,6 @@ export function MediaUploader({
   );
 }
 
-/** สร้างส่วนหน้าจอ Toggle; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function Toggle({
-  label,
-  description,
-  initial = false,
-}: {
-  label: string;
-  description?: string;
-  initial?: boolean;
-}) {
-  const [on, setOn] = useState(initial);
-  return (
-    <div className="toggle-row">
-      <div>
-        <strong style={{ fontSize: ".86rem" }}>{label}</strong>
-        {description && <p className="help">{description}</p>}
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        className={`switch ${on ? "on" : ""}`}
-        onClick={() => setOn((value) => !value)}
-      >
-        <span className="sr-only">{on ? "เปิด" : "ปิด"}</span>
-      </button>
-    </div>
-  );
-}
-
-/** สร้างส่วนหน้าจอ SeoFields; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function SeoFields({
-  prefix,
-  defaultSlug,
-  defaultTitle,
-}: {
-  prefix: string;
-  defaultSlug: string;
-  defaultTitle: string;
-}) {
-  const [slug, setSlug] = useState(defaultSlug);
-  const [title, setTitle] = useState(defaultTitle);
-  const [description, setDescription] = useState(
-    "ข้อมูลจากบริษัท อยู่เย็นเป็นสุข วิศวกรรม จำกัด พร้อมรายละเอียดที่เป็นประโยชน์สำหรับลูกค้า",
-  );
-  const slugChanged = Boolean(defaultSlug && slug !== defaultSlug);
-  return (
-    <FormSection
-      title="SEO และลิงก์"
-      description="กำหนดข้อมูลสำหรับผลการค้นหาและการแชร์ลิงก์"
-    >
-      <div className="form-stack" style={{ marginTop: 0 }}>
-        <div className="form-group">
-          <label className="required" htmlFor="slug">
-            Slug
-          </label>
-          <div className="slug-input">
-            <span className="slug-prefix">yuyen.co.th/{prefix}/</span>
-            <input
-              id="slug"
-              className="field"
-              value={slug}
-              aria-describedby="slug-help slug-redirect-notice"
-              onChange={(event) =>
-                setSlug(
-                  event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
-                )
-              }
-            />
-          </div>
-          <p id="slug-help" className="help">
-            ใช้ตัวอักษรภาษาอังกฤษ ตัวเลข และขีดกลางเท่านั้น
-          </p>
-          {slugChanged && (
-            <div
-              id="slug-redirect-notice"
-              className="form-notice"
-              role="status"
-            >
-              <Info size={17} />
-              <span>
-                เมื่อบันทึก ระบบต้องสร้าง Redirect แบบ 301 จาก{" "}
-                <strong>
-                  /{prefix}/{defaultSlug}
-                </strong>{" "}
-                มายัง URL ใหม่นี้ เพื่อไม่ให้ลิงก์เดิมและอันดับค้นหาสูญหาย
-              </span>
-            </div>
-          )}
-        </div>
-        <div className="form-group">
-          <label htmlFor="seo-title">SEO title</label>
-          <input
-            id="seo-title"
-            className="field"
-            maxLength={60}
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-          />
-          <p className="help">{title.length}/60 ตัวอักษร</p>
-        </div>
-        <div className="form-group">
-          <label htmlFor="seo-description">SEO description</label>
-          <textarea
-            id="seo-description"
-            className="field"
-            rows={3}
-            maxLength={160}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-          />
-          <p className="help">{description.length}/160 ตัวอักษร</p>
-        </div>
-        <div className="seo-preview" aria-label="ตัวอย่างผลการค้นหา">
-          <span className="seo-url">
-            https://yuyen.co.th/{prefix}/{slug}
-          </span>
-          <h3>{title || "ชื่อหน้าจะแสดงที่นี่"}</h3>
-          <p>{description || "คำอธิบายสำหรับผลการค้นหาจะแสดงที่นี่"}</p>
-        </div>
-      </div>
-    </FormSection>
-  );
-}
-
-/** สร้างส่วนหน้าจอ EditorSidebar; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function EditorSidebar({
-  mode,
-  listHref,
-  onPreview,
-}: {
-  mode: "new" | "edit";
-  listHref: string;
-  onPreview: () => void;
-}) {
-  const [status, setStatus] = useState<"draft" | "published">(
-    mode === "edit" ? "published" : "draft",
-  );
-  const [toast, setToast] = useState(false);
-  useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(false), 2200);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
-  const save = () => setToast(true);
-  return (
-    <aside className="editor-aside">
-      <FormSection title="สถานะ">
-        <div className="status-choice">
-          <button
-            type="button"
-            className={status === "draft" ? "selected" : ""}
-            onClick={() => setStatus("draft")}
-          >
-            ฉบับร่าง
-          </button>
-          <button
-            type="button"
-            className={status === "published" ? "selected" : ""}
-            onClick={() => setStatus("published")}
-          >
-            เผยแพร่
-          </button>
-        </div>
-        <div className="editor-actions" style={{ marginTop: 18 }}>
-          <button className="btn btn-dark" type="button" onClick={save}>
-            <Save size={17} />{" "}
-            {status === "published" ? "บันทึกและเผยแพร่" : "บันทึกฉบับร่าง"}
-          </button>
-          <button className="btn btn-outline" type="button" onClick={onPreview}>
-            <Eye size={17} /> ดูตัวอย่าง
-          </button>
-          <Link className="btn btn-ghost" href={listHref}>
-            ยกเลิกและกลับ
-          </Link>
-        </div>
-      </FormSection>
-      <FormSection title="การแสดงผล">
-        <Toggle
-          label="รายการแนะนำ"
-          description="แสดงในส่วนเนื้อหาแนะนำบนหน้าแรก"
-        />
-        <Toggle
-          label="อนุญาตให้ค้นหา"
-          description="แสดงเนื้อหาในผลการค้นหาบนเว็บไซต์"
-          initial
-        />
-      </FormSection>
-      {toast && (
-        <div className="editor-toast" role="status">
-          <Check size={18} /> บันทึกข้อมูลตัวอย่างแล้ว
-        </div>
-      )}
-    </aside>
-  );
-}
-
 /** สร้างส่วนหน้าจอ PreviewModal; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function PreviewModal({
   title,
@@ -768,22 +520,3 @@ export function EditorHeader({
   );
 }
 
-/** สร้างส่วนหน้าจอ CoverUploader; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function CoverUploader() {
-  return <MediaUploader name="coverMediaId" title="รูปปก" multiple={false} />;
-}
-/** สร้างส่วนหน้าจอ GalleryUploader; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function GalleryUploader() {
-  return <MediaUploader name="galleryMediaIds" title="แกลเลอรี" />;
-}
-/** สร้างส่วนหน้าจอ CatalogUploader; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function CatalogUploader() {
-  return (
-    <MediaUploader
-      name="catalogMediaId"
-      title="แคตตาล็อก PDF"
-      multiple={false}
-      pdf
-    />
-  );
-}
