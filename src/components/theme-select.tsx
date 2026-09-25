@@ -12,16 +12,34 @@ import { themeSelectNavigationIndex, type ThemeSelectNavigationKey } from "@/lib
 export type ThemeSelectOption = { label: string; value: string };
 
 type ThemeSelectProps = {
-  name: string;
+  /** ไม่ใส่ name เมื่อใช้เป็นตัวกรองที่ควบคุมค่าเองโดยไม่ส่งไปกับฟอร์ม */
+  name?: string;
   label: string;
   options: ThemeSelectOption[];
   defaultValue?: string;
+  /** ควบคุมค่าจากภายนอก (ใช้คู่กับ onValueChange) */
+  value?: string;
+  onValueChange?: (value: string) => void;
+  /** ข้อความเมื่อยังไม่ได้เลือก เช่น "เลือกยี่ห้อ" ถ้าไม่ใส่จะเลือกตัวเลือกแรกให้ */
+  placeholder?: string;
+  /** id ของปุ่ม เพื่อให้ <label htmlFor> ชี้มาที่ dropdown ได้ */
+  id?: string;
+  disabled?: boolean;
+  invalid?: boolean;
+  describedBy?: string;
+  className?: string;
 };
 
 /** สร้างส่วนหน้าจอ ThemeSelect; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function ThemeSelect({ name, label, options, defaultValue = "" }: ThemeSelectProps) {
-  const initialIndex = Math.max(0, options.findIndex(option => option.value === defaultValue));
-  const [value, setValue] = useState(options[initialIndex]?.value ?? "");
+export function ThemeSelect({ name, label, options, defaultValue = "", value: controlledValue, onValueChange, placeholder, id, disabled, invalid, describedBy, className }: ThemeSelectProps) {
+  const defaultIndex = options.findIndex(option => option.value === defaultValue);
+  const initialIndex = Math.max(0, defaultIndex);
+  const [uncontrolledValue, setUncontrolledValue] = useState(defaultIndex >= 0 || placeholder === undefined ? options[initialIndex]?.value ?? "" : "");
+  const value = controlledValue ?? uncontrolledValue;
+  const setValue = useCallback((next: string) => {
+    if (controlledValue === undefined) setUncontrolledValue(next);
+    onValueChange?.(next);
+  }, [controlledValue, onValueChange]);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -32,8 +50,9 @@ export function ThemeSelect({ name, label, options, defaultValue = "" }: ThemeSe
   const searchTimerRef = useRef<number | null>(null);
   const listId = useId();
   const optionId = (index: number) => `${listId}-option-${index}`;
-  const selectedIndex = Math.max(0, options.findIndex(option => option.value === value));
-  const selected = options[selectedIndex];
+  const matchedIndex = options.findIndex(option => option.value === value);
+  const selectedIndex = Math.max(0, matchedIndex);
+  const selected = matchedIndex >= 0 ? options[matchedIndex] : undefined;
 
   const close = useCallback((restoreFocus = false) => {
     setOpen(false);
@@ -54,7 +73,7 @@ export function ThemeSelect({ name, label, options, defaultValue = "" }: ThemeSe
     setActiveIndex(index);
     setOpen(false);
     window.requestAnimationFrame(() => triggerRef.current?.focus());
-  }, [options]);
+  }, [options, setValue]);
 
   useEffect(() => {
     const closeOutside = (event: PointerEvent) => {
@@ -145,12 +164,12 @@ export function ThemeSelect({ name, label, options, defaultValue = "" }: ThemeSe
     }
   }
 
-  return <div className="theme-select" ref={rootRef}>
-    <input type="hidden" name={name} value={value} />
-    <button ref={triggerRef} className="theme-select-trigger" type="button" role="combobox" aria-label={label} aria-expanded={open} aria-controls={listId} aria-haspopup="listbox" aria-activedescendant={open ? optionId(activeIndex) : undefined} onClick={() => open ? close(false) : openAt(selectedIndex)} onKeyDown={handleKeyDown} onKeyUp={event => {
+  return <div className={`theme-select${className ? ` ${className}` : ""}`} ref={rootRef}>
+    {name && <input type="hidden" name={name} value={value} />}
+    <button ref={triggerRef} id={id} className="theme-select-trigger" type="button" role="combobox" aria-label={id ? undefined : label} disabled={disabled} aria-invalid={invalid || undefined} aria-describedby={describedBy} aria-expanded={open} aria-controls={listId} aria-haspopup="listbox" aria-activedescendant={open ? optionId(activeIndex) : undefined} onClick={() => open ? close(false) : openAt(selectedIndex)} onKeyDown={handleKeyDown} onKeyUp={event => {
       if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) event.preventDefault();
     }}>
-      <span>{selected?.label}</span><ChevronDown size={18} aria-hidden="true" />
+      <span className={selected ? undefined : "theme-select-placeholder"}>{selected?.label ?? placeholder}</span><ChevronDown size={18} aria-hidden="true" />
     </button>
     {open && <div ref={menuRef} className="theme-select-menu" id={listId} role="listbox" aria-label={label}>
       {options.map((option, index) => <button ref={element => { optionRefs.current[index] = element; }} id={optionId(index)} key={option.value} className="theme-select-option" type="button" role="option" tabIndex={-1} aria-selected={option.value === value} data-active={index === activeIndex || undefined} onPointerMove={() => setActiveIndex(index)} onClick={() => choose(index)}>

@@ -20,6 +20,7 @@ import {
   MediaUploader,
   PreviewModal,
 } from "./editor-ui";
+import { ThemeSelect } from "../theme-select";
 import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { LoadingLabel } from "../loading-label";
 import { setFlashMessage } from "@/lib/client-flash";
@@ -97,7 +98,8 @@ function ContentEditor({
     categories: Option[];
     services: Option[];
   }>({ brands: [], types: [], categories: [], services: [] });
-  const [loading, setLoading] = useState(mode === "edit");
+  // รอรายการตัวเลือก (ยี่ห้อ ประเภท หมวดหมู่ บริการ) ก่อนแสดงฟอร์ม เพื่อไม่ให้กด dropdown ตอนยังว่าง
+  const [loading, setLoading] = useState(mode === "edit" || (kind !== "banner" && kind !== "service"));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -430,6 +432,7 @@ function ContentEditor({
                         name="brandId"
                         items={options.brands}
                         defaultValue={value("brandId")}
+                        onDirty={markDirty}
                       />
                       <Field
                         label="รุ่น"
@@ -443,6 +446,7 @@ function ContentEditor({
                       name="productTypeId"
                       items={options.types}
                       defaultValue={value("productTypeId")}
+                      onDirty={markDirty}
                     />
                     <Area
                       label="คำอธิบายสั้น"
@@ -580,6 +584,7 @@ function ContentEditor({
                       name="categoryId"
                       items={options.categories}
                       defaultValue={value("categoryId")}
+                      onDirty={markDirty}
                     />
                     <Field
                       label="วันและเวลาที่เผยแพร่"
@@ -881,11 +886,13 @@ function Select({
   name,
   items,
   defaultValue,
+  onDirty,
 }: {
   label: string;
   name: string;
   items: Option[];
   defaultValue: string;
+  onDirty: () => void;
 }) {
   const message = fieldMessage(useContext(ValidationContext), name);
   const errorId = `${name}-error`;
@@ -894,24 +901,17 @@ function Select({
       <label className="required" htmlFor={name}>
         {label}
       </label>
-      <select
+      <ThemeSelect
         id={name}
         name={name}
-        className="select"
+        label={label}
+        placeholder={`เลือก${label}`}
         defaultValue={defaultValue}
-        required
-        aria-invalid={Boolean(message)}
-        aria-describedby={message ? errorId : undefined}
-      >
-        <option value="" disabled>
-          เลือก{label}
-        </option>
-        {items.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.name ?? item.title}
-          </option>
-        ))}
-      </select>
+        options={items.map((item) => ({ value: item.id, label: item.name ?? item.title ?? "" }))}
+        onValueChange={onDirty}
+        invalid={Boolean(message)}
+        describedBy={message ? errorId : undefined}
+      />
       {message && (
         <p className="field-error" id={errorId}>
           {message}

@@ -21,6 +21,7 @@ import {
 import { AdminPageHeader } from "./admin-shell";
 import { useUI } from "./ui-feedback";
 import { LoadingLabel } from "./loading-label";
+import { ThemeSelect } from "./theme-select";
 
 type Kind = "banners" | "services" | "products" | "projects" | "news";
 type Row = {
@@ -172,31 +173,31 @@ export function AdminTablePage({
             placeholder={`ค้นหา${title}`}
           />
         </label>
-        <select
-          className="select filter-select"
+        <ThemeSelect
+          label="กรองตามสถานะ"
           value={status}
-          onChange={(event) => {
-            setStatus(event.target.value);
+          onValueChange={(next) => {
+            setStatus(next);
             setPage(1);
           }}
-          aria-label="กรองตามสถานะ"
-        >
-          <option value="ALL">ทุกสถานะ</option>
-          <option value="PUBLISHED">เผยแพร่แล้ว</option>
-          <option value="DRAFT">ฉบับร่าง</option>
-          <option value="ARCHIVED">เก็บถาวร</option>
-        </select>
-        <select
-          className="select filter-select"
+          options={[
+            { value: "ALL", label: "ทุกสถานะ" },
+            { value: "PUBLISHED", label: "เผยแพร่แล้ว" },
+            { value: "DRAFT", label: "ฉบับร่าง" },
+            { value: "ARCHIVED", label: "เก็บถาวร" },
+          ]}
+        />
+        <ThemeSelect
+          label="เรียงลำดับ"
           value={sort}
-          onChange={(event) => setSort(event.target.value)}
-          aria-label="เรียงลำดับ"
-        >
-          <option value="updated-desc">แก้ไขล่าสุด</option>
-          <option value="updated-asc">แก้ไขเก่าสุด</option>
-          <option value="title-asc">ชื่อ ก–ฮ</option>
-          <option value="title-desc">ชื่อ ฮ–ก</option>
-        </select>
+          onValueChange={setSort}
+          options={[
+            { value: "updated-desc", label: "แก้ไขล่าสุด" },
+            { value: "updated-asc", label: "แก้ไขเก่าสุด" },
+            { value: "title-asc", label: "ชื่อ ก–ฮ" },
+            { value: "title-desc", label: "ชื่อ ฮ–ก" },
+          ]}
+        />
       </div>
       {error && (
         <div className="auth-alert warning" role="alert">

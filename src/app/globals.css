@@ -771,6 +771,36 @@ select.filter-select {
 .theme-select:has(.theme-select-menu) .theme-select-trigger svg {
   transform: rotate(180deg);
 }
+.theme-select-placeholder {
+  color: var(--muted);
+}
+.theme-select-trigger:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+  background: #f4f6f4;
+  border-color: var(--line);
+}
+.theme-select-trigger[aria-invalid="true"] {
+  border-color: #e4a6a2;
+  background: #fff8f7;
+}
+.theme-select-trigger > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* ในกล่อง popup เมนูกางลงในกล่อง แทนการลอยแล้วถูกขอบกล่องที่เลื่อนได้ตัด */
+.modal-card .theme-select-menu {
+  position: static;
+  width: 100%;
+  margin-top: 7px;
+  box-shadow: none;
+}
+/* dropdown ในฟอร์มกว้างเต็มช่อง */
+.form-group .theme-select {
+  width: 100%;
+  min-width: 0;
+}
 .theme-select-menu {
   width: max-content;
   min-width: 100%;
