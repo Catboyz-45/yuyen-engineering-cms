@@ -1166,7 +1166,8 @@ select.filter-select {
 /* CMS */
 .admin-body {
   min-height: 100vh;
-  background: #f4f7f5;
+  /* พื้นครีมเดียวกับหน้าเว็บ ให้หลังบ้านรู้สึกเป็นแบรนด์เดียวกัน */
+  background: var(--cream-100);
 }
 .admin-shell {
   min-height: 100vh;
@@ -1204,8 +1205,12 @@ select.filter-select {
   background: rgba(255, 255, 255, 0.08);
 }
 .sidebar-link.active {
-  color: var(--green-950);
-  background: var(--lime-400);
+  color: white;
+  background: rgba(134, 214, 62, 0.14);
+  box-shadow: inset 3px 0 0 var(--lime-400);
+}
+.sidebar-link.active svg {
+  color: var(--lime-400);
 }
 .sidebar-account-row {
   margin-top: auto;
@@ -1306,8 +1311,19 @@ select.filter-select {
 .admin-title {
   margin: 0;
   color: var(--green-950);
-  font-size: clamp(1.6rem, 3vw, 2.25rem);
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  line-height: 1.15;
   letter-spacing: -0.035em;
+  font-weight: 750;
+}
+.admin-eyebrow {
+  margin: 0 0 8px;
+}
+/* ป้ายภาษาไทยไม่ยืดระยะตัวอักษรแบบป้ายภาษาอังกฤษ เพราะสระและวรรณยุกต์จะแยกจากกันจนอ่านยาก */
+.admin-eyebrow,
+.dash-hero .eyebrow,
+.copy-group legend {
+  letter-spacing: 0.02em;
 }
 .admin-subtitle {
   margin: 4px 0 0;
@@ -1323,18 +1339,32 @@ select.filter-select {
   padding: 20px;
   display: flex;
   align-items: start;
-  justify-content: space-between;
+  gap: 16px;
+}
+a.metric-card:hover {
+  transform: translateY(-3px);
+  border-color: #bfd2c5;
+  box-shadow: 0 14px 34px rgba(7, 45, 30, 0.08);
 }
 .metric-card strong {
   display: block;
-  margin-top: 14px;
+  margin-top: 4px;
   font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 750;
   color: var(--green-950);
 }
 .metric-card p {
   margin: 0;
   color: var(--muted);
   font-size: 0.83rem;
+  font-weight: 650;
+}
+.metric-card small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.74rem;
 }
 .delta {
   color: var(--green-700);
@@ -1345,8 +1375,9 @@ select.filter-select {
   margin-top: 22px;
   background: white;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: 0 1px 2px rgba(7, 45, 30, 0.04);
 }
 .panel-header {
   min-height: 68px;
@@ -1450,6 +1481,297 @@ select.filter-select {
   align-items: end;
   justify-content: space-between;
   gap: 20px;
+}
+.security-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--green-700);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* ภาพรวม: แถบต้อนรับใช้พื้นเขียวเข้มและรูปทรงโค้งแบบ hero หน้าเว็บ */
+.dash-hero {
+  position: relative;
+  overflow: hidden;
+  margin-top: 26px;
+  padding: 30px 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 28px;
+  border-radius: 24px;
+  background: var(--green-950);
+  color: white;
+}
+.dash-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 78% 30%, rgba(134, 214, 62, 0.2), transparent 42%);
+  pointer-events: none;
+}
+.dash-hero::after {
+  content: "";
+  position: absolute;
+  right: -6%;
+  top: -40%;
+  width: 46%;
+  height: 170%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 48% 52% 16% 84% / 56% 30% 70% 44%;
+  transform: rotate(-7deg);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01));
+  pointer-events: none;
+}
+.dash-hero > * {
+  position: relative;
+  z-index: 1;
+}
+.dash-hero .eyebrow {
+  color: var(--lime-400);
+}
+.dash-hero h2 {
+  margin: 8px 0 6px;
+  font-size: clamp(1.3rem, 2.2vw, 1.75rem);
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+.dash-hero-copy p:last-child {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+}
+.dash-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(170px, 1fr));
+  gap: 10px;
+}
+.dash-action {
+  min-height: 48px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.86rem;
+  font-weight: 700;
+  transition: 0.18s ease;
+}
+.dash-action span {
+  flex: 1;
+}
+.dash-action svg:first-child {
+  color: var(--lime-400);
+}
+.dash-action:hover {
+  border-color: var(--lime-400);
+  background: rgba(134, 214, 62, 0.14);
+}
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.dash-side {
+  display: grid;
+  gap: 0;
+}
+.dash-side .security-note {
+  margin-top: 16px;
+  padding: 0 4px;
+}
+.panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--green-700);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.panel-link:hover {
+  text-decoration: underline;
+}
+.empty-panel {
+  padding: 44px 24px;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+  color: var(--muted);
+}
+.empty-panel svg {
+  color: var(--green-700);
+  margin-bottom: 6px;
+}
+.empty-panel p {
+  margin: 0;
+  color: var(--green-950);
+  font-weight: 700;
+}
+.empty-panel span {
+  max-width: 320px;
+  font-size: 0.8rem;
+}
+.status-bars {
+  display: grid;
+  gap: 16px;
+}
+.status-bar-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 7px;
+  font-size: 0.86rem;
+}
+.status-bar {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf1ee;
+}
+.status-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+.status-bar .published {
+  background: var(--green-700);
+}
+.status-bar .draft {
+  background: var(--lime-400);
+}
+.status-bar .trash {
+  background: #b9c6be;
+}
+.storage-panel {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.storage-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.storage-panel strong {
+  color: var(--green-950);
+  font-size: 1.35rem;
+}
+
+/* ฟอร์มข้อมูลบริษัท */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.form-grid .span-2 {
+  grid-column: 1 / -1;
+}
+.form-stack.flush {
+  margin-top: 0;
+}
+.editor-main .form-section,
+.editor-aside .form-section {
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(7, 45, 30, 0.04);
+}
+.company-editor .form-section {
+  scroll-margin-top: 24px;
+}
+.company-editor .form-section-head h2,
+.save-card h2,
+.section-nav h2 {
+  font-size: 1.12rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+.save-card {
+  display: grid;
+  gap: 12px;
+}
+.save-card h2,
+.section-nav h2 {
+  margin: 0;
+  color: var(--green-950);
+}
+.save-card .btn {
+  width: 100%;
+}
+.section-nav ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.section-nav a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+.section-nav a:hover {
+  color: var(--green-800);
+  background: var(--mint-100);
+}
+.copy-group {
+  margin: 0 0 22px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--cream-50);
+}
+.copy-group:last-child {
+  margin-bottom: 0;
+}
+.copy-group legend {
+  padding: 0 8px;
+  color: var(--green-700);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+.copy-list {
+  display: grid;
+  gap: 12px;
+  padding-top: 6px;
+}
+.copy-list-title {
+  margin: 0;
+  color: var(--green-950);
+  font-weight: 700;
+}
+.copy-list-title span {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.copy-item {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 12px;
+  align-items: end;
+}
+.copy-item-number {
+  width: 30px;
+  height: 30px;
+  margin-bottom: 7px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mint-100);
+  color: var(--green-700);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 .admin-filters {
   display: flex;
@@ -2350,8 +2672,37 @@ select.filter-select {
     position: static;
     grid-template-columns: repeat(2, 1fr);
   }
+  .company-editor .editor-aside {
+    order: -1;
+  }
+  .company-editor .section-nav {
+    display: none;
+  }
+  .company-editor .editor-aside {
+    grid-template-columns: 1fr;
+  }
+  .dash-hero,
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 700px) {
+  .form-grid,
+  .dash-actions {
+    grid-template-columns: 1fr;
+  }
+  .copy-item {
+    grid-template-columns: 1fr;
+  }
+  .copy-item-number {
+    margin-bottom: 0;
+  }
+  .dash-hero {
+    padding: 24px 20px;
+  }
+  .copy-group {
+    padding: 14px;
+  }
   .admin-shell {
     display: block;
   }

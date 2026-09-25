@@ -77,7 +77,7 @@ export function AdminShell({ children, user }: { children: React.ReactNode; user
 }
 
 /** สร้างส่วนหน้าจอ AdminPageHeader; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function AdminPageHeader({ title, description, action }: { title: string; description: string; action?: React.ReactNode }) { return <div className="admin-head"><div><h1 className="admin-title">{title}</h1><p className="admin-subtitle">{description}</p></div>{action}</div>; }
+export function AdminPageHeader({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description: string; action?: React.ReactNode }) { return <div className="admin-head"><div>{eyebrow && <p className="eyebrow admin-eyebrow">{eyebrow}</p>}<h1 className="admin-title">{title}</h1><p className="admin-subtitle">{description}</p></div>{action}</div>; }
 
 /** สร้างส่วนหน้าจอ SecurityNote; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function SecurityNote() { return <div className="cluster" style={{ color: "var(--green-700)", fontSize: ".78rem", fontWeight: 700 }}><ShieldCheck size={16} /> การทำรายการสำคัญจะถูกบันทึกในประวัติระบบ</div>; }
+export function SecurityNote() { return <div className="security-note"><ShieldCheck size={16} aria-hidden="true" /> การทำรายการสำคัญจะถูกบันทึกในประวัติระบบ</div>; }

@@ -320,7 +320,7 @@ function ContentEditor({
     <ValidationContext.Provider value={fieldErrors}>
       <EditorHeader
         title={`${mode === "new" ? "เพิ่ม" : "แก้ไข"}${config.label}`}
-        description={`ข้อมูลทั้งหมดตรวจสอบด้วย Zod ที่ฝั่งเซิร์ฟเวอร์ก่อนบันทึก`}
+        description="ช่องที่มีเครื่องหมาย * ต้องกรอก บันทึกเป็นฉบับร่างก่อนได้ แล้วค่อยกดเผยแพร่เมื่อพร้อม"
         listHref={config.list}
       />
       {error && (

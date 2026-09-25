@@ -41,31 +41,34 @@ export function SiteCopyFields({ initial }: { initial: SiteCopy }) {
   return (
     <FormSection title="ข้อความบนหน้าเว็บ" description="เว้นว่างเพื่อซ่อนข้อความนั้น กด Enter ในหัวข้อเพื่อขึ้นบรรทัดใหม่">
       {groups.map(group => (
-        <fieldset className="form-stack" key={group} style={{ border: 0, padding: 0, margin: "0 0 24px" }}>
-          <legend className="subheading" style={{ marginBottom: 12 }}>{group}</legend>
-          {siteCopyTextFields.filter(field => field.group === group).map(field => (
-            <div className="form-group" key={field.key}>
-              <label className={field.required ? "required" : ""} htmlFor={`copy-${field.key}`}>{field.label}</label>
-              <textarea id={`copy-${field.key}`} name={`copy.${field.key}`} className="field" rows={2} maxLength={field.max} required={field.required} defaultValue={initial[field.key]} />
-            </div>
-          ))}
-          {group === "หน้าแรก" && lists.map(list => (
-            <div className="form-stack" key={list.key}>
-              <p className="subheading">{list.label} (สูงสุด {list.limit} รายการ)</p>
-              {Array.from({ length: list.limit }, (_, index) => (
-                <div className="grid-2" key={index}>
-                  <div className="form-group">
-                    <label htmlFor={`copy-${list.key}-${index}-title`}>{list.item}ที่ {index + 1} — หัวข้อ</label>
-                    <input id={`copy-${list.key}-${index}-title`} name={`copy.${list.key}.${index}.title`} className="field" maxLength={COPY_ITEM_LIMITS.title} defaultValue={initial[list.key][index]?.title ?? ""} />
+        <fieldset className="copy-group" key={group}>
+          <legend>{group}</legend>
+          <div className="form-stack flush">
+            {siteCopyTextFields.filter(field => field.group === group).map(field => (
+              <div className="form-group" key={field.key}>
+                <label className={field.required ? "required" : ""} htmlFor={`copy-${field.key}`}>{field.label}</label>
+                <textarea id={`copy-${field.key}`} name={`copy.${field.key}`} className="field" rows={2} maxLength={field.max} required={field.required} defaultValue={initial[field.key]} />
+              </div>
+            ))}
+            {group === "หน้าแรก" && lists.map(list => (
+              <div className="copy-list" key={list.key}>
+                <p className="copy-list-title">{list.label} <span>สูงสุด {list.limit} รายการ</span></p>
+                {Array.from({ length: list.limit }, (_, index) => (
+                  <div className="copy-item" key={index}>
+                    <span className="copy-item-number" aria-hidden="true">{index + 1}</span>
+                    <div className="form-group">
+                      <label htmlFor={`copy-${list.key}-${index}-title`}>{list.item}ที่ {index + 1} — หัวข้อ</label>
+                      <input id={`copy-${list.key}-${index}-title`} name={`copy.${list.key}.${index}.title`} className="field" maxLength={COPY_ITEM_LIMITS.title} defaultValue={initial[list.key][index]?.title ?? ""} />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor={`copy-${list.key}-${index}-text`}>{list.item}ที่ {index + 1} — คำอธิบาย</label>
+                      <input id={`copy-${list.key}-${index}-text`} name={`copy.${list.key}.${index}.text`} className="field" maxLength={COPY_ITEM_LIMITS.text} defaultValue={initial[list.key][index]?.text ?? ""} />
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label htmlFor={`copy-${list.key}-${index}-text`}>{list.item}ที่ {index + 1} — คำอธิบาย</label>
-                    <input id={`copy-${list.key}-${index}-text`} name={`copy.${list.key}.${index}.text`} className="field" maxLength={COPY_ITEM_LIMITS.text} defaultValue={initial[list.key][index]?.text ?? ""} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
+                ))}
+              </div>
+            ))}
+          </div>
         </fieldset>
       ))}
     </FormSection>
