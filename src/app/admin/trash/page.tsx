@@ -104,8 +104,9 @@ export default function TrashPage() {
   return (
     <>
       <AdminPageHeader
+        eyebrow="กู้คืนข้อมูล"
         title="ถังขยะ"
-        description="รายการจะถูกลบถาวรโดยงาน retention เมื่อครบ 30 วัน"
+        description="กู้คืนรายการได้ภายใน 30 วัน หลังจากนั้นระบบจะลบถาวรตามรอบงานดูแลระบบ"
       />
       {error && <div className="auth-alert warning">{error}</div>}
       <section className="panel">
@@ -116,7 +117,7 @@ export default function TrashPage() {
                 <tr>
                   <th>รายการ</th>
                   <th>ประเภท</th>
-                  <th>ลบถาวรหลัง</th>
+                  <th>ลบถาวรวันที่</th>
                   <th />
                 </tr>
               </thead>
@@ -158,6 +159,7 @@ export default function TrashPage() {
                             aria-busy={pending === `${item.kind}-${item.id}`}
                             onClick={() => action(item, "delete")}
                             aria-label={`ลบ ${item.title} ถาวร`}
+                            title="ลบถาวร (เฉพาะ Super Admin)"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -170,11 +172,10 @@ export default function TrashPage() {
             </table>
           </div>
         ) : (
-          <div className="empty-state" style={{ margin: 20 }}>
-            <div>
-              <ArchiveRestore size={40} color="var(--green-700)" />
-              <h2 className="subheading">ถังขยะว่าง</h2>
-            </div>
+          <div className="empty-panel">
+            <ArchiveRestore size={30} aria-hidden="true" />
+            <p>ถังขยะว่าง</p>
+            <span>รายการที่ย้ายลงถังขยะจะอยู่ที่นี่ 30 วัน และกู้คืนได้ตลอดช่วงนั้น</span>
           </div>
         )}
       </section>

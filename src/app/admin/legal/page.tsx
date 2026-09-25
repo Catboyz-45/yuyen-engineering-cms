@@ -9,5 +9,5 @@ import { requireAdmin } from "@/server/auth/session";
 
 export default async function LegalNoticePage() {
   await requireAdmin(["SUPER_ADMIN"]);
-  return <><AdminPageHeader title="นโยบายเว็บไซต์" description="ข้อมูลที่บริษัทต้องยืนยันในนโยบายความเป็นส่วนตัว คุกกี้ และเงื่อนไขการใช้เว็บไซต์ ก่อนประกาศใช้จริง" /><section className="panel"><LegalNoticeForm /></section></>;
+  return <><AdminPageHeader eyebrow="ความเป็นส่วนตัว" title="นโยบายเว็บไซต์" description="ข้อมูลที่บริษัทต้องยืนยันในนโยบายความเป็นส่วนตัว คุกกี้ และเงื่อนไขการใช้เว็บไซต์ ก่อนประกาศใช้จริง" /><LegalNoticeForm /></>;
 }

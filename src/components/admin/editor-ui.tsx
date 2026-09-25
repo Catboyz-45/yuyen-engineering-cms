@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowLeft,
   Bold,
   Check,
   Eye,
@@ -756,12 +757,12 @@ export function EditorHeader({
   return (
     <div className="admin-head">
       <div>
-        <p className="eyebrow">CONTENT EDITOR</p>
+        <p className="eyebrow admin-eyebrow">จัดการเนื้อหา</p>
         <h1 className="admin-title">{title}</h1>
         <p className="admin-subtitle">{description}</p>
       </div>
       <Link className="btn btn-outline" href={listHref}>
-        กลับหน้ารายการ
+        <ArrowLeft size={16} aria-hidden="true" /> กลับหน้ารายการ
       </Link>
     </div>
   );
@@ -780,7 +781,7 @@ export function CatalogUploader() {
   return (
     <MediaUploader
       name="catalogMediaId"
-      title="Catalog PDF"
+      title="แคตตาล็อก PDF"
       multiple={false}
       pdf
     />

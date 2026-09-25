@@ -75,49 +75,65 @@ export function LegalNoticeForm() {
     }
   }
 
-  if (!state) return <div className="card-body">{error || "กำลังโหลด…"}</div>;
+  if (!state) return <div className="panel card-body">{error || "กำลังโหลด…"}</div>;
   const { notice, revision, approved } = state;
   const staleApproval = !approved && notice?.approvedAt && notice.approvedRevision !== revision;
   return (
-    <form key={notice?.updatedAt ?? "new"} className="card-body form-stack" style={{ maxWidth: 840, margin: 0 }} onSubmit={submit} onChange={markDirty} onInput={markDirty} aria-busy={saving}>
-      <div className={`auth-alert ${approved ? "success" : "warning"}`} role="status">
-        {approved && notice?.approvedAt
-          ? <>ประกาศใช้แล้ว (ข้อความฉบับ {revision}) เมื่อ {thaiDateTime.format(new Date(notice.approvedAt))}{notice.approvedBy ? ` โดย ${notice.approvedBy.displayName}` : ""}</>
-          : staleApproval
-            ? <>ข้อความนโยบายถูกปรับเป็นฉบับ {revision} หลังการรับรองครั้งก่อน (ฉบับ {notice.approvedRevision}) หน้าเว็บจึงกลับเป็นฉบับร่าง กรุณาตรวจและรับรองใหม่</>
-            : <>ฉบับร่าง — หน้านโยบายแสดงป้ายฉบับร่างและยังไม่ให้เครื่องมือค้นหาเก็บหน้า</>}
-      </div>
-      {error && <div className="auth-alert warning">{error}</div>}
-      <p className="help">
-        ข้อความส่วนอื่นของนโยบายอธิบายการทำงานของระบบ จึงแก้ผ่านนักพัฒนาเท่านั้น ตรวจหน้าจริงก่อนรับรอง:{" "}
-        {legalLinks.map((link, index) => <span key={link.href}>{index > 0 && " · "}<a href={link.href} target="_blank" rel="noreferrer">{link.label} (แท็บใหม่) <ExternalLink size={13} aria-hidden="true" /></a></span>)}
-      </p>
-      {fields.map(field => {
-        const message = fieldMessage(fieldErrors, field.key);
-        const errorId = `${field.key}-error`;
-        const helpId = `${field.key}-help`;
-        const value = notice?.[field.key] ?? "";
-        return (
-          <div className="form-group" key={field.key}>
-            <label htmlFor={field.key}>{field.label}</label>
-            {field.key === "privacyEmail"
-              ? <input id={field.key} name={field.key} className="field" type="email" maxLength={field.max} defaultValue={value} aria-invalid={Boolean(message)} aria-describedby={[helpId, message ? errorId : ""].filter(Boolean).join(" ")} />
-              : <textarea id={field.key} name={field.key} className="field" rows={4} maxLength={field.max} defaultValue={value} aria-invalid={Boolean(message)} aria-describedby={[helpId, message ? errorId : ""].filter(Boolean).join(" ")} />}
-            <p className="help" id={helpId}>{field.help}</p>
-            {message && <p className="field-error" id={errorId}>{message}</p>}
+    <form key={notice?.updatedAt ?? "new"} className="editor-layout" onSubmit={submit} onChange={markDirty} onInput={markDirty} aria-busy={saving}>
+      <div className="editor-main">
+        {error && <div className="auth-alert warning" role="alert">{error}</div>}
+        <section className="form-section" aria-labelledby="legal-fields-title">
+          <div className="form-section-head">
+            <h2 id="legal-fields-title">ข้อมูลที่บริษัทต้องยืนยัน</h2>
+            <p>แสดงในหน้านโยบายทันทีหลังบันทึก แม้ยังเป็นฉบับร่าง เพื่อให้ตรวจบนหน้าจริงได้</p>
           </div>
-        );
-      })}
-      <label className="cluster" style={{ alignItems: "flex-start", gap: 10 }}>
-        <input type="checkbox" name="approved" defaultChecked={approved} style={{ marginTop: 5 }} />
-        <span>
-          <strong>รับรองและประกาศใช้นโยบายฉบับ {revision}</strong>
-          <span className="help" style={{ display: "block" }}>ติ๊กเมื่อผู้รับผิดชอบข้อมูลหรือที่ปรึกษากฎหมายตรวจข้อความทั้ง 3 หน้าแล้ว ต้องกรอกทั้ง 3 ช่องด้านบน เอาติ๊กออกเพื่อกลับเป็นฉบับร่าง</span>
-        </span>
-      </label>
-      <button className="btn btn-dark" disabled={saving} aria-busy={saving}>
-        <LoadingLabel busy={saving} busyText="กำลังบันทึก…"><><Save size={17} /> บันทึก</></LoadingLabel>
-      </button>
+          <div className="form-stack flush">
+            {fields.map(field => {
+              const message = fieldMessage(fieldErrors, field.key);
+              const errorId = `${field.key}-error`;
+              const helpId = `${field.key}-help`;
+              const value = notice?.[field.key] ?? "";
+              return (
+                <div className="form-group" key={field.key}>
+                  <label htmlFor={field.key}>{field.label}</label>
+                  {field.key === "privacyEmail"
+                    ? <input id={field.key} name={field.key} className="field" type="email" maxLength={field.max} defaultValue={value} aria-invalid={Boolean(message)} aria-describedby={[helpId, message ? errorId : ""].filter(Boolean).join(" ")} />
+                    : <textarea id={field.key} name={field.key} className="field" rows={4} maxLength={field.max} defaultValue={value} aria-invalid={Boolean(message)} aria-describedby={[helpId, message ? errorId : ""].filter(Boolean).join(" ")} />}
+                  <p className="help" id={helpId}>{field.help}</p>
+                  {message && <p className="field-error" id={errorId}>{message}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+        <p className="info-note">ข้อความส่วนอื่นของนโยบายอธิบายการทำงานของระบบ เช่น คุกกี้ล็อกอินและแผนที่ จึงแก้ผ่านนักพัฒนาเท่านั้น</p>
+      </div>
+      <aside className="editor-aside">
+        <section className="form-section save-card" aria-labelledby="legal-save-title">
+          <h2 id="legal-save-title">สถานะการประกาศใช้</h2>
+          <div className={`auth-alert ${approved ? "success" : "warning"}`} role="status">
+            {approved && notice?.approvedAt
+              ? <>ประกาศใช้แล้ว (ข้อความฉบับ {revision}) เมื่อ {thaiDateTime.format(new Date(notice.approvedAt))}{notice.approvedBy ? ` โดย ${notice.approvedBy.displayName}` : ""}</>
+              : staleApproval
+                ? <>ข้อความนโยบายถูกปรับเป็นฉบับ {revision} หลังการรับรองครั้งก่อน (ฉบับ {notice.approvedRevision}) หน้าเว็บจึงกลับเป็นฉบับร่าง กรุณาตรวจและรับรองใหม่</>
+                : <>ฉบับร่าง — หน้านโยบายแสดงป้ายฉบับร่างและยังไม่ให้เครื่องมือค้นหาเก็บหน้า</>}
+          </div>
+          <label className="approve-check">
+            <input type="checkbox" name="approved" defaultChecked={approved} />
+            <span>
+              <strong>รับรองและประกาศใช้นโยบายฉบับ {revision}</strong>
+              <span className="help">ติ๊กเมื่อผู้รับผิดชอบข้อมูลหรือที่ปรึกษากฎหมายตรวจครบทั้ง 3 หน้าแล้ว ต้องกรอกทั้ง 3 ช่อง เอาติ๊กออกเพื่อกลับเป็นฉบับร่าง</span>
+            </span>
+          </label>
+          <button className="btn btn-dark" disabled={saving} aria-busy={saving}>
+            <LoadingLabel busy={saving} busyText="กำลังบันทึก…"><><Save size={17} /> บันทึก</></LoadingLabel>
+          </button>
+        </section>
+        <nav className="form-section section-nav" aria-label="ตรวจหน้านโยบายจริง">
+          <h2>ตรวจหน้าจริง</h2>
+          <ul>{legalLinks.map(link => <li key={link.href}><a href={link.href} target="_blank" rel="noreferrer">{link.label} <ExternalLink size={13} aria-hidden="true" /><span className="sr-only"> (เปิดแท็บใหม่)</span></a></li>)}</ul>
+        </nav>
+      </aside>
     </form>
   );
 }

@@ -14,6 +14,7 @@ import {
   EyeOff,
   FolderSearch,
   Pencil,
+  Plus,
   Search,
   Trash2,
 } from "lucide-react";
@@ -145,6 +146,7 @@ export function AdminTablePage({
   return (
     <>
       <AdminPageHeader
+        eyebrow="เนื้อหาเว็บไซต์"
         title={title}
         description={description}
         action={
@@ -152,7 +154,7 @@ export function AdminTablePage({
             className="btn btn-dark"
             onClick={() => router.push(`${basePath}/new`)}
           >
-            + เพิ่มรายการ
+            <Plus size={17} aria-hidden="true" /> เพิ่ม{title}
           </button>
         }
       />
@@ -214,9 +216,14 @@ export function AdminTablePage({
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan={4}>กำลังโหลด…</td>
-                </tr>
+                Array.from({ length: 4 }, (_, index) => (
+                  <tr key={index} className="skeleton-row" aria-hidden="true">
+                    <td><span className="skeleton" style={{ width: "58%" }} /></td>
+                    <td><span className="skeleton" style={{ width: 84 }} /></td>
+                    <td><span className="skeleton" style={{ width: 120 }} /></td>
+                    <td />
+                  </tr>
+                ))
               ) : (
                 result.items.map((row) => (
                   <tr key={row.id}>
@@ -225,7 +232,7 @@ export function AdminTablePage({
                     </td>
                     <td>
                       <span
-                        className={`status ${row.status !== "PUBLISHED" ? "draft" : ""}`}
+                        className={`status ${row.status === "DRAFT" ? "draft" : row.status === "ARCHIVED" ? "archived" : ""}`}
                       >
                         {displayStatus(row)}
                       </span>
@@ -249,6 +256,7 @@ export function AdminTablePage({
                                 ? `นำ ${row.title} กลับเป็นฉบับร่าง`
                               : "เผยแพร่"
                           }
+                          title={row.status === "PUBLISHED" ? "ยกเลิกเผยแพร่" : row.status === "ARCHIVED" ? "นำกลับเป็นฉบับร่าง" : "เผยแพร่"}
                           onClick={() =>
                             transition(
                               row,
@@ -276,6 +284,7 @@ export function AdminTablePage({
                           className="icon-btn"
                           disabled={pendingRow !== null}
                           aria-label={`แก้ไข ${row.title}`}
+                          title="แก้ไข"
                           onClick={() =>
                             router.push(
                               `${basePath}/${row.slug ?? row.id}/edit`,
@@ -287,6 +296,7 @@ export function AdminTablePage({
                         <button
                           className="icon-btn"
                           aria-label={`เก็บ ${row.title} ถาวร`}
+                          title="เก็บเข้าคลัง (ซ่อนจากหน้าเว็บ)"
                           disabled={
                             row.status === "ARCHIVED" || pendingRow !== null
                           }
@@ -300,6 +310,7 @@ export function AdminTablePage({
                           disabled={pendingRow !== null}
                           aria-busy={pendingRow === row.id}
                           aria-label={`ย้าย ${row.title} ไปถังขยะ`}
+                          title="ย้ายไปถังขยะ"
                           onClick={() => transition(row, "trash")}
                         >
                           <Trash2 size={16} />
@@ -313,15 +324,22 @@ export function AdminTablePage({
           </table>
         </div>
         {!loading && !result.items.length && (
-          <div className="empty-state" style={{ margin: 20 }}>
-            <div>
-              <FolderSearch size={38} color="var(--green-700)" />
-              <h2 className="subheading" style={{ marginTop: 16 }}>
-                ไม่พบรายการ
-              </h2>
-              <p className="muted">ลองเปลี่ยนคำค้นหาหรือสถานะที่เลือก</p>
+          query.trim() || status !== "ALL" ? (
+            <div className="empty-panel">
+              <FolderSearch size={30} aria-hidden="true" />
+              <p>ไม่พบรายการที่ตรงกับตัวกรอง</p>
+              <span>ลองเปลี่ยนคำค้นหาหรือสถานะที่เลือก</span>
             </div>
-          </div>
+          ) : (
+            <div className="empty-panel">
+              <FolderSearch size={30} aria-hidden="true" />
+              <p>ยังไม่มี{title}</p>
+              <span>เพิ่มรายการแรก บันทึกเป็นฉบับร่างก่อนได้ แล้วค่อยเผยแพร่เมื่อพร้อม</span>
+              <button className="btn btn-dark" style={{ marginTop: 10 }} onClick={() => router.push(`${basePath}/new`)}>
+                <Plus size={17} aria-hidden="true" /> เพิ่ม{title}
+              </button>
+            </div>
+          )
         )}
         <div className="pagination">
           <span>ทั้งหมด {result.total} รายการ</span>

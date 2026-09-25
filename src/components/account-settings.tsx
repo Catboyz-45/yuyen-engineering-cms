@@ -86,6 +86,7 @@ export function AccountSettings({ initialUser }: { initialUser: AccountUser }) {
   return (
     <>
       <AdminPageHeader
+        eyebrow="บัญชีของฉัน"
         title="ตั้งค่าบัญชี"
         description="จัดการข้อมูลและความปลอดภัยของบัญชีที่กำลังใช้งาน"
       />
@@ -121,7 +122,7 @@ export function AccountSettings({ initialUser }: { initialUser: AccountUser }) {
               />
             </div>
             <div className="form-group">
-              <label>บทบาทและ 2FA</label>
+              <label>บทบาทและการยืนยัน 2 ขั้นตอน</label>
               <div className="cluster">
                 <span className="tag">
                   {initialUser.role === "SUPER_ADMIN"
@@ -131,8 +132,8 @@ export function AccountSettings({ initialUser }: { initialUser: AccountUser }) {
                 <span className="status">
                   <ShieldCheck size={14} />{" "}
                   {initialUser.twoFactorEnabled
-                    ? "เปิดใช้งาน 2FA"
-                    : "ยังไม่ได้ตั้งค่า 2FA"}
+                    ? "เปิดยืนยัน 2 ขั้นตอนแล้ว"
+                    : "ยังไม่ได้ตั้งค่ายืนยัน 2 ขั้นตอน"}
                 </span>
               </div>
             </div>

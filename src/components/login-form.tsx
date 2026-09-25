@@ -43,16 +43,16 @@ export function LoginForm() {
       {state === "error" && <div className="auth-alert error" role="alert"><AlertCircle size={19} /><div><strong>เข้าสู่ระบบไม่สำเร็จ</strong><p>ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง</p></div></div>}
       {state === "locked" && <div className="auth-alert warning" role="alert"><ShieldAlert size={19} /><div><strong>บัญชีถูกระงับชั่วคราว</strong><p>มีการลองเข้าสู่ระบบหลายครั้ง กรุณารอ 15 นาที หรือติดต่อ Super Admin</p></div></div>}
 
-      {/* แจ้งการใช้ข้อมูลก่อนส่งฟอร์ม การล็อกอินไม่ใช่การยินยอมให้ติดตามเพื่อโฆษณา */}
-      <aside className="login-privacy" aria-label="ข้อมูลส่วนบุคคลในการเข้าสู่ระบบ">
-        <p>เราใช้ข้อมูลบัญชีและคุกกี้ที่จำเป็นเพื่อยืนยันตัวตนและตรวจสิทธิ์ พร้อมบันทึกประวัติการเข้าสู่ระบบและการทำงานเพื่อความปลอดภัย</p>
-        <p><Link href="/privacy">นโยบายความเป็นส่วนตัว</Link> · <Link href="/cookies">นโยบายคุกกี้</Link> · <Link href="/terms">เงื่อนไขการใช้เว็บไซต์</Link></p>
-      </aside>
       <form className="form-stack" onSubmit={submit} noValidate>
         <div className="form-group"><label htmlFor="username">ชื่อผู้ใช้</label><input className="field" id="username" name="username" autoComplete="username" placeholder="กรอกชื่อผู้ใช้" disabled={state === "locked" || state === "submitting"} required /></div>
         <div className="form-group"><div className="cluster" style={{ justifyContent: "space-between" }}><label htmlFor="password">รหัสผ่าน</label><span className="muted" style={{ fontSize: ".75rem" }}>ติดต่อ Super Admin หากลืมรหัสผ่าน</span></div><div className="password-field"><input className="field" id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="กรอกรหัสผ่าน" disabled={state === "locked" || state === "submitting"} required /><button type="button" className="icon-btn" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></div>
         <button className="btn btn-dark" disabled={state === "locked" || state === "submitting"}>{state === "submitting" ? <><LoaderCircle className="spin" size={18} /> กำลังตรวจสอบ</> : <>เข้าสู่ระบบ <ArrowRight size={17} /></>}</button>
       </form>
+      {/* แจ้งการใช้ข้อมูลไว้ใต้ปุ่มบนหน้าจอเดียวกัน ผู้ใช้เห็นก่อนส่งฟอร์ม และการล็อกอินไม่ใช่การยินยอมให้ติดตามเพื่อโฆษณา */}
+      <aside className="login-privacy" aria-label="ข้อมูลส่วนบุคคลในการเข้าสู่ระบบ">
+        <p>เราใช้ข้อมูลบัญชีและคุกกี้ที่จำเป็นเพื่อยืนยันตัวตนและตรวจสิทธิ์ พร้อมบันทึกประวัติการเข้าสู่ระบบและการทำงานเพื่อความปลอดภัย</p>
+        <p><Link href="/privacy">นโยบายความเป็นส่วนตัว</Link> · <Link href="/cookies">นโยบายคุกกี้</Link> · <Link href="/terms">เงื่อนไขการใช้เว็บไซต์</Link></p>
+      </aside>
       <p className="muted" style={{ marginTop: 24, fontSize: ".75rem" }}>ระบบจำกัดจำนวนครั้งที่เข้าสู่ระบบไม่สำเร็จ และไม่เปิดเผยว่าชื่อผู้ใช้มีอยู่หรือไม่</p>
     </>
   );

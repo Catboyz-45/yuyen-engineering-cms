@@ -203,6 +203,25 @@ test.describe("authenticated CMS interaction", () => {
     }
   });
 
+  test("ประวัติการทำงานและหน้าภาพรวมแสดงกิจกรรมเป็นภาษาไทย", async ({ page }) => {
+    const database = new PrismaClient();
+    const cleanup = await authenticateTemporaryAdmin(page);
+    const requestId = `critical-ui-audit-${randomUUID()}`;
+    try {
+      const actor = await database.admin.findFirstOrThrow({ where: { username: { startsWith: "critical-ui-" } }, orderBy: { createdAt: "desc" }, select: { id: true } });
+      await database.auditLog.create({ data: { actorId: actor.id, action: "CONTENT_PUBLISHED", targetType: "Product", targetId: "critical-ui", result: "SUCCESS", requestId } });
+      await page.goto("/admin/audit");
+      await expect(page.getByText("เผยแพร่สินค้า").first()).toBeVisible();
+      await expect(page.locator(".skeleton-row")).toHaveCount(0);
+      await page.goto("/admin");
+      await expect(page.getByText("เผยแพร่สินค้า").first()).toBeVisible();
+    } finally {
+      await database.auditLog.deleteMany({ where: { requestId } });
+      await database.$disconnect();
+      await cleanup();
+    }
+  });
+
   test("เพิ่ม เผยแพร่ ย้ายลงถังขยะ และกู้คืนเนื้อหา", async ({ page }) => {
     const cleanup = await authenticateTemporaryAdmin(page);
     const headers = { Origin: process.env.APP_URL ?? baseURL };

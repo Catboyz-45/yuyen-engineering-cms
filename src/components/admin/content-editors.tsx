@@ -315,7 +315,7 @@ function ContentEditor({
     typeof record[key] === "string" || typeof record[key] === "number"
       ? String(record[key])
       : fallback;
-  if (loading) return <p>กำลังโหลดข้อมูล…</p>;
+  if (loading) return <div className="panel card-body" role="status">กำลังโหลดข้อมูล…</div>;
   return (
     <ValidationContext.Provider value={fieldErrors}>
       <EditorHeader
@@ -359,11 +359,12 @@ function ContentEditor({
                 )}
                 {kind !== "banner" && (
                   <Field
-                    label="Slug"
+                    label="ลิงก์หน้าเว็บ (slug)"
                     name="slug"
                     defaultValue={value("slug")}
                     pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
                     required
+                    help="ภาษาอังกฤษตัวพิมพ์เล็ก ตัวเลข และขีดกลาง เช่น daikin-smash-ii ใช้เป็นท้ายลิงก์ของหน้านี้"
                   />
                 )}
                 {kind === "banner" && (
@@ -386,9 +387,10 @@ function ContentEditor({
                       />
                     </div>
                     <Field
-                      label="ลำดับ"
+                      label="ลำดับการแสดง"
                       name="sortOrder"
                       type="number"
+                      help="เลขน้อยแสดงก่อน"
                       defaultValue={value("sortOrder", "0")}
                     />
                   </>
@@ -412,9 +414,10 @@ function ContentEditor({
                       defaultValue={value("content")}
                     />
                     <Field
-                      label="ลำดับ"
+                      label="ลำดับการแสดง"
                       name="sortOrder"
                       type="number"
+                      help="เลขน้อยแสดงก่อน"
                       defaultValue={value("sortOrder", "0")}
                     />
                   </>
@@ -604,7 +607,7 @@ function ContentEditor({
                 )}
               </div>
             </FormSection>
-            <FormSection title="สื่อ">
+            <FormSection title="รูปภาพและไฟล์" description="ใส่คำอธิบายรูปทุกรูปเพื่อผู้ใช้โปรแกรมอ่านหน้าจอ">
               <div className="form-stack" style={{ marginTop: 0 }}>
                 <MediaUploader
                   name={kind === "banner" ? "imageId" : "coverMediaId"}
@@ -626,7 +629,7 @@ function ContentEditor({
                 {kind === "product" && (
                   <MediaUploader
                     name="catalogMediaId"
-                    title="Catalog PDF"
+                    title="แคตตาล็อก PDF"
                     multiple={false}
                     pdf
                     initial={initialMedia(record.catalogMedia)}
@@ -636,28 +639,30 @@ function ContentEditor({
               </div>
             </FormSection>
             {kind !== "banner" && (
-              <FormSection title="SEO และการแสดงผล">
+              <FormSection title="ผลการค้นหาและการแสดงผล" description="เว้นว่างได้ ระบบจะใช้ชื่อและคำอธิบายสั้นแทน">
                 <div className="form-stack" style={{ marginTop: 0 }}>
                   <Field
-                    label="SEO title"
+                    label="ชื่อหน้าในผลการค้นหา (SEO title)"
                     name="seoTitle"
                     maxLength={60}
+                    help="ไม่เกิน 60 ตัวอักษร"
                     defaultValue={value("seoTitle")}
                   />
                   <Area
-                    label="SEO description"
+                    label="คำอธิบายในผลการค้นหา (SEO description)"
                     name="seoDescription"
                     maxLength={160}
+                    help="ไม่เกิน 160 ตัวอักษร"
                     defaultValue={value("seoDescription")}
                   />
                   <Check
                     name="isFeatured"
-                    label="รายการแนะนำ"
+                    label="แสดงเป็นรายการแนะนำในหน้าแรก"
                     initial={Boolean(record.isFeatured)}
                   />
                   <Check
                     name="isSearchable"
-                    label="อนุญาตให้ค้นหา"
+                    label="ให้เครื่องมือค้นหาแสดงหน้านี้"
                     initial={record.isSearchable !== false}
                   />
                 </div>
@@ -761,6 +766,7 @@ function Field({
   type = "text",
   pattern,
   maxLength,
+  help,
 }: {
   label: string;
   name: string;
@@ -769,6 +775,7 @@ function Field({
   type?: string;
   pattern?: string;
   maxLength?: number;
+  help?: string;
 }) {
   const message = fieldMessage(useContext(ValidationContext), name);
   const errorId = `${name}-error`;
@@ -806,8 +813,9 @@ function Field({
         maxLength={effectiveMaxLength}
         step={type === "number" ? "any" : undefined}
         aria-invalid={Boolean(message)}
-        aria-describedby={message ? errorId : undefined}
+        aria-describedby={[help ? `${name}-help` : "", message ? errorId : ""].filter(Boolean).join(" ") || undefined}
       />
+      {help && <p className="help" id={`${name}-help`}>{help}</p>}
       {message && (
         <p className="field-error" id={errorId}>
           {message}
@@ -822,12 +830,14 @@ function Area({
   defaultValue,
   required,
   maxLength,
+  help,
 }: {
   label: string;
   name: string;
   defaultValue: string;
   required?: boolean;
   maxLength?: number;
+  help?: string;
 }) {
   const message = fieldMessage(useContext(ValidationContext), name);
   const errorId = `${name}-error`;
@@ -855,8 +865,9 @@ function Area({
         required={required}
         maxLength={effectiveMaxLength}
         aria-invalid={Boolean(message)}
-        aria-describedby={message ? errorId : undefined}
+        aria-describedby={[help ? `${name}-help` : "", message ? errorId : ""].filter(Boolean).join(" ") || undefined}
       />
+      {help && <p className="help" id={`${name}-help`}>{help}</p>}
       {message && (
         <p className="field-error" id={errorId}>
           {message}

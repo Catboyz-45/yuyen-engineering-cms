@@ -6,6 +6,7 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Check, LoaderCircle, Pencil, Plus, Trash2, X } from "lucide-react";
 import { AdminPageHeader } from "../admin-shell";
 import { useUI } from "../ui-feedback";
@@ -35,6 +36,7 @@ export function TaxonomyManager({
   singular: string;
   kind: Kind;
 }) {
+  const pathname = usePathname();
   const [items, setItems] = useState<Item[]>([]);
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
@@ -150,14 +152,10 @@ export function TaxonomyManager({
   }
   return (
     <>
-      <AdminPageHeader title={title} description={description} />
-      <nav
-        className="cluster"
-        style={{ marginTop: 24 }}
-        aria-label="ประเภทหมวดหมู่"
-      >
+      <AdminPageHeader eyebrow="หมวดหมู่" title={title} description={description} />
+      <nav className="segmented-tabs" aria-label="ประเภทหมวดหมู่">
         {tabs.map(([href, label]) => (
-          <Link key={href} className="btn btn-outline" href={href}>
+          <Link key={href} className={pathname === href ? "active" : ""} aria-current={pathname === href ? "page" : undefined} href={href}>
             {label}
           </Link>
         ))}
@@ -175,7 +173,7 @@ export function TaxonomyManager({
         >
           <div className="form-section-head">
             <h2>เพิ่ม{singular}</h2>
-            <p>ชื่อและ slug ต้องไม่ซ้ำกับรายการเดิม</p>
+            <p>ชื่อและลิงก์ต้องไม่ซ้ำกับรายการเดิม</p>
           </div>
           <div className="form-stack">
             <label>
@@ -188,7 +186,7 @@ export function TaxonomyManager({
               />
             </label>
             <label>
-              Slug
+              ลิงก์ (slug) — ภาษาอังกฤษตัวพิมพ์เล็ก ตัวเลข และขีดกลาง
               <input
                 className="field"
                 value={slug}
@@ -224,7 +222,7 @@ export function TaxonomyManager({
               <thead>
                 <tr>
                   <th>ชื่อ</th>
-                  <th>Slug</th>
+                  <th>ลิงก์ (slug)</th>
                   <th>ใช้งาน</th>
                   <th aria-label="การทำงาน" />
                 </tr>
