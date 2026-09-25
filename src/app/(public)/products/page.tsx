@@ -11,6 +11,7 @@ import {
 } from "@/components/public-pagination";
 import { createMetadata } from "@/lib/seo";
 import { PublicContentService } from "@/server/services/public-content.service";
+import { resolveSiteCopy } from "@/server/services/site-copy";
 import { ThemeSelect } from "@/components/theme-select";
 import {
   ClearPublicFilters,
@@ -47,6 +48,7 @@ export default async function ProductsPage({
   const brand = validSlug(raw.brand);
   const type = validSlug(raw.type);
   const content = new PublicContentService();
+  const copy = resolveSiteCopy((await content.getCompany())?.siteCopy);
   const [result, [brands, types]] = await Promise.all([
     content.listProducts({
       page,
@@ -78,10 +80,7 @@ export default async function ProductsPage({
         <div className="container">
           <p className="eyebrow">PRODUCTS</p>
           <h1 className="display">สินค้าเครื่องปรับอากาศ</h1>
-          <p className="lead">
-            เลือกดูสินค้าตามยี่ห้อ ประเภท และขนาด BTU หากไม่แน่ใจ
-            ทีมงานพร้อมช่วยแนะนำรุ่นที่เหมาะกับพื้นที่
-          </p>
+          {copy.productsIntro && <p className="lead">{copy.productsIntro}</p>}
         </div>
       </section>
       <section className="section">

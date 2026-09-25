@@ -11,6 +11,7 @@ import {
 } from "@/components/public-pagination";
 import { createMetadata } from "@/lib/seo";
 import { PublicContentService } from "@/server/services/public-content.service";
+import { resolveSiteCopy } from "@/server/services/site-copy";
 import { formatThaiDate } from "@/lib/date";
 import { ThemeSelect } from "@/components/theme-select";
 import {
@@ -35,6 +36,7 @@ export default async function NewsPage({
   const raw = await searchParams;
   const page = Math.max(1, Number.parseInt(raw.page ?? "1", 10) || 1);
   const content = new PublicContentService();
+  const copy = resolveSiteCopy((await content.getCompany())?.siteCopy);
   const [result, categories] = await Promise.all([
     content.listNews({
       page,
@@ -60,10 +62,7 @@ export default async function NewsPage({
         <div className="container">
           <p className="eyebrow">NEWS & KNOWLEDGE</p>
           <h1 className="display">ข่าวสารและบทความ</h1>
-          <p className="lead">
-            ติดตามข่าวบริษัท กิจกรรม โปรโมชัน
-            และสาระเกี่ยวกับการดูแลระบบปรับอากาศ
-          </p>
+          {copy.newsIntro && <p className="lead">{copy.newsIntro}</p>}
         </div>
       </section>
       <section className="section">

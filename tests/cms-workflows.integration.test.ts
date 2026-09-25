@@ -3,6 +3,7 @@
  * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
  */
 import { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { updateAdminSafely } from "@/server/auth/admin-users";
@@ -10,6 +11,7 @@ import { ContentService } from "@/server/cms/content.service";
 import { TaxonomyService } from "@/server/cms/taxonomy.service";
 import { CompanyService, companyInputSchema } from "@/server/services/company.service";
 import { referenceCount } from "@/server/media/references";
+import { DEFAULT_SITE_COPY } from "@/lib/site-copy";
 import { uploadRequestSchema } from "@/server/media/validation";
 
 const suite = describe.runIf(process.env.RUN_INTEGRATION === "1");
@@ -67,7 +69,8 @@ suite("CMS database integration workflows", () => {
     if (mediaId) await db.media.deleteMany({ where: { id: mediaId } });
     if (adminId) await db.admin.deleteMany({ where: { id: adminId } });
     if (companySnapshot) {
-      const { id, createdAt, updatedAt, ...data } = companySnapshot;
+      const { id, createdAt, updatedAt, siteCopy, ...rest } = companySnapshot;
+      const data = { ...rest, siteCopy: siteCopy ?? Prisma.DbNull };
       await db.company.upsert({
         where: { singletonKey: "PRIMARY" },
         create: { ...data, id },
@@ -183,13 +186,13 @@ suite("CMS database integration workflows", () => {
       await db.company.deleteMany({ where: { singletonKey: "PRIMARY" } });
       const base = { legalName: `บริษัททดสอบ ${prefix} จำกัด`, displayName: `บริษัททดสอบ ${prefix}`, values: "จริงใจ" };
       const created = await service.save(base, { actorId: adminId, expectedUpdatedAt: null, context });
-      expect(created).toMatchObject({ displayName: base.displayName, values: "จริงใจ", gallery: [] });
+      expect(created).toMatchObject({ displayName: base.displayName, values: "จริงใจ", gallery: [], siteCopy: null });
       expect(await db.auditLog.findFirst({ where: { requestId: context.requestId, action: "COMPANY_CREATED", targetId: created.id } })).not.toBeNull();
 
       await expect(service.save(base, { actorId: adminId, expectedUpdatedAt: null, context })).rejects.toMatchObject({ code: "CONFLICT" });
       await expect(service.save(base, { actorId: adminId, expectedUpdatedAt: new Date(0).toISOString(), context })).rejects.toMatchObject({ code: "CONFLICT" });
 
-      const withGallery = await service.save({ ...base, logoMediaId: first.id, galleryMediaIds: [second.id, first.id] }, { actorId: adminId, expectedUpdatedAt: created.updatedAt.toISOString(), context });
+      const withGallery = await service.save({ ...base, logoMediaId: first.id, galleryMediaIds: [second.id, first.id], siteCopy: { ...DEFAULT_SITE_COPY, ctaTitle: "ทดสอบข้อความ", processSteps: [] } }, { actorId: adminId, expectedUpdatedAt: created.updatedAt.toISOString(), context });
       expect(withGallery.gallery.map(entry => entry.media.id)).toEqual([second.id, first.id]);
       expect(await db.media.findUniqueOrThrow({ where: { id: second.id } })).toMatchObject({ orphanExpiresAt: null });
       expect(await referenceCount(second.id)).toBe(1);
@@ -198,6 +201,8 @@ suite("CMS database integration workflows", () => {
       // Omitting galleryMediaIds keeps the gallery; an empty list clears it.
       const kept = await service.save({ ...base, logoMediaId: first.id }, { actorId: adminId, expectedUpdatedAt: withGallery.updatedAt.toISOString(), context });
       expect(kept.gallery).toHaveLength(2);
+      expect(kept.siteCopy).toMatchObject({ ctaTitle: "ทดสอบข้อความ", processSteps: [] });
+      await expect(service.save({ ...base, siteCopy: { ...DEFAULT_SITE_COPY, extra: "x" } }, { actorId: adminId, expectedUpdatedAt: kept.updatedAt.toISOString(), context })).rejects.toThrow();
       const cleared = await service.save({ ...base, logoMediaId: null, galleryMediaIds: [] }, { actorId: adminId, expectedUpdatedAt: kept.updatedAt.toISOString(), context });
       expect(cleared.gallery).toEqual([]);
       expect(await referenceCount(first.id)).toBe(0);

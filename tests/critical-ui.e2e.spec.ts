@@ -4,7 +4,7 @@
  */
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import argon2 from "argon2";
 
 const runAdmin = process.env.RUN_CRITICAL_UI_E2E === "1";
@@ -118,6 +118,10 @@ test.describe("authenticated CMS interaction", () => {
       await page.goto("/admin/company");
       await expect(page.getByLabel("ชื่อบริษัทตามกฎหมาย")).toBeVisible();
       await page.getByLabel("คุณค่าของเรา").fill(values);
+      await page.getByLabel("SEO title").fill(`SEO ${values}`);
+      await page.getByLabel("หัวข้อหน้าเกี่ยวกับเรา").fill(`หัวข้อ ${values}`);
+      await page.getByLabel("จุดเด่นที่ 1 — หัวข้อ").fill(`จุดเด่น ${values}`);
+      await page.getByLabel("ป้ายเล็กบนภาพหน้าแรก").fill("");
       await page.getByLabel("เบอร์โทรที่แสดง").fill("");
       await page.getByLabel("เบอร์โทรสำหรับลิงก์").fill("");
       await page.getByLabel("โลโก้บริษัท", { exact: true }).setInputFiles({ name: "logo.png", mimeType: "image/png", buffer: png });
@@ -127,8 +131,14 @@ test.describe("authenticated CMS interaction", () => {
       await page.getByRole("button", { name: "บันทึกการเปลี่ยนแปลง" }).click();
       await expect(page.getByText("บันทึกข้อมูลบริษัทเรียบร้อยแล้ว")).toBeVisible();
 
+      await page.goto("/");
+      await expect(page).toHaveTitle(`SEO ${values}`);
+      await expect(page.getByText(`จุดเด่น ${values}`)).toBeVisible();
+      await expect(page.locator(".hero-badge")).toHaveCount(0);
+
       await page.goto("/about");
-      await expect(page.getByText(values)).toBeVisible();
+      await expect(page.getByText(values, { exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(`หัวข้อ ${values}`);
       const photo = page.locator("main picture img").first();
       await expect(photo).toBeVisible();
       // โหลดผ่าน /api/media -> signed URL ของ storage จริง จึงยืนยัน CSP img-src และ redirect ไปพร้อมกัน
@@ -140,9 +150,9 @@ test.describe("authenticated CMS interaction", () => {
       await expect(page.getByText("ข้อมูลตัวอย่างสำหรับการพัฒนาระบบ")).toHaveCount(0);
     } finally {
       if (original) {
-        const { id, createdAt: _createdAt, updatedAt: _updatedAt, gallery, ...data } = original;
+        const { id, createdAt: _createdAt, updatedAt: _updatedAt, gallery, siteCopy, ...data } = original;
         await database.companyMedia.deleteMany({ where: { companyId: id } });
-        await database.company.update({ where: { id }, data: { ...data, gallery: { create: gallery.map(({ mediaId, sortOrder }) => ({ mediaId, sortOrder })) } } });
+        await database.company.update({ where: { id }, data: { ...data, siteCopy: siteCopy ?? Prisma.DbNull, gallery: { create: gallery.map(({ mediaId, sortOrder }) => ({ mediaId, sortOrder })) } } });
       }
       await database.$disconnect();
       await cleanup();

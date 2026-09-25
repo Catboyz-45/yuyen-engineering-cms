@@ -11,6 +11,7 @@ import {
 } from "@/components/public-pagination";
 import { createMetadata } from "@/lib/seo";
 import { PublicContentService } from "@/server/services/public-content.service";
+import { resolveSiteCopy } from "@/server/services/site-copy";
 import { formatThaiDate } from "@/lib/date";
 import { ThemeSelect } from "@/components/theme-select";
 import {
@@ -35,6 +36,7 @@ export default async function ProjectsPage({
   const raw = await searchParams;
   const page = Math.max(1, Number.parseInt(raw.page ?? "1", 10) || 1);
   const content = new PublicContentService();
+  const copy = resolveSiteCopy((await content.getCompany())?.siteCopy);
   const [result, types] = await Promise.all([
     content.listProjects({
       page,
@@ -61,10 +63,7 @@ export default async function ProjectsPage({
         <div className="container">
           <p className="eyebrow">OUR PROJECTS</p>
           <h1 className="display">ผลงานของเรา</h1>
-          <p className="lead">
-            ตัวอย่างงานติดตั้ง บำรุงรักษา
-            และงานระบบวิศวกรรมที่ได้รับการดูแลอย่างเป็นขั้นตอน
-          </p>
+          {copy.projectsIntro && <p className="lead">{copy.projectsIntro}</p>}
         </div>
       </section>
       <section className="section">

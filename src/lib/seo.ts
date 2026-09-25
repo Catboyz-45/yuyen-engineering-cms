@@ -14,29 +14,33 @@ export function createMetadata({
   path,
   type = "website",
   image,
+  absoluteTitle = false,
 }: {
   title: string;
   description: string;
   path: string;
   type?: "website" | "article";
   image?: string;
+  /** true เมื่อ title เป็นชื่อเต็มจากผู้ดูแลแล้ว ไม่ต้องต่อท้ายชื่อเว็บ */
+  absoluteTitle?: boolean;
 }): Metadata {
+  const fullTitle = absoluteTitle ? title : `${title} | ${siteName}`;
   return {
-    title,
+    title: absoluteTitle ? { absolute: title } : title,
     description,
     alternates: { canonical: path },
     openGraph: {
       type,
       locale: "th_TH",
       siteName,
-      title: `${title} | ${siteName}`,
+      title: fullTitle,
       description,
       url: path,
       images: [{ url: image ?? "/opengraph-image", width: 1200, height: 630, alt: `${title} — ${siteName}` }],
     },
     twitter: {
       card: "summary_large_image",
-      title: `${title} | ${siteName}`,
+      title: fullTitle,
       description,
       images: [image ?? "/opengraph-image"],
     },

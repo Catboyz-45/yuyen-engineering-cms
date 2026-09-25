@@ -8,6 +8,7 @@ import { safeMapEmbedUrl } from "@/lib/map-embed";
 import { db } from "@/server/db";
 import { CmsError } from "@/server/cms/errors";
 import { assertMedia } from "@/server/cms/content.service";
+import { siteCopySchema } from "./site-copy";
 
 const optionalUrl = z.union([z.literal(""), z.string().url()]).transform((value) => value || null);
 export const COMPANY_GALLERY_LIMIT = 12;
@@ -34,6 +35,8 @@ export const companyInputSchema = z.object({
   seoTitle: z.string().trim().max(60).nullable().optional(),
   seoDescription: z.string().trim().max(160).nullable().optional(),
   logoMediaId: z.string().trim().max(30).nullable().optional(),
+  // ข้อความบนหน้าเว็บ; ไม่ส่งมา = คงข้อความเดิม
+  siteCopy: siteCopySchema.optional(),
   // ไม่ส่งมา = คงแกลเลอรีเดิม, ส่ง [] = ลบรูปบริษัทออกทั้งหมด
   galleryMediaIds: z.array(z.string().trim().min(1).max(30)).max(COMPANY_GALLERY_LIMIT)
     .refine(ids => new Set(ids).size === ids.length, "รูปภาพซ้ำกัน").optional(),

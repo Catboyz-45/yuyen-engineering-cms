@@ -11,6 +11,7 @@ import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { LoadingLabel } from "./loading-label";
 import { FieldErrors, fieldMessage, focusFirstInvalid, readFieldErrors } from "@/lib/form-validation";
 import { MediaUploader } from "./admin/editor-ui";
+import { initialSiteCopy, readSiteCopy, SiteCopyFields } from "./admin/site-copy-fields";
 type MediaPreview = { id: string; originalName?: string | null; altText?: string | null };
 type Company = Record<string, unknown> & { logoMedia?: MediaPreview | null; gallery?: { media: MediaPreview }[] };
 const GALLERY_LIMIT = 12;
@@ -76,12 +77,19 @@ export function CompanyForm() {
       setError(`รูปบริษัทใส่ได้ไม่เกิน ${GALLERY_LIMIT} รูป`);
       return;
     }
+    const siteCopy = readSiteCopy(form);
+    if ("error" in siteCopy) {
+      setSaving(false);
+      setError(siteCopy.error);
+      return;
+    }
     const payload = {
       ...Object.fromEntries(
         fields.map(([key]) => [key, String(form.get(key) ?? "").trim() || null]),
       ),
       logoMediaId: String(form.get("logoMediaId") ?? "") || null,
       galleryMediaIds,
+      siteCopy: siteCopy.copy,
     };
     // ยังไม่มีเวอร์ชันแปลว่าบันทึกครั้งแรก เซิร์ฟเวอร์จะสร้างข้อมูลบริษัทให้
     const expectedUpdatedAt = typeof company?.updatedAt === "string" ? company.updatedAt : undefined;
@@ -184,6 +192,7 @@ export function CompanyForm() {
         initial={(company.gallery ?? []).flatMap((entry) => preview(entry.media))}
         onDirty={markDirty}
       />
+      <SiteCopyFields initial={initialSiteCopy(company.siteCopy)} />
       <p className="help">ช่องที่เว้นว่างจะไม่แสดงบนหน้าเว็บ</p>
       <button className="btn btn-dark" disabled={saving} aria-busy={saving}>
         <LoadingLabel busy={saving} busyText="กำลังบันทึก…">

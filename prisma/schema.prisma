@@ -72,6 +72,7 @@ model Company {
   businessHours    String?  @db.VarChar(200)
   seoTitle         String?  @db.VarChar(60)
   seoDescription   String?  @db.VarChar(160)
+  siteCopy         Json?
   logoMediaId      String?  @db.VarChar(30)
   logoMedia        Media?   @relation("CompanyLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
   gallery          CompanyMedia[]
