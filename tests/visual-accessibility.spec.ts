@@ -49,23 +49,6 @@ test("mobile drawer trap focus, ปิดด้วย Escape และคืน 
   await expect(trigger).toBeFocused();
 });
 
-test("confirmation dialog trap focus, ปิดด้วย Escape และคืน focus", async ({ page }) => {
-  await page.goto("/admin/products");
-  const trigger = page.getByRole("button", { name: /ย้าย .* ไปถังขยะ/ }).first();
-  await trigger.focus();
-  await trigger.click();
-  const dialog = page.getByRole("alertdialog");
-  await expect(dialog).toBeVisible();
-  await expect(page.getByRole("button", { name: "ยกเลิก" })).toBeFocused();
-  await page.keyboard.press("Shift+Tab");
-  await expect(page.getByRole("button", { name: "ย้ายไปถังขยะ" })).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "ยกเลิก" })).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
-  await expect(trigger).toBeFocused();
-});
-
 test("dropdown ตัวกรองรองรับคีย์บอร์ดและส่งค่าที่เลือก", async ({ page }) => {
   await page.goto("/products");
   await expect(page.locator(".skeleton")).toHaveCount(0);

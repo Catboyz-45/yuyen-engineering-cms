@@ -41,7 +41,9 @@ export function useModalAccessibility({ active = true, containerRef, initialFocu
       document.addEventListener("focusin", rememberFocus);
       return () => document.removeEventListener("focusin", rememberFocus);
     }
-    const previousFocus = restoreFocusRef?.current ?? returnFocusRef.current;
+    // Dialogs mounted already active never pass through the inactive branch; focus is still on the trigger here.
+    const mountFocus = document.activeElement instanceof HTMLElement && !containerRef.current?.contains(document.activeElement) ? document.activeElement : null;
+    const previousFocus = restoreFocusRef?.current ?? returnFocusRef.current ?? mountFocus;
     const bodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 

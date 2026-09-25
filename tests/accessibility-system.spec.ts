@@ -158,6 +158,24 @@ test("Dialog ผู้ดูแล trap focus, Escape และคืน focus",
   await expect(trigger).toBeFocused();
 });
 
+test("confirmation dialog trap focus, ปิดด้วย Escape และคืน focus", async ({ page }) => {
+  await addCmsSession(page);
+  await page.goto("/admin/products");
+  const trigger = page.getByRole("button", { name: /ย้าย .* ไปถังขยะ/ }).first();
+  await trigger.focus();
+  await trigger.click();
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "ยกเลิก", exact: true })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(dialog.getByRole("button", { name: "ย้ายไปถังขยะ", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(dialog.getByRole("button", { name: "ยกเลิก", exact: true })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
+
 for (const route of [...publicRoutes, "/login", "/admin", "/admin/products"] as const) {
   test(`ซูม 200% ไม่มี horizontal overflow ที่กีดขวางการใช้งาน: ${route}`, async ({ page }) => {
     await page.setViewportSize({ width: 640, height: 450 });
