@@ -56,13 +56,14 @@ services:
       context: .
       args:
         NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
-        S3_ENDPOINT: ${S3_ENDPOINT:-http://localhost:9000}
     env_file:
       - path: .env
         required: false
     environment:
       DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/yuyen?schema=public
       S3_ENDPOINT: http://minio:9000
+      # เบราว์เซอร์เรียก signed URL เอง จึงต้องเป็นชื่อที่เข้าถึงจากเครื่องผู้ใช้ได้ ไม่ใช่ minio:9000
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_FORCE_PATH_STYLE: "true"
       S3_CONNECTION_TIMEOUT_MS: ${S3_CONNECTION_TIMEOUT_MS:-5000}
       S3_REQUEST_TIMEOUT_MS: ${S3_REQUEST_TIMEOUT_MS:-30000}
@@ -98,6 +99,8 @@ services:
     environment:
       DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/yuyen?schema=public
       S3_ENDPOINT: http://minio:9000
+      # เบราว์เซอร์เรียก signed URL เอง จึงต้องเป็นชื่อที่เข้าถึงจากเครื่องผู้ใช้ได้ ไม่ใช่ minio:9000
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_FORCE_PATH_STYLE: "true"
       S3_CONNECTION_TIMEOUT_MS: ${S3_CONNECTION_TIMEOUT_MS:-5000}
       S3_REQUEST_TIMEOUT_MS: ${S3_REQUEST_TIMEOUT_MS:-30000}

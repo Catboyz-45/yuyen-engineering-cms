@@ -5,6 +5,11 @@
  */
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { buildContentSecurityPolicy } from "@/lib/content-security-policy";
+import { storageBrowserOrigins } from "@/server/storage/browser-origin";
+
+// อ่านจาก environment ตอนรัน image เดียวจึงใช้กับ storage ต่างที่ได้โดยไม่ต้อง build ใหม่
+const contentSecurityPolicy = buildContentSecurityPolicy({ nodeEnv: process.env.NODE_ENV, storageOrigins: storageBrowserOrigins() });
 
 /** ฟังก์ชันสาธารณะ proxy เป็นทางเข้าที่โมดูลอื่นเรียกใช้; รายละเอียดเงื่อนไขอยู่ในบรรทัดภายในฟังก์ชัน */
 export function proxy(request: NextRequest) {
@@ -13,6 +18,7 @@ export function proxy(request: NextRequest) {
   requestHeaders.set("x-request-id", requestId);
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("x-request-id", requestId);
+  response.headers.set("Content-Security-Policy", contentSecurityPolicy);
   if (request.nextUrl.pathname.startsWith("/admin") || request.nextUrl.pathname.startsWith("/api/admin")) response.headers.set("Cache-Control", "private, no-store");
   return response;
 }

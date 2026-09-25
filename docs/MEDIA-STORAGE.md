@@ -10,6 +10,14 @@ Set `S3_ENDPOINT` for providers such as Cloudflare R2, MinIO, or DigitalOcean
 Spaces. It can be omitted for AWS S3. Set `S3_FORCE_PATH_STYLE=true` when a local
 MinIO installation requires path-style requests. Keep the bucket private.
 
+Browsers load images and upload files through signed URLs, so the signed host
+must be reachable from the user's machine. When the app reaches storage by an
+internal name (for example `http://minio:9000` inside Docker Compose), set
+`S3_PUBLIC_ENDPOINT` to the public address. The Content-Security-Policy is built
+at runtime from `S3_PUBLIC_ENDPOINT` (or `S3_ENDPOINT`), `S3_BUCKET`,
+`S3_REGION`, and `S3_FORCE_PATH_STYLE`, so changing storage needs a restart, not
+a rebuild.
+
 The bucket CORS policy must permit `PUT` from the exact CMS origin and the
 `Content-Type` header. Do not use a wildcard production origin:
 

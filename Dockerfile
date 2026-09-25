@@ -13,7 +13,6 @@ RUN npm ci
 FROM base AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000
-ARG S3_ENDPOINT
 ENV NEXT_TELEMETRY_DISABLED=1 \
     DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build?schema=public \
     APP_URL=http://127.0.0.1:3000 \
@@ -21,8 +20,7 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     TOTP_ENCRYPTION_KEY=YnVpbGQtb25seS0zMi1ieXRlLWtleS1uZXZlci11c2VkISE= \
     MALWARE_SCAN_MODE=required \
     CLAMAV_HOST=127.0.0.1 \
-    NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
-    S3_ENDPOINT=${S3_ENDPOINT}
+    NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run db:generate && npm run build

@@ -10,6 +10,10 @@ test("security headers and correlation ID are present", async ({ request }) => {
   expect(response.headers()["x-content-type-options"]).toBe("nosniff");
   expect(response.headers()["x-frame-options"]).toBe("DENY");
   expect(response.headers()["content-security-policy"]).toContain("frame-ancestors 'none'");
+  // รูปจาก CMS redirect ไป signed URL ของ storage จึงต้องอยู่ใน img-src ไม่เช่นนั้นเบราว์เซอร์จะบล็อก
+  const storageEndpoint = process.env.S3_PUBLIC_ENDPOINT || process.env.S3_ENDPOINT;
+  const imgSrc = response.headers()["content-security-policy"]?.split("; ").find(entry => entry.startsWith("img-src ")) ?? "";
+  if (storageEndpoint) expect(imgSrc.split(" ")).toContain(new URL(storageEndpoint).origin);
   expect(response.headers()["permissions-policy"]).toContain("camera=()");
 });
 

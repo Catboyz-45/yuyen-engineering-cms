@@ -41,6 +41,8 @@ const serverEnvSchema = z
       .max(10)
       .default(0),
     S3_ENDPOINT: optionalUrl,
+    // ปลายทางที่เบราว์เซอร์เข้าถึงได้ ใช้เซ็น URL เมื่อแอปคุยกับ storage ผ่านชื่อภายใน เช่น http://minio:9000
+    S3_PUBLIC_ENDPOINT: optionalUrl,
     S3_REGION: z.string().min(1).default("auto"),
     S3_BUCKET: z.string().optional(),
     S3_ACCESS_KEY_ID: z.string().optional(),

@@ -18,27 +18,32 @@ async function bytes(body: Awaited<ReturnType<S3Client["send"]>> | unknown): Pro
 export class S3ObjectStorage implements ObjectStorage {
   private readonly bucket: string;
   private readonly client: S3Client;
+  private readonly signingClient: S3Client;
 
   constructor() {
     const env = getServerEnv();
     if (!env.S3_BUCKET || !env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY) throw new Error("OBJECT_STORAGE_NOT_CONFIGURED");
     this.bucket = env.S3_BUCKET;
-    this.client = new S3Client({
+    const credentials = { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY };
+    const clientFor = (endpoint: string | undefined) => new S3Client({
       region: env.S3_REGION,
-      endpoint: env.S3_ENDPOINT,
+      endpoint,
       forcePathStyle: env.S3_FORCE_PATH_STYLE === "true",
-      credentials: { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY },
+      credentials,
       maxAttempts: 3,
       requestHandler: new NodeHttpHandler({
         connectionTimeout: env.S3_CONNECTION_TIMEOUT_MS,
         requestTimeout: env.S3_REQUEST_TIMEOUT_MS,
       }),
     });
+    this.client = clientFor(env.S3_ENDPOINT);
+    // Presigning is offline; the signed host must be the one the browser will call.
+    this.signingClient = env.S3_PUBLIC_ENDPOINT ? clientFor(env.S3_PUBLIC_ENDPOINT) : this.client;
   }
 
   async checkHealth() { await this.client.send(new HeadBucketCommand({ Bucket: this.bucket })); }
-  signPut(key: string, contentType: string, contentLength: number, expiresIn: number) { return getSignedUrl(this.client, new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType, ContentLength: contentLength }), { expiresIn }); }
-  signGet(key: string, expiresIn: number, downloadName?: string) { return getSignedUrl(this.client, new GetObjectCommand({ Bucket: this.bucket, Key: key, ...(downloadName ? { ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(downloadName)}` } : {}) }), { expiresIn }); }
+  signPut(key: string, contentType: string, contentLength: number, expiresIn: number) { return getSignedUrl(this.signingClient, new PutObjectCommand({ Bucket: this.bucket, Key: key, ContentType: contentType, ContentLength: contentLength }), { expiresIn }); }
+  signGet(key: string, expiresIn: number, downloadName?: string) { return getSignedUrl(this.signingClient, new GetObjectCommand({ Bucket: this.bucket, Key: key, ...(downloadName ? { ResponseContentDisposition: `attachment; filename*=UTF-8''${encodeURIComponent(downloadName)}` } : {}) }), { expiresIn }); }
   async head(key: string) { const value = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key })); return { size: value.ContentLength ?? 0, contentType: value.ContentType }; }
   async get(key: string) { return bytes(await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }))); }
   async put(key: string, body: Uint8Array, contentType: string) { await this.client.send(new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: body, ContentType: contentType, CacheControl: "private, max-age=31536000, immutable" })); }

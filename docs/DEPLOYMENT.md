@@ -10,12 +10,12 @@
 ## ขั้นตอนปล่อยระบบ
 
 1. สำรองฐานข้อมูลและทดสอบ restore ล่าสุด
-2. สร้าง image จาก commit/tag ที่ผ่าน GitHub Actions โดย public URL และ S3 origin เป็น build-time configuration:
+2. สร้าง image จาก commit/tag ที่ผ่าน GitHub Actions โดย public URL เป็น build-time configuration
+   ส่วน S3 origin ใน Content-Security-Policy อ่านจาก environment ตอนรัน (`S3_PUBLIC_ENDPOINT` หรือ `S3_ENDPOINT`):
 
 ```bash
 docker build \
   --build-arg NEXT_PUBLIC_SITE_URL=https://www.example.co.th \
-  --build-arg S3_ENDPOINT=https://storage.example.co.th \
   -t yuyen:<tag> .
 ```
 

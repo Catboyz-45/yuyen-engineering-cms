@@ -4,11 +4,8 @@
  */
 import type { NextConfig } from "next";
 
-const storageOrigin = (() => { try { return process.env.S3_ENDPOINT ? new URL(process.env.S3_ENDPOINT).origin : ""; } catch { return ""; } })();
-const developmentScriptPolicy = process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : "";
-const productionUpgradePolicy = process.env.NODE_ENV === "production" ? "; upgrade-insecure-requests" : "";
+// Content-Security-Policy ตั้งใน src/proxy.ts เพราะต้องใช้ storage origin ตอนรัน ไม่ใช่ตอน build
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; frame-src https://www.google.com/maps/embed https://www.google.com/maps/embed/ https://maps.google.com/maps/embed https://maps.google.com/maps/embed/; form-action 'self'; img-src 'self' data: blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'${developmentScriptPolicy}; connect-src 'self'${storageOrigin ? ` ${storageOrigin}` : ""}; media-src 'self' blob:${productionUpgradePolicy}` },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
