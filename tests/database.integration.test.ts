@@ -16,6 +16,8 @@ import { serializable } from "@/server/db/transaction";
 import { publicReference } from "@/server/media/access";
 
 const integration = process.env.RUN_INTEGRATION === "1";
+// นาฬิกาของ PostgreSQL กับของเครื่องที่รันเทสต์ต่างกันได้เล็กน้อย (CI เคยต่าง 1 ms)
+const CLOCK_SKEW_MS = 250;
 const suite = describe.runIf(integration);
 const prefix = `it-${randomUUID().slice(0, 8)}`;
 const actorId = "integration-actor"; const extraIds: string[] = []; let firstId = ""; let secondId = "";
@@ -150,7 +152,10 @@ suite("PostgreSQL security integration", () => {
     expect(await consumeAttempt(key, 5, 15)).toMatchObject({ allowed: true, lockedUntil: null });
     const second = await consumeAttempt(key, 5, 15);
     expect(second.allowed).toBe(true);
-    expect(second.lockedUntil!.getTime() - Date.now()).toBeLessThanOrEqual(1_000);
+    // เวลาล็อกคำนวณจากนาฬิกาฐานข้อมูล แต่เทียบกับนาฬิกาของเครื่องที่รันเทสต์ จึงเผื่อความต่างของนาฬิกาเล็กน้อย
+    const delayMs = second.lockedUntil!.getTime() - Date.now();
+    expect(delayMs).toBeGreaterThan(0);
+    expect(delayMs).toBeLessThanOrEqual(1_000 + CLOCK_SKEW_MS);
     expect((await consumeAttempt(key, 5, 15)).allowed).toBe(false);
   });
 
