@@ -9,6 +9,14 @@ import { ArchiveRestore, LoaderCircle, RotateCcw, Trash2 } from "lucide-react";
 import { AdminPageHeader } from "@/components/admin-shell";
 import { useUI } from "@/components/ui-feedback";
 type Item = { id: string; title: string; kind: string; purgeAt: string };
+const taxonomyKinds = new Set(["brands", "product-types", "news-categories"]);
+
+/** API สำหรับกู้คืนหรือลบถาวร แยกตามชนิดรายการ: บัญชีผู้ดูแล, หมวดหมู่, หรือเนื้อหา */
+function transitionUrl(item: Item) {
+  if (item.kind === "admins") return `/api/admin/users/${item.id}/transition`;
+  const area = taxonomyKinds.has(item.kind) ? "taxonomies" : "content";
+  return `/api/admin/${area}/${item.kind}/${item.id}/transition`;
+}
 const names: Record<string, string> = {
   banners: "แบนเนอร์",
   services: "บริการ",
@@ -45,10 +53,10 @@ export default function TrashPage() {
           setRole(body.role);
         }
       })
-      .catch((caught) => {
+      .catch((caughtError) => {
         if (active)
           setError(
-            caught instanceof Error ? caught.message : "โหลดข้อมูลไม่สำเร็จ",
+            caughtError instanceof Error ? caughtError.message : "โหลดข้อมูลไม่สำเร็จ",
           );
       });
     return () => {
@@ -70,14 +78,9 @@ export default function TrashPage() {
     )
       return;
     setPending(`${item.kind}-${item.id}`);
-    const taxonomy = ["brands", "product-types", "news-categories"].includes(
-      item.kind,
-    );
     try {
       const response = await fetch(
-        item.kind === "admins"
-          ? `/api/admin/users/${item.id}/transition`
-          : `/api/admin/${taxonomy ? "taxonomies" : "content"}/${item.kind}/${item.id}/transition`,
+        transitionUrl(item),
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -135,7 +138,7 @@ export default function TrashPage() {
                     </td>
                     <td>
                       <div className="row-actions">
-                        <button
+                        <button type="button"
                           className="btn btn-outline"
                           disabled={pending !== null}
                           aria-busy={pending === `${item.kind}-${item.id}`}
@@ -153,7 +156,7 @@ export default function TrashPage() {
                           )}
                         </button>
                         {role === "SUPER_ADMIN" && (
-                          <button
+                          <button type="button"
                             className="icon-btn"
                             disabled={pending !== null}
                             aria-busy={pending === `${item.kind}-${item.id}`}

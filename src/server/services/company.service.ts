@@ -25,7 +25,7 @@ export const companyInputSchema = z.object({
   values: z.string().trim().max(10_000).nullable().optional(),
   address: z.string().trim().max(2_000).nullable().optional(),
   phoneDisplay: z.string().trim().max(50).nullable().optional(),
-  phoneHref: z.string().trim().max(30).regex(/^\+?[0-9]{8,15}$/).nullable().optional(),
+  phoneHref: z.string().trim().max(30).regex(/^\+?\d{8,15}$/).nullable().optional(),
   email: z.string().trim().email().max(254).nullable().optional(),
   lineLabel: z.string().trim().max(100).nullable().optional(),
   lineUrl: optionalUrl.nullable().optional(),

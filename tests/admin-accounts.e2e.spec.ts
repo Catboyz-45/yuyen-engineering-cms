@@ -66,6 +66,7 @@ async function signInAndEnroll(
 }
 
 test.describe("administrator account lifecycle", () => {
+  // ชุดนี้เขียนข้อมูลจริง จึงรันเฉพาะเมื่อผู้รันเปิดเองกับฐานข้อมูลทดสอบที่แยกไว้
   test.skip(!enabled, "Set RUN_ADMIN_E2E=1 and use an isolated test database");
   test.describe.configure({ mode: "serial" });
 

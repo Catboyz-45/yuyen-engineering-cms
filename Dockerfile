@@ -10,22 +10,24 @@ WORKDIR /app
 COPY package.json package-lock.json prisma.config.ts ./
 COPY prisma ./prisma
 # postinstall runs `prisma generate`, which needs the schema; prisma.config.ts requires DATABASE_URL even though generate never connects.
-RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build?schema=public npm ci
+RUN DATABASE_URL="postgresql://build@127.0.0.1:5432/build?schema=public" npm ci
 
 FROM base AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000
 ENV NEXT_TELEMETRY_DISABLED=1 \
-    DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build?schema=public \
-    APP_URL=http://127.0.0.1:3000 \
-    SESSION_SECRET=build-only-session-secret-never-used-at-runtime \
-    TOTP_ENCRYPTION_KEY=YnVpbGQtb25seS0zMi1ieXRlLWtleS1uZXZlci11c2VkISE= \
-    MALWARE_SCAN_MODE=required \
-    CLAMAV_HOST=127.0.0.1 \
     NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN npm run db:generate && npm run build
+# ค่าด้านล่างใช้แค่ผ่านการตรวจ env ตอน build และไม่ติดไปกับ image (ไม่ใช้ ENV)
+# ขั้น ops ที่ต่อจากขั้นนี้จึงต้องได้ค่าลับจริงจาก .env เสมอ ไม่เผลอใช้ค่าตอน build
+RUN DATABASE_URL="postgresql://build@127.0.0.1:5432/build?schema=public" \
+    APP_URL="http://127.0.0.1:3000" \
+    SESSION_SECRET="$(head -c 48 /dev/urandom | base64)" \
+    TOTP_ENCRYPTION_KEY="$(head -c 32 /dev/urandom | base64)" \
+    MALWARE_SCAN_MODE=required \
+    CLAMAV_HOST=127.0.0.1 \
+    sh -c 'npm run db:generate && npm run build'
 
 FROM builder AS ops
 ENV NODE_ENV=production

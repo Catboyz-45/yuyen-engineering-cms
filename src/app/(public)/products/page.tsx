@@ -36,9 +36,9 @@ type Params = {
 /** สร้างส่วนหน้าจอ ProductsPage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export default async function ProductsPage({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<Params>;
-}) {
+}>) {
   const raw = await searchParams;
   const page = Math.max(1, Number.parseInt(raw.page ?? "1", 10) || 1);
   const btu = raw.btu ? Number.parseInt(raw.btu, 10) : undefined;

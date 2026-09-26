@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { audit } from "@/server/auth/audit";
-import { getSessionByToken, revokeUserSessions, rotateSession, SESSION_COOKIE, sessionCookieOptions } from "@/server/auth/session";
+import { getSessionByToken, rotateSession, SESSION_COOKIE, sessionCookieOptions } from "@/server/auth/session";
 import { passwordSchema } from "@/server/auth/validation";
 import { hashPassword, verifyPassword } from "@/server/security/crypto";
 import { assertSameOrigin, requestContext } from "@/server/security/request";

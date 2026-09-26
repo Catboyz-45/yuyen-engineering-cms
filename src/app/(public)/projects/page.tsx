@@ -30,9 +30,9 @@ type Params = { q?: string; projectType?: string; page?: string };
 /** สร้างส่วนหน้าจอ ProjectsPage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export default async function ProjectsPage({
   searchParams,
-}: {
+}: Readonly<{
   searchParams: Promise<Params>;
-}) {
+}>) {
   const raw = await searchParams;
   const page = Math.max(1, Number.parseInt(raw.page ?? "1", 10) || 1);
   const content = new PublicContentService();

@@ -13,10 +13,10 @@ import { setFlashMessage } from "@/lib/client-flash";
 export function LogoutButton({
   labeled = false,
   danger = false,
-}: {
+}: Readonly<{
   labeled?: boolean;
   danger?: boolean;
-}) {
+}>) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   async function logout() {
@@ -31,14 +31,11 @@ export function LogoutButton({
       router.refresh();
     } else setBusy(false);
   }
+  const iconClass = danger ? "icon-btn logout-danger" : "icon-btn";
   return (
     <button
       type="button"
-      className={
-        labeled
-          ? "account-action danger"
-          : `icon-btn${danger ? " logout-danger" : ""}`
-      }
+      className={labeled ? "account-action danger" : iconClass}
       onClick={logout}
       disabled={busy}
       aria-label={busy ? "กำลังออกจากระบบ" : "ออกจากระบบ"}

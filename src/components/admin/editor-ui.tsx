@@ -22,11 +22,11 @@ export function FormSection({
   title,
   description,
   children,
-}: {
+}: Readonly<{
   title: string;
   description?: string;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <section className="form-section">
       <div className="form-section-head">
@@ -91,7 +91,7 @@ export function MediaUploader({
   describe = true,
   initial = [],
   onDirty,
-}: {
+}: Readonly<{
   name: string;
   title?: string;
   multiple?: boolean;
@@ -100,7 +100,7 @@ export function MediaUploader({
   describe?: boolean;
   initial?: { id: string; name: string; preview?: string; altText?: string }[];
   onDirty?: () => void;
-}) {
+}>) {
   const inputRef = useRef<HTMLInputElement>(null);
   const controlsRef = useRef(new Map<string, UploadControl>());
   const [files, setFiles] = useState<UploadItem[]>(
@@ -214,10 +214,10 @@ export function MediaUploader({
             : item,
         ),
       );
-    } catch (caught) {
+    } catch (caughtError) {
       if (
         control.cancelled ||
-        (caught instanceof DOMException && caught.name === "AbortError")
+        (caughtError instanceof DOMException && caughtError.name === "AbortError")
       )
         return;
       setFiles((current) =>
@@ -227,20 +227,12 @@ export function MediaUploader({
                 ...item,
                 status: "error",
                 error:
-                  caught instanceof Error ? caught.message : "อัปโหลดไม่สำเร็จ",
+                  caughtError instanceof Error ? caughtError.message : "อัปโหลดไม่สำเร็จ",
               }
             : item,
         ),
       );
     }
-  }
-  async function cancelServerUpload(mediaId: string) {
-    await fetch(`/api/admin/media/uploads/${mediaId}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-      keepalive: true,
-    }).catch(() => undefined);
   }
   async function saveAltText(file: UploadItem) {
     if (file.status !== "ready") return;
@@ -397,13 +389,7 @@ export function MediaUploader({
                     className={`media-alt-status ${file.altStatus === "error" ? "error" : ""}`}
                     aria-live="polite"
                   >
-                    {file.altStatus === "saving"
-                      ? "กำลังบันทึก…"
-                      : file.altStatus === "saved"
-                        ? "บันทึกแล้ว"
-                        : file.altStatus === "error"
-                          ? "บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง"
-                          : "อธิบายสิ่งสำคัญในภาพสำหรับผู้ใช้โปรแกรมอ่านหน้าจอ"}
+                    {altStatusText[file.altStatus ?? "idle"]}
                   </span>
                 </div>
               )}
@@ -420,37 +406,50 @@ export function MediaUploader({
   );
 }
 
+/** ยกเลิกไฟล์ที่อัปโหลดขึ้นเซิร์ฟเวอร์แล้วแต่ผู้ใช้กดยกเลิกระหว่างประมวลผล (ไม่สนผลลัพธ์) */
+async function cancelServerUpload(mediaId: string) {
+  await fetch(`/api/admin/media/uploads/${mediaId}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
+const altStatusText: Record<NonNullable<UploadItem["altStatus"]> | "idle", string> = {
+  saving: "กำลังบันทึก…",
+  saved: "บันทึกแล้ว",
+  error: "บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง",
+  idle: "อธิบายสิ่งสำคัญในภาพสำหรับผู้ใช้โปรแกรมอ่านหน้าจอ",
+};
+
 /** สร้างส่วนหน้าจอ PreviewModal; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function PreviewModal({
   title,
   eyebrow,
   description,
   onClose,
-}: {
+}: Readonly<{
   title: string;
   eyebrow: string;
   description: string;
   onClose: () => void;
-}) {
-  const modalRef = useRef<HTMLDivElement>(null);
+}>) {
+  const modalRef = useRef<HTMLDialogElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   useModalAccessibility({
     containerRef: modalRef,
+    backdropRef,
     initialFocusRef: closeRef,
     onClose,
   });
   return (
-    <div
-      className="preview-modal"
-      role="presentation"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div
+    <div ref={backdropRef} className="preview-modal">
+      <dialog
+        open
         ref={modalRef}
         className="preview-window"
-        role="dialog"
         aria-modal="true"
         aria-labelledby="preview-title"
         tabIndex={-1}
@@ -460,7 +459,7 @@ export function PreviewModal({
             <Eye size={17} />
             <strong id="preview-title">ตัวอย่างก่อนเผยแพร่</strong>
           </div>
-          <button
+          <button type="button"
             ref={closeRef}
             className="icon-btn"
             onClick={onClose}
@@ -480,12 +479,9 @@ export function PreviewModal({
         </section>
         <section className="section-sm">
           <div className="container detail-grid">
-            <div
-              className="media mint"
-              role="img"
-              aria-label="ตำแหน่งตัวอย่างรูปปก"
-              style={{ minHeight: 340, borderRadius: 20 }}
-            />
+            <div className="media mint" style={{ minHeight: 340, borderRadius: 20 }}>
+              <span className="sr-only">ตำแหน่งตัวอย่างรูปปก</span>
+            </div>
             <div>
               <h2 className="heading">รายละเอียด</h2>
               <p className="lead">
@@ -495,7 +491,7 @@ export function PreviewModal({
             </div>
           </div>
         </section>
-      </div>
+      </dialog>
     </div>
   );
 }
@@ -505,11 +501,11 @@ export function EditorHeader({
   title,
   description,
   listHref,
-}: {
+}: Readonly<{
   title: string;
   description: string;
   listHref: string;
-}) {
+}>) {
   return (
     <div className="admin-head">
       <div>

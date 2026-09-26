@@ -39,6 +39,7 @@ async function ensureTestBucket(client: S3Client, bucket: string) {
 }
 
 test.describe("media lifecycle", () => {
+  // ต้องมี PostgreSQL และ bucket ทดสอบที่แยกไว้ จึงรันเฉพาะเมื่อผู้รันเปิดเอง
   test.skip(!enabled, "Set RUN_MEDIA_E2E=1 with an isolated PostgreSQL database and S3-compatible test bucket");
   test.describe.configure({ mode: "serial" });
 

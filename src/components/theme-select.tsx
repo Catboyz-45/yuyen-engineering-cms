@@ -31,7 +31,7 @@ type ThemeSelectProps = {
 };
 
 /** สร้างส่วนหน้าจอ ThemeSelect; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function ThemeSelect({ name, label, options, defaultValue = "", value: controlledValue, onValueChange, placeholder, id, disabled, invalid, describedBy, className }: ThemeSelectProps) {
+export function ThemeSelect({ name, label, options, defaultValue = "", value: controlledValue, onValueChange, placeholder, id, disabled, invalid, describedBy, className }: Readonly<ThemeSelectProps>) {
   const defaultIndex = options.findIndex(option => option.value === defaultValue);
   const initialIndex = Math.max(0, defaultIndex);
   const [uncontrolledValue, setUncontrolledValue] = useState(defaultIndex >= 0 || placeholder === undefined ? options[initialIndex]?.value ?? "" : "");
@@ -164,7 +164,7 @@ export function ThemeSelect({ name, label, options, defaultValue = "", value: co
     }
   }
 
-  return <div className={`theme-select${className ? ` ${className}` : ""}`} ref={rootRef}>
+  return <div className={["theme-select", className].filter(Boolean).join(" ")} ref={rootRef}>
     {name && <input type="hidden" name={name} value={value} />}
     <button ref={triggerRef} id={id} className="theme-select-trigger" type="button" role="combobox" aria-label={id ? undefined : label} disabled={disabled} aria-invalid={invalid || undefined} aria-describedby={describedBy} aria-expanded={open} aria-controls={listId} aria-haspopup="listbox" aria-activedescendant={open ? optionId(activeIndex) : undefined} onClick={() => open ? close(false) : openAt(selectedIndex)} onKeyDown={handleKeyDown} onKeyUp={event => {
       if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) event.preventDefault();

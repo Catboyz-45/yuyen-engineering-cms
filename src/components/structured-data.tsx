@@ -8,10 +8,10 @@ import type { PublicCompany } from "@/lib/company-display";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yuyenengineering.co.th";
 
 /** สร้างส่วนหน้าจอ StructuredData; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function StructuredData({ data }: { data: Record<string, unknown> }) { return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }} />; }
+export function StructuredData({ data }: Readonly<{ data: Record<string, unknown> }>) { return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replaceAll("<", String.raw`\u003c`) }} />; }
 
 /** ส่ง LocalBusiness ให้เครื่องมือค้นหาเฉพาะข้อมูลที่บริษัทกรอกใน CMS แล้ว ไม่เผยแพร่ค่าตัวอย่างหรือข้อเท็จจริงที่ยังไม่ยืนยัน */
-export function LocalBusinessStructuredData({ company }: { company: PublicCompany }) {
+export function LocalBusinessStructuredData({ company }: Readonly<{ company: PublicCompany }>) {
   if (company.isPlaceholder) return null;
   const data = {
     "@context": "https://schema.org",

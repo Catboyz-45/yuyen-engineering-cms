@@ -12,6 +12,7 @@ let ownerSecret = "";
 
 // A retry would replay the one-time first sign-in, so failures must be investigated rather than retried.
 test.describe.configure({ mode: "serial", retries: 0, timeout: 120_000 });
+// ต้องมีบัญชี Super Admin ที่ CI สร้างด้วย auth:bootstrap; เครื่องที่ไม่ได้ตั้งค่าจะข้ามชุดนี้
 test.skip(!ownerUsername || !ownerTemporaryPassword, "E2E bootstrap credentials are not configured");
 
 const code = (secret: string) => new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(secret) }).generate();

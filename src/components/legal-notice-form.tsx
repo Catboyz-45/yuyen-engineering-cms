@@ -11,6 +11,7 @@ import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { LoadingLabel } from "./loading-label";
 import { FieldErrors, fieldMessage, focusFirstInvalid, readFieldErrors } from "@/lib/form-validation";
 import { legalLinks } from "@/lib/legal";
+import { formText } from "@/lib/form-data";
 
 type Notice = { privacyEmail: string | null; serviceProviders: string | null; retention: string | null; approvedAt: string | null; approvedRevision: string | null; updatedAt: string; approvedBy: { displayName: string } | null };
 type State = { notice: Notice | null; revision: string; approved: boolean };
@@ -39,7 +40,7 @@ export function LegalNoticeForm() {
         if (!response.ok) throw new Error(body.error);
         if (active) setState(body);
       })
-      .catch(caught => { if (active) setError(caught instanceof Error ? caught.message : "โหลดข้อมูลไม่สำเร็จ"); });
+      .catch(caughtError => { if (active) setError(caughtError instanceof Error ? caughtError.message : "โหลดข้อมูลไม่สำเร็จ"); });
     return () => { active = false; };
   }, []);
 
@@ -50,7 +51,7 @@ export function LegalNoticeForm() {
     setSaving(true);
     setError("");
     setFieldErrors({});
-    const payload = { ...Object.fromEntries(fields.map(({ key }) => [key, String(form.get(key) ?? "").trim() || null])), approved: form.get("approved") === "on" };
+    const payload = { ...Object.fromEntries(fields.map(({ key }) => [key, formText(form, key).trim() || null])), approved: form.get("approved") === "on" };
     const expectedUpdatedAt = state?.notice?.updatedAt;
     try {
       const response = await fetch("/api/admin/legal", {
@@ -68,8 +69,8 @@ export function LegalNoticeForm() {
       markClean();
       setState(body);
       toast(body.approved ? "บันทึกและประกาศใช้นโยบายเรียบร้อยแล้ว" : "บันทึกข้อมูลนโยบายเรียบร้อยแล้ว (ฉบับร่าง)");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "บันทึกไม่สำเร็จ");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "บันทึกไม่สำเร็จ");
     } finally {
       setSaving(false);
     }
@@ -77,7 +78,6 @@ export function LegalNoticeForm() {
 
   if (!state) return <div className="panel card-body">{error || "กำลังโหลด…"}</div>;
   const { notice, revision, approved } = state;
-  const staleApproval = !approved && notice?.approvedAt && notice.approvedRevision !== revision;
   return (
     <form key={notice?.updatedAt ?? "new"} className="editor-layout" onSubmit={submit} onChange={markDirty} onInput={markDirty} aria-busy={saving}>
       <div className="editor-main">
@@ -111,21 +111,17 @@ export function LegalNoticeForm() {
       <aside className="editor-aside">
         <section className="form-section save-card" aria-labelledby="legal-save-title">
           <h2 id="legal-save-title">สถานะการประกาศใช้</h2>
-          <div className={`auth-alert ${approved ? "success" : "warning"}`} role="status">
-            {approved && notice?.approvedAt
-              ? <>ประกาศใช้แล้ว (ข้อความฉบับ {revision}) เมื่อ {thaiDateTime.format(new Date(notice.approvedAt))}{notice.approvedBy ? ` โดย ${notice.approvedBy.displayName}` : ""}</>
-              : staleApproval
-                ? <>ข้อความนโยบายถูกปรับเป็นฉบับ {revision} หลังการรับรองครั้งก่อน (ฉบับ {notice.approvedRevision}) หน้าเว็บจึงกลับเป็นฉบับร่าง กรุณาตรวจและรับรองใหม่</>
-                : <>ฉบับร่าง — หน้านโยบายแสดงป้ายฉบับร่างและยังไม่ให้เครื่องมือค้นหาเก็บหน้า</>}
+          <output className={`auth-alert ${approved ? "success" : "warning"}`}>
+            <ApprovalStatus approved={approved} notice={notice} revision={revision} />
+          </output>
+          <div className="approve-check">
+            <input id="legal-approved" type="checkbox" name="approved" defaultChecked={approved} aria-describedby="legal-approved-help" />
+            <div>
+              <label htmlFor="legal-approved"><strong>รับรองและประกาศใช้นโยบายฉบับ {revision}</strong></label>
+              <span id="legal-approved-help" className="help">ติ๊กเมื่อผู้รับผิดชอบข้อมูลหรือที่ปรึกษากฎหมายตรวจครบทั้ง 3 หน้าแล้ว ต้องกรอกทั้ง 3 ช่อง เอาติ๊กออกเพื่อกลับเป็นฉบับร่าง</span>
+            </div>
           </div>
-          <label className="approve-check">
-            <input type="checkbox" name="approved" defaultChecked={approved} />
-            <span>
-              <strong>รับรองและประกาศใช้นโยบายฉบับ {revision}</strong>
-              <span className="help">ติ๊กเมื่อผู้รับผิดชอบข้อมูลหรือที่ปรึกษากฎหมายตรวจครบทั้ง 3 หน้าแล้ว ต้องกรอกทั้ง 3 ช่อง เอาติ๊กออกเพื่อกลับเป็นฉบับร่าง</span>
-            </span>
-          </label>
-          <button className="btn btn-dark" disabled={saving} aria-busy={saving}>
+          <button type="submit" className="btn btn-dark" disabled={saving} aria-busy={saving}>
             <LoadingLabel busy={saving} busyText="กำลังบันทึก…"><><Save size={17} /> บันทึก</></LoadingLabel>
           </button>
         </section>
@@ -136,4 +132,16 @@ export function LegalNoticeForm() {
       </aside>
     </form>
   );
+}
+
+/** ข้อความสถานะการประกาศใช้: ประกาศแล้ว, การรับรองเดิมหมดอายุเพราะข้อความเปลี่ยนฉบับ, หรือยังเป็นฉบับร่าง */
+function ApprovalStatus({ approved, notice, revision }: Readonly<{ approved: boolean; notice: Notice | null; revision: string }>) {
+  if (approved && notice?.approvedAt) {
+    const approver = notice.approvedBy ? ` โดย ${notice.approvedBy.displayName}` : "";
+    return <>ประกาศใช้แล้ว (ข้อความฉบับ {revision}) เมื่อ {thaiDateTime.format(new Date(notice.approvedAt))}{approver}</>;
+  }
+  if (!approved && notice?.approvedAt && notice.approvedRevision !== revision) {
+    return <>ข้อความนโยบายถูกปรับเป็นฉบับ {revision} หลังการรับรองครั้งก่อน (ฉบับ {notice.approvedRevision}) หน้าเว็บจึงกลับเป็นฉบับร่าง กรุณาตรวจและรับรองใหม่</>;
+  }
+  return <>ฉบับร่าง — หน้านโยบายแสดงป้ายฉบับร่างและยังไม่ให้เครื่องมือค้นหาเก็บหน้า</>;
 }

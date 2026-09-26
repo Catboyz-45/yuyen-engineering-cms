@@ -6,4 +6,4 @@
 "use client";
 import { ErrorView } from "@/components/error-view";
 /** สร้างส่วนหน้าจอ AdminError; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export default function AdminError({ reset, error }: { reset: () => void; error: Error & { digest?: string } }) { return <ErrorView reset={reset} reference={error.digest} />; }
+export default function AdminError({ reset, error }: Readonly<{ reset: () => void; error: Error & { digest?: string } }>) { return <ErrorView reset={reset} reference={error.digest} />; }

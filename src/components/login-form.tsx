@@ -9,6 +9,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertCircle, ArrowRight, Eye, EyeOff, LoaderCircle, LockKeyhole, ShieldAlert } from "lucide-react";
+import { formText } from "@/lib/form-data";
 
 type LoginState = "idle" | "error" | "locked" | "submitting";
 
@@ -22,8 +23,8 @@ export function LoginForm() {
     event.preventDefault();
     if (state === "locked") return;
     const form = new FormData(event.currentTarget);
-    const username = String(form.get("username") ?? "").trim();
-    const password = String(form.get("password") ?? "");
+    const username = formText(form, "username").trim();
+    const password = formText(form, "password");
     if (!username || password.length < 8) { setState("error"); return; }
     setState("submitting");
     const response = await fetch("/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) }).catch(() => null);
@@ -46,7 +47,7 @@ export function LoginForm() {
       <form className="form-stack" onSubmit={submit} noValidate>
         <div className="form-group"><label htmlFor="username">ชื่อผู้ใช้</label><input className="field" id="username" name="username" autoComplete="username" placeholder="กรอกชื่อผู้ใช้" disabled={state === "locked" || state === "submitting"} required /></div>
         <div className="form-group"><div className="cluster" style={{ justifyContent: "space-between" }}><label htmlFor="password">รหัสผ่าน</label><span className="muted" style={{ fontSize: ".75rem" }}>ติดต่อ Super Admin หากลืมรหัสผ่าน</span></div><div className="password-field"><input className="field" id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="กรอกรหัสผ่าน" disabled={state === "locked" || state === "submitting"} required /><button type="button" className="icon-btn" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></div>
-        <button className="btn btn-dark" disabled={state === "locked" || state === "submitting"}>{state === "submitting" ? <><LoaderCircle className="spin" size={18} /> กำลังตรวจสอบ</> : <>เข้าสู่ระบบ <ArrowRight size={17} /></>}</button>
+        <button type="submit" className="btn btn-dark" disabled={state === "locked" || state === "submitting"}>{state === "submitting" ? <><LoaderCircle className="spin" size={18} /> กำลังตรวจสอบ</> : <>เข้าสู่ระบบ <ArrowRight size={17} /></>}</button>
       </form>
       {/* แจ้งการใช้ข้อมูลไว้ใต้ปุ่มบนหน้าจอเดียวกัน ผู้ใช้เห็นก่อนส่งฟอร์ม และการล็อกอินไม่ใช่การยินยอมให้ติดตามเพื่อโฆษณา */}
       <aside className="login-privacy" aria-label="ข้อมูลส่วนบุคคลในการเข้าสู่ระบบ">

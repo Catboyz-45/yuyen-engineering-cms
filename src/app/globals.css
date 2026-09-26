@@ -49,6 +49,24 @@ button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+/* หน้าต่างและข้อความสถานะใช้ <dialog open> / <output> เพื่อให้มีความหมายในตัว
+   ล้างสไตล์ตั้งต้นของเบราว์เซอร์ออก ให้ class ของแต่ละหน้าต่างกำหนดหน้าตาเอง */
+dialog {
+  position: static;
+  inset: auto;
+  width: auto;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+output {
+  display: block;
+}
 :focus-visible {
   outline: 3px solid color-mix(in srgb, var(--lime-400) 72%, white);
   outline-offset: 3px;
@@ -535,7 +553,7 @@ a {
   color: #d7f6c1;
   font-size: 0.8rem;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(7, 45, 30, 0.85);
 }
 .hero-stats {
   position: relative;
@@ -913,16 +931,6 @@ select.filter-select {
   gap: 16px;
   font-size: 0.78rem;
 }
-.empty-state {
-  min-height: 310px;
-  padding: 48px 24px;
-  display: grid;
-  place-items: center;
-  text-align: center;
-  border: 1px dashed #bfd0c5;
-  border-radius: 18px;
-  background: #fbfdfc;
-}
 .empty-state > div {
   max-width: 440px;
 }
@@ -1232,11 +1240,11 @@ select.filter-select {
 }
 .sidebar-link:hover {
   color: white;
-  background: rgba(255, 255, 255, 0.08);
+  background: #1b3e30;
 }
 .sidebar-link.active {
   color: white;
-  background: rgba(134, 214, 62, 0.14);
+  background: #194523;
   box-shadow: inset 3px 0 0 var(--lime-400);
 }
 .sidebar-link.active svg {
@@ -1292,13 +1300,11 @@ select.filter-select {
   font-size: 0.8rem;
   cursor: pointer;
 }
-.account-action.danger {
-  color: #ffd8d4;
-}
 .icon-btn.logout-danger {
   flex: 0 0 auto;
   color: #ff8b82;
-  background: rgba(255, 95, 86, 0.1);
+  /* สีทึบที่เท่ากับแดงโปร่ง 10% บนแถบข้าง (--green-950) */
+  background: #203224;
 }
 .icon-btn.logout-danger:hover {
   color: white;
@@ -1316,6 +1322,9 @@ select.filter-select {
 }
 .drawer-footer > .account-action:hover {
   background: var(--mint-100);
+}
+.drawer-footer > .account-action.danger {
+  color: var(--danger);
 }
 .avatar {
   width: 38px;
@@ -1966,10 +1975,21 @@ a.metric-card:hover {
   display: grid;
   gap: 7px;
 }
-.form-group label {
+.form-group label,
+.form-group legend {
   color: var(--ink);
   font-size: 0.83rem;
   font-weight: 700;
+}
+fieldset.form-group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.form-group legend {
+  padding: 0;
+  margin-bottom: 7px;
 }
 .form-stack {
   display: grid;
@@ -2551,58 +2571,6 @@ a.metric-card:hover {
 .empty-state p {
   max-width: 470px;
 }
-.gallery {
-  min-width: 0;
-}
-.gallery-main {
-  min-height: 520px;
-  border-radius: 24px;
-}
-.gallery-arrow {
-  position: absolute;
-  z-index: 2;
-  top: 50%;
-  width: 44px;
-  height: 44px;
-  border: 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: var(--green-900);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 8px 24px rgba(7, 45, 30, 0.13);
-}
-.gallery-arrow:hover {
-  background: white;
-}
-.gallery-arrow.previous {
-  left: 16px;
-}
-.gallery-arrow.next {
-  right: 16px;
-}
-.gallery-thumbs {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-.gallery-thumb {
-  min-height: 82px;
-  width: 100%;
-  border: 2px solid transparent;
-  border-radius: 13px;
-  cursor: pointer;
-}
-.gallery-thumb.active {
-  border-color: var(--green-700);
-  box-shadow: 0 0 0 3px rgba(32, 164, 93, 0.15);
-}
-.gallery-thumb::before {
-  height: 22%;
-}
 .map-frame {
   width: 100%;
   min-height: 480px;
@@ -2620,10 +2588,14 @@ a.metric-card:hover {
 .legal-section { margin-block: 32px; }
 .legal-section h2 { scroll-margin-top: 110px; margin-bottom: 14px; }
 .legal-section p + p { margin-top: 16px; }
-.legal-table-wrap { overflow-x: auto; }
-.legal-table-wrap table { min-width: 600px; width: 100%; border-collapse: collapse; }
+/* ตารางพอดีจอทุกขนาด (ตัดคำยาวอย่างชื่อคุกกี้) จึงไม่ต้องมีพื้นที่เลื่อนแนวนอนที่ผู้ใช้คีย์บอร์ดเข้าไม่ถึง */
+.legal-table-wrap table { width: 100%; border-collapse: collapse; }
 .legal-table-wrap caption { text-align: start; padding-bottom: 12px; }
 .legal-table-wrap th, .legal-table-wrap td { padding: 14px; border: 1px solid #c9d5ce; text-align: start; vertical-align: top; }
+.legal-table-wrap code { overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .legal-table-wrap th, .legal-table-wrap td { padding: 10px 8px; font-size: 0.85rem; }
+}
 .legal-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 32px; }
 .legal-links a { text-decoration: underline; text-underline-offset: 4px; }
 .login-privacy { margin-top: 24px; padding: 16px; background: #f0f6f2; border-radius: 12px; color: #244635; font-size: .875rem; line-height: 1.8; }
@@ -2668,12 +2640,10 @@ a.metric-card:hover {
   }
   .company-editor .editor-aside {
     order: -1;
+    grid-template-columns: 1fr;
   }
   .company-editor .section-nav {
     display: none;
-  }
-  .company-editor .editor-aside {
-    grid-template-columns: 1fr;
   }
   .dash-hero,
   .dash-grid {
@@ -2749,12 +2719,6 @@ a.metric-card:hover {
   }
   .media-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-  .gallery-main {
-    min-height: 360px;
-  }
-  .gallery-thumb {
-    min-height: 62px;
   }
 }
 

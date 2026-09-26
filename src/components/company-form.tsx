@@ -13,6 +13,7 @@ import { FieldErrors, fieldMessage, focusFirstInvalid, readFieldErrors } from "@
 import { MediaUploader } from "./admin/editor-ui";
 import { initialSiteCopy, readSiteCopy, SiteCopyFields } from "./admin/site-copy-fields";
 import { SectionNav } from "./admin/section-nav";
+import { formText } from "@/lib/form-data";
 type MediaPreview = { id: string; originalName?: string | null; altText?: string | null };
 type Company = Record<string, unknown> & { logoMedia?: MediaPreview | null; gallery?: { media: MediaPreview }[] };
 const GALLERY_LIMIT = 12;
@@ -37,7 +38,7 @@ const groups = [
   { id: "company-contact", title: "ช่องทางติดต่อ", description: "แสดงในหน้าติดต่อเราและส่วนท้ายเว็บ ลบข้อมูลออกเพื่อซ่อนช่องทางนั้น", fields: [
     field("address", "ที่อยู่", 2_000, { multiline: true }),
     field("phoneDisplay", "เบอร์โทรที่แสดง", 50, { half: true, help: "รูปแบบที่ผู้เยี่ยมชมเห็น เช่น 02-123-4567" }),
-    field("phoneHref", "เบอร์โทรสำหรับลิงก์", 30, { half: true, type: "tel", pattern: "\\+?[0-9]{8,15}", help: "ตัวเลขสำหรับกดโทร เช่น +6621234567" }),
+    field("phoneHref", "เบอร์โทรสำหรับลิงก์", 30, { half: true, type: "tel", pattern: String.raw`\+?\d{8,15}`, help: "ตัวเลขสำหรับกดโทร เช่น +6621234567" }),
     field("email", "อีเมล", 254, { half: true, type: "email" }),
     field("businessHours", "เวลาทำการ", 200, { half: true, help: "เช่น จันทร์–เสาร์ 08:00–17:00 น." }),
     field("lineLabel", "ชื่อบัญชี LINE", 100, { half: true, help: "เช่น @yuyenengineering" }),
@@ -74,10 +75,10 @@ export function CompanyForm() {
         if (!response.ok) throw new Error(body.error);
         if (active) setCompany(body.company ?? {});
       })
-      .catch((caught) => {
+      .catch((caughtError) => {
         if (active)
           setError(
-            caught instanceof Error ? caught.message : "โหลดข้อมูลไม่สำเร็จ",
+            caughtError instanceof Error ? caughtError.message : "โหลดข้อมูลไม่สำเร็จ",
           );
       });
     return () => {
@@ -105,9 +106,9 @@ export function CompanyForm() {
     }
     const payload = {
       ...Object.fromEntries(
-        fields.map(({ key }) => [key, String(form.get(key) ?? "").trim() || null]),
+        fields.map(({ key }) => [key, formText(form, key).trim() || null]),
       ),
-      logoMediaId: String(form.get("logoMediaId") ?? "") || null,
+      logoMediaId: formText(form, "logoMediaId") || null,
       galleryMediaIds,
       siteCopy: siteCopy.copy,
     };
@@ -134,8 +135,8 @@ export function CompanyForm() {
       markClean();
       setCompany(body.company);
       toast("บันทึกข้อมูลบริษัทเรียบร้อยแล้ว");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "บันทึกไม่สำเร็จ");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "บันทึกไม่สำเร็จ");
     } finally {
       setSaving(false);
     }
@@ -182,7 +183,7 @@ export function CompanyForm() {
         <section className="form-section save-card" aria-labelledby="company-save-title">
           <h2 id="company-save-title">บันทึกข้อมูล</h2>
           <p className="help">{lastSaved ? `บันทึกล่าสุด ${lastSaved}` : "ยังไม่เคยบันทึก หน้าเว็บจึงแสดงข้อมูลตัวอย่างอยู่"}</p>
-          <button className="btn btn-dark" disabled={saving} aria-busy={saving}>
+          <button type="submit" className="btn btn-dark" disabled={saving} aria-busy={saving}>
             <LoadingLabel busy={saving} busyText="กำลังบันทึก…"><><Save size={17} /> บันทึกการเปลี่ยนแปลง</></LoadingLabel>
           </button>
           <p className="help">มีผลกับหน้าเว็บทันทีหลังบันทึก ช่องที่เว้นว่างจะไม่แสดงบนหน้าเว็บ</p>

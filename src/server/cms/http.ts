@@ -41,16 +41,34 @@ export async function superAdminSession() {
 }
 /** ฟังก์ชันสาธารณะ validMutation เป็นทางเข้าที่โมดูลอื่นเรียกใช้; รายละเอียดเงื่อนไขอยู่ในบรรทัดภายในฟังก์ชัน */
 export function validMutation(request: NextRequest) { return assertSameOrigin(request) && request.headers.get("content-type")?.startsWith("application/json") === true; }
-/** ฟังก์ชันสาธารณะ cmsError เป็นทางเข้าที่โมดูลอื่นเรียกใช้; รายละเอียดเงื่อนไขอยู่ในบรรทัดภายในฟังก์ชัน */
+const uploadErrors = new Set(["UPLOAD_NOT_AVAILABLE", "INVALID_UPLOAD_METADATA", "INVALID_FILE_SIGNATURE", "INVALID_IMAGE"]);
+const prismaErrors: Record<string, { error: string; status: number }> = {
+  P2025: { error: "ไม่พบรายการ", status: 404 },
+  P2002: { error: "ชื่อ, slug หรือข้อมูลอ้างอิงนี้ซ้ำกับรายการเดิม", status: 409 },
+  P2003: { error: "ข้อมูลอ้างอิงไม่ถูกต้องหรือรายการนี้ยังถูกใช้งานอยู่", status: 409 },
+  P2014: { error: "ข้อมูลอ้างอิงไม่ถูกต้องหรือรายการนี้ยังถูกใช้งานอยู่", status: 409 },
+};
+const cmsErrorStatus: Partial<Record<string, number>> = { NOT_FOUND: 404, FORBIDDEN: 403 };
+
+/** แปลงข้อผิดพลาดที่คาดไว้เป็นข้อความสำหรับผู้ใช้; คืน null ถ้าเป็นข้อผิดพลาดที่ไม่รู้จัก */
+function knownCmsError(error: unknown): { error: string; status: number; fields?: unknown } | null {
+  if (error instanceof SyntaxError) return { error: "ข้อมูลไม่ถูกต้อง", status: 400 };
+  if (error instanceof ZodError) return { error: "ข้อมูลไม่ถูกต้อง", status: 400, fields: error.flatten().fieldErrors };
+  if (error instanceof CmsError) return { error: error.message, status: cmsErrorStatus[error.code] ?? 409 };
+  if (error instanceof Prisma.PrismaClientKnownRequestError) return prismaErrors[error.code] ?? null;
+  if (!(error instanceof Error)) return null;
+  if (error.message === "MEDIA_IN_USE") return { error: "ไฟล์นี้ยังถูกใช้งานโดยเนื้อหา จึงยังลบไม่ได้", status: 409 };
+  if (uploadErrors.has(error.message)) return { error: "ไฟล์ไม่ถูกต้อง หมดเวลา หรือไม่สามารถประมวลผลได้", status: 422 };
+  return null;
+}
+
+/** ตอบข้อผิดพลาดของ API หลังบ้านแบบไม่เปิดเผยรายละเอียดภายใน; ข้อผิดพลาดที่ไม่รู้จักจะบันทึก log พร้อม requestId */
 export function cmsError(error: unknown, requestId?: string) {
-  if (error instanceof SyntaxError) return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") return NextResponse.json({ error: "ไม่พบรายการ" }, { status: 404 });
-  if (error instanceof ZodError) return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง", fields: error.flatten().fieldErrors }, { status: 400 });
-  if (error instanceof CmsError) return NextResponse.json({ error: error.message }, { status: error.code === "NOT_FOUND" ? 404 : error.code === "FORBIDDEN" ? 403 : 409 });
-  if (error instanceof Error && error.message === "MEDIA_IN_USE") return NextResponse.json({ error: "ไฟล์นี้ยังถูกใช้งานโดยเนื้อหา จึงยังลบไม่ได้" }, { status: 409 });
-  if (error instanceof Error && ["UPLOAD_NOT_AVAILABLE", "INVALID_UPLOAD_METADATA", "INVALID_FILE_SIGNATURE", "INVALID_IMAGE"].includes(error.message)) return NextResponse.json({ error: "ไฟล์ไม่ถูกต้อง หมดเวลา หรือไม่สามารถประมวลผลได้" }, { status: 422 });
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return NextResponse.json({ error: "ชื่อ, slug หรือข้อมูลอ้างอิงนี้ซ้ำกับรายการเดิม" }, { status: 409 });
-  if (error instanceof Prisma.PrismaClientKnownRequestError && ["P2003", "P2014"].includes(error.code)) return NextResponse.json({ error: "ข้อมูลอ้างอิงไม่ถูกต้องหรือรายการนี้ยังถูกใช้งานอยู่" }, { status: 409 });
+  const known = knownCmsError(error);
+  if (known) {
+    const { status, ...body } = known;
+    return NextResponse.json(body, { status });
+  }
   const correlationId = requestId ?? randomUUID();
   log("error", "cms_request_failed", { requestId: correlationId, ...errorDetails(error) });
   return NextResponse.json({ error: "ไม่สามารถดำเนินการได้", requestId: correlationId }, { status: 500, headers: { "x-request-id": correlationId, "Cache-Control": "no-store" } });

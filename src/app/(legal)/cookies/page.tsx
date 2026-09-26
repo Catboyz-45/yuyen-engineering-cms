@@ -12,7 +12,7 @@ export default async function CookiesPage() {
   const notice = await getPublicLegalNotice();
   return <LegalDocument notice={notice} title="นโยบายคุกกี้" summary="เราใช้ข้อมูลในเบราว์เซอร์เพื่อให้ระบบทำงาน และให้คุณเลือกก่อนเปิดแผนที่จากภายนอก" sections={[
     { id: "meaning", title: "1. คุกกี้คืออะไร", content: <p>คุกกี้คือข้อมูลขนาดเล็กที่เว็บไซต์เก็บไว้ในเบราว์เซอร์ เช่น บัตรผ่านสำหรับจำว่าผู้ดูแลล็อกอินแล้ว การบล็อกคุกกี้ที่จำเป็นอาจทำให้เข้าสู่ระบบไม่ได้</p> },
-    { id: "necessary", title: "2. คุกกี้และพื้นที่เก็บข้อมูลที่ระบบใช้", content: <div className="legal-table-wrap" role="region" aria-label="รายการคุกกี้และพื้นที่เก็บข้อมูล" tabIndex={0}><table>
+    { id: "necessary", title: "2. คุกกี้และพื้นที่เก็บข้อมูลที่ระบบใช้", content: <div className="legal-table-wrap"><table>
       <caption>ข้อมูลที่เว็บไซต์จัดเก็บในเบราว์เซอร์เอง</caption>
       <thead><tr><th scope="col">ชื่อ / ชนิด</th><th scope="col">วัตถุประสงค์</th><th scope="col">อายุและการล้าง</th></tr></thead>
       <tbody>

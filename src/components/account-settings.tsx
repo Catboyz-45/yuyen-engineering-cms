@@ -10,6 +10,7 @@ import { KeyRound, ShieldCheck, UserRound } from "lucide-react";
 import { LoadingLabel } from "./loading-label";
 import { useRouter } from "next/navigation";
 import { AdminPageHeader } from "./admin-shell";
+import { formText } from "@/lib/form-data";
 
 type AccountUser = {
   displayName: string;
@@ -31,7 +32,7 @@ async function updateAccount(body: object) {
 }
 
 /** สร้างส่วนหน้าจอ AccountSettings; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function AccountSettings({ initialUser }: { initialUser: AccountUser }) {
+export function AccountSettings({ initialUser }: Readonly<{ initialUser: AccountUser }>) {
   const router = useRouter();
   const [profileBusy, setProfileBusy] = useState(false);
   const [passwordBusy, setPasswordBusy] = useState(false);
@@ -46,7 +47,7 @@ export function AccountSettings({ initialUser }: { initialUser: AccountUser }) {
     try {
       await updateAccount({
         type: "profile",
-        displayName: String(data.get("displayName")),
+        displayName: formText(data, "displayName"),
       });
       setProfileMessage("บันทึกชื่อที่แสดงแล้ว");
       router.refresh();
@@ -68,9 +69,9 @@ export function AccountSettings({ initialUser }: { initialUser: AccountUser }) {
     try {
       await updateAccount({
         type: "password",
-        currentPassword: String(data.get("currentPassword")),
-        password: String(data.get("password")),
-        confirm: String(data.get("confirm")),
+        currentPassword: formText(data, "currentPassword"),
+        password: formText(data, "password"),
+        confirm: formText(data, "confirm"),
       });
       form.reset();
       setPasswordMessage("เปลี่ยนรหัสผ่านและยกเลิก session อื่นแล้ว");
@@ -121,8 +122,8 @@ export function AccountSettings({ initialUser }: { initialUser: AccountUser }) {
                 disabled
               />
             </div>
-            <div className="form-group">
-              <label>บทบาทและการยืนยัน 2 ขั้นตอน</label>
+            <fieldset className="form-group">
+              <legend>บทบาทและการยืนยัน 2 ขั้นตอน</legend>
               <div className="cluster">
                 <span className="tag">
                   {initialUser.role === "SUPER_ADMIN"
@@ -136,13 +137,11 @@ export function AccountSettings({ initialUser }: { initialUser: AccountUser }) {
                     : "ยังไม่ได้ตั้งค่ายืนยัน 2 ขั้นตอน"}
                 </span>
               </div>
-            </div>
+            </fieldset>
             {profileMessage && (
-              <p className="muted" role="status">
-                {profileMessage}
-              </p>
+              <output className="muted">{profileMessage}</output>
             )}
-            <button
+            <button type="submit"
               className="btn btn-dark"
               disabled={profileBusy}
               aria-busy={profileBusy}
@@ -201,11 +200,9 @@ export function AccountSettings({ initialUser }: { initialUser: AccountUser }) {
               />
             </div>
             {passwordMessage && (
-              <p className="muted" role="status">
-                {passwordMessage}
-              </p>
+              <output className="muted">{passwordMessage}</output>
             )}
-            <button
+            <button type="submit"
               className="btn btn-dark"
               disabled={passwordBusy}
               aria-busy={passwordBusy}

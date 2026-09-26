@@ -5,8 +5,13 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { safeMapEmbedUrl } from "@/lib/map-embed";
 
+function mapStatus(shown: boolean, loaded: boolean) {
+  if (!shown) return "แผนที่ยังไม่เชื่อมต่อกับ Google";
+  return loaded ? "เปิดแผนที่แล้ว หากแผนที่ไม่แสดง กรุณาลองใหม่หรือใช้ช่องทางติดต่ออื่น" : "กำลังโหลดแผนที่ หากโหลดไม่สำเร็จ คุณปิดแผนที่หรือใช้ช่องทางติดต่ออื่นได้";
+}
+
 /** ความยินยอมอยู่ในหน่วยความจำของหน้าเท่านั้น ไม่มีคุกกี้ ตัวติดตาม หรือประวัติผู้ใช้เพิ่ม */
-export function ConsentMap({ embedUrl }: { embedUrl: string }) {
+export function ConsentMap({ embedUrl }: Readonly<{ embedUrl: string }>) {
   const url = safeMapEmbedUrl(embedUrl);
   const [allowedUrl, setAllowedUrl] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -33,7 +38,7 @@ export function ConsentMap({ embedUrl }: { embedUrl: string }) {
         ) : (
           <button ref={loadButton} className="btn btn-primary" type="button" onClick={() => { setLoaded(false); setAllowedUrl(url); }}>ยินยอมและโหลดแผนที่</button>
         )}
-        <p className="muted" role="status">{shown ? (loaded ? "เปิดแผนที่แล้ว หากแผนที่ไม่แสดง กรุณาลองใหม่หรือใช้ช่องทางติดต่ออื่น" : "กำลังโหลดแผนที่ หากโหลดไม่สำเร็จ คุณปิดแผนที่หรือใช้ช่องทางติดต่ออื่นได้") : "แผนที่ยังไม่เชื่อมต่อกับ Google"}</p>
+        <output className="muted">{mapStatus(shown, loaded)}</output>
       </div>
       {/* ไม่สร้าง iframe แม้แต่แบบซ่อนไว้จนกว่าจะได้รับการเลือกจากผู้ใช้ */}
       {shown && <iframe key={url} className="map-frame" src={url} title="แผนที่บริษัท อยู่เย็นเป็นสุข วิศวกรรม" referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} allowFullScreen />}

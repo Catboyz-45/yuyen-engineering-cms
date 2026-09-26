@@ -6,6 +6,7 @@
 "use client";
 import { COPY_ITEM_LIMITS, DEFAULT_SITE_COPY, HIGHLIGHT_LIMIT, PROCESS_STEP_LIMIT, siteCopyTextFields, type CopyItem, type SiteCopy } from "@/lib/site-copy";
 import { FormSection } from "./editor-ui";
+import { formText } from "@/lib/form-data";
 
 const groups = [...new Set(siteCopyTextFields.map(field => field.group))];
 const lists = [
@@ -20,7 +21,7 @@ export function initialSiteCopy(stored: unknown): SiteCopy {
 
 /** อ่านข้อความจากฟอร์ม; แถวรายการที่ว่างทั้งแถวจะถูกตัดออก แถวที่มีคำอธิบายแต่ไม่มีหัวข้อถือว่าไม่ถูกต้อง */
 export function readSiteCopy(form: FormData): { copy: SiteCopy } | { error: string } {
-  const value = (name: string) => String(form.get(name) ?? "").trim();
+  const value = (name: string) => formText(form, name).trim();
   const texts = Object.fromEntries(siteCopyTextFields.map(field => [field.key, value(`copy.${field.key}`)]));
   const result = { ...texts } as Record<string, unknown>;
   for (const list of lists) {
@@ -37,7 +38,7 @@ export function readSiteCopy(form: FormData): { copy: SiteCopy } | { error: stri
 }
 
 /** สร้างส่วนหน้าจอ SiteCopyFields สำหรับแก้ข้อความบนหน้าเว็บ */
-export function SiteCopyFields({ initial }: { initial: SiteCopy }) {
+export function SiteCopyFields({ initial }: Readonly<{ initial: SiteCopy }>) {
   return (
     <FormSection title="ข้อความบนหน้าเว็บ" description="เว้นว่างเพื่อซ่อนข้อความนั้น กด Enter ในหัวข้อเพื่อขึ้นบรรทัดใหม่">
       {groups.map(group => (

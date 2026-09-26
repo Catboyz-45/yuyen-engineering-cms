@@ -12,13 +12,15 @@ export function toValidDate(value: DateInput): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+const defaultDateOptions: Intl.DateTimeFormatOptions = { dateStyle: "medium" };
+
 /** แปลงหรือจัดรูปข้อมูลด้วย formatThaiDate ให้ส่วนอื่นใช้รูปแบบเดียวกันอย่างคาดเดาได้ */
 export function formatThaiDate(
   value: DateInput,
-  options: Intl.DateTimeFormatOptions = { dateStyle: "medium" },
+  options?: Intl.DateTimeFormatOptions,
 ): string | undefined {
   const date = toValidDate(value);
-  return date ? new Intl.DateTimeFormat("th-TH", options).format(date) : undefined;
+  return date ? new Intl.DateTimeFormat("th-TH", options ?? defaultDateOptions).format(date) : undefined;
 }
 
 /** แปลงหรือจัดรูปข้อมูลด้วย toIsoDate ให้ส่วนอื่นใช้รูปแบบเดียวกันอย่างคาดเดาได้ */

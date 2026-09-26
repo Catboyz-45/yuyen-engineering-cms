@@ -22,12 +22,12 @@ const links = [
 ] as const;
 
 /** สร้างส่วนหน้าจอ SiteHeader; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function SiteHeader({ logo }: { logo?: PublicCompany["logo"] }) {
+export function SiteHeader({ logo }: Readonly<{ logo?: PublicCompany["logo"] }>) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLElement>(null);
+  const drawerRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     if (!isOpen) return;
     const trigger = triggerRef.current;
@@ -55,12 +55,19 @@ export function SiteHeader({ logo }: { logo?: PublicCompany["logo"] }) {
         <Link className="btn btn-primary" href="/contact"><Phone size={16} /> ติดต่อเรา</Link>
         <button ref={triggerRef} className="btn btn-outline mobile-nav" type="button" aria-expanded={isOpen} aria-controls="mobile-menu" onClick={() => setIsOpen(true)} aria-label="เปิดเมนู"><Menu size={20} /></button>
       </nav>
-    </header>{isOpen && <><button className="drawer-backdrop" aria-label="ปิดเมนู" onClick={() => setIsOpen(false)} /><aside ref={drawerRef} className="drawer" id="mobile-menu" role="dialog" aria-modal="true" aria-label="เมนูหลักบนมือถือ"><div className="drawer-header"><Logo /><button ref={closeButtonRef} className="icon-btn" onClick={() => setIsOpen(false)} aria-label="ปิดเมนู"><X size={22} /></button></div><nav className="drawer-nav">{links.map(([href, label]) => <Link onClick={() => setIsOpen(false)} aria-current={pathname === href ? "page" : undefined} className={`drawer-link ${pathname === href ? "active" : ""}`} key={href} href={href}>{label}<ChevronRight size={17} /></Link>)}</nav><div className="drawer-footer"><Link onClick={() => setIsOpen(false)} className="btn btn-primary" style={{ width: "100%" }} href="/contact"><Phone size={17} /> ติดต่อเรา</Link></div></aside></>}</>
+    </header>{isOpen && <><button type="button" className="drawer-backdrop" aria-label="ปิดเมนู" onClick={() => setIsOpen(false)} /><dialog open ref={drawerRef} className="drawer" id="mobile-menu" aria-modal="true" aria-label="เมนูหลักบนมือถือ"><div className="drawer-header"><Logo /><button type="button" ref={closeButtonRef} className="icon-btn" onClick={() => setIsOpen(false)} aria-label="ปิดเมนู"><X size={22} /></button></div><nav className="drawer-nav">{links.map(([href, label]) => <Link onClick={() => setIsOpen(false)} aria-current={pathname === href ? "page" : undefined} className={`drawer-link ${pathname === href ? "active" : ""}`} key={href} href={href}>{label}<ChevronRight size={17} /></Link>)}</nav><div className="drawer-footer"><Link onClick={() => setIsOpen(false)} className="btn btn-primary" style={{ width: "100%" }} href="/contact"><Phone size={17} /> ติดต่อเรา</Link></div></dialog></>}</>
   );
 }
 
+/** ช่อง LINE ในส่วนท้าย: มีลิงก์ก็กดได้, ข้อมูลตัวอย่างบอกว่ารอยืนยัน, มีแค่ชื่อบัญชีก็แสดงเป็นข้อความ */
+function FooterLine({ company, text }: Readonly<{ company: PublicCompany; text: string }>) {
+  if (company.lineUrl) return <a href={company.lineUrl} target="_blank" rel="noreferrer">{text}</a>;
+  if (company.isPlaceholder) return <span>{text} (รอยืนยัน)</span>;
+  return company.lineLabel ? <span>{text}</span> : null;
+}
+
 /** สร้างส่วนหน้าจอ SiteFooter; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function SiteFooter({ company, services = [], tagline = DEFAULT_SITE_COPY.footerTagline }: { company: PublicCompany; services?: FooterService[]; tagline?: string }) {
+export function SiteFooter({ company, services = [], tagline = DEFAULT_SITE_COPY.footerTagline }: Readonly<{ company: PublicCompany; services?: FooterService[]; tagline?: string }>) {
   const lineText = company.lineLabel ? `LINE ${company.lineLabel}` : "LINE";
   return (
     <footer className="footer">
@@ -69,7 +76,7 @@ export function SiteFooter({ company, services = [], tagline = DEFAULT_SITE_COPY
           <div className="stack"><Logo inverse media={company.logo} />{tagline && <p style={{ maxWidth: 340 }}>{tagline}</p>}</div>
           <div><h3>บริษัท</h3><div className="footer-links"><Link href="/about">เกี่ยวกับเรา</Link><Link href="/projects">ผลงานของเรา</Link><Link href="/news">ข่าวสาร</Link></div></div>
           <div><h3>บริการ</h3><div className="footer-links">{services.slice(0, 3).map(service => <Link key={service.slug} href={`/services/${service.slug}`}>{service.title}</Link>)}<Link href="/services">บริการทั้งหมด</Link></div></div>
-          <div><h3>ติดต่อ</h3><div className="footer-links">{company.phoneHref && company.phoneDisplay && <a href={`tel:${company.phoneHref}`}>โทร {company.phoneDisplay}</a>}{company.lineUrl ? <a href={company.lineUrl} target="_blank" rel="noreferrer">{lineText}</a> : company.isPlaceholder ? <span>{lineText} (รอยืนยัน)</span> : company.lineLabel && <span>{lineText}</span>}{company.businessHours && <span>{company.businessHours}</span>}<Link href="/contact">ช่องทางติดต่อทั้งหมด</Link></div></div>
+          <div><h3>ติดต่อ</h3><div className="footer-links">{company.phoneHref && company.phoneDisplay && <a href={`tel:${company.phoneHref}`}>โทร {company.phoneDisplay}</a>}<FooterLine company={company} text={lineText} />{company.businessHours && <span>{company.businessHours}</span>}<Link href="/contact">ช่องทางติดต่อทั้งหมด</Link></div></div>
         </div>
         <nav className="legal-links" aria-label="นโยบายและเงื่อนไข">{legalLinks.map(link => <Link key={link.href} href={link.href}>{link.label}</Link>)}</nav>
         <div className="footer-bottom"><span>© {new Date().getFullYear()} {company.name}</span>{company.isPlaceholder && <span>ข้อมูลตัวอย่างสำหรับการพัฒนาระบบ</span>}</div>
@@ -79,12 +86,12 @@ export function SiteFooter({ company, services = [], tagline = DEFAULT_SITE_COPY
 }
 
 /** สร้างส่วนหน้าจอ PublicShell; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function PublicShell({ children, company = resolvePublicCompany(null), services, tagline }: { children: React.ReactNode; company?: PublicCompany; services?: FooterService[]; tagline?: string }) {
+export function PublicShell({ children, company = resolvePublicCompany(null), services, tagline }: Readonly<{ children: React.ReactNode; company?: PublicCompany; services?: FooterService[]; tagline?: string }>) {
   const pathname = usePathname();
   return <><a className="skip-link" href="#main-content">ข้ามไปยังเนื้อหาหลัก</a><span className="sr-only" role="status" aria-live="polite">เปิดหน้า {pathname}</span><SiteHeader logo={company.logo} /><main id="main-content" tabIndex={-1}>{children}</main><SiteFooter company={company} services={services} tagline={tagline} /></>;
 }
 
 /** สร้างส่วนหน้าจอ SectionLink; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function SectionLink({ href, children }: { href: string; children: React.ReactNode }) {
+export function SectionLink({ href, children }: Readonly<{ href: string; children: React.ReactNode }>) {
   return <Link className="btn btn-outline" href={href}>{children}<ArrowRight size={17} /></Link>;
 }

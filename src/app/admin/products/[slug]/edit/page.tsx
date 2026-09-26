@@ -5,4 +5,4 @@
  */
 import { ProductEditor } from "@/components/admin/content-editors";
 /** สร้างส่วนหน้าจอ EditProductPage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export default async function EditProductPage({ params }: { params: Promise<{ slug: string }> }) { return <ProductEditor mode="edit" idOrSlug={(await params).slug} />; }
+export default async function EditProductPage({ params }: Readonly<{ params: Promise<{ slug: string }> }>) { return <ProductEditor mode="edit" idOrSlug={(await params).slug} />; }

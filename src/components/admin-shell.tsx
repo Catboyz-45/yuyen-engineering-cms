@@ -39,13 +39,13 @@ function navState(pathname: string, href: string) {
 type ShellUser = { displayName: string; username: string; role: "SUPER_ADMIN" | "EDITOR" };
 
 /** สร้างส่วนหน้าจอ AdminShell; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function AdminShell({ children, user }: { children: React.ReactNode; user: ShellUser }) {
+export function AdminShell({ children, user }: Readonly<{ children: React.ReactNode; user: ShellUser }>) {
   const pathname = usePathname();
   const links = nav.filter(([href]) => user.role === "SUPER_ADMIN" || !superAdminOnly.has(href));
   const [isOpen, setIsOpen] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLElement>(null);
+  const drawerRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -78,16 +78,16 @@ export function AdminShell({ children, user }: { children: React.ReactNode; user
         <div className="sidebar-account-row"><Link className="sidebar-user" href="/admin/account" aria-label="ตั้งค่าบัญชี"><span className="avatar">{initial}</span><span className="sidebar-user-copy"><strong>{user.displayName}</strong><small>{roleLabel}</small></span></Link><LogoutButton danger /></div>
       </aside>
       <div className="admin-main">
-        <header className="mobile-only-admin-nav"><button ref={triggerRef} className="icon-btn" onClick={() => setIsOpen(true)} aria-expanded={isOpen} aria-controls="admin-mobile-menu" aria-label="เปิดเมนู"><Menu size={20} /></button></header>
+        <header className="mobile-only-admin-nav"><button type="button" ref={triggerRef} className="icon-btn" onClick={() => setIsOpen(true)} aria-expanded={isOpen} aria-controls="admin-mobile-menu" aria-label="เปิดเมนู"><Menu size={20} /></button></header>
         <main id="admin-content" tabIndex={-1} className="admin-content">{children}</main>
       </div>
     </div>
-    {isOpen && <><button className="drawer-backdrop" aria-label="ปิดเมนู" onClick={() => setIsOpen(false)} /><aside ref={drawerRef} className="drawer" id="admin-mobile-menu" role="dialog" aria-modal="true" aria-label="เมนูระบบจัดการบนมือถือ"><div className="drawer-header"><Logo /><button ref={closeButtonRef} className="icon-btn" onClick={() => setIsOpen(false)} aria-label="ปิดเมนู"><X size={22} /></button></div><nav className="drawer-nav">{links.map(([href, label, Icon]) => <Link onClick={() => setIsOpen(false)} key={href} aria-current={navState(pathname, href)} className={`drawer-link ${navState(pathname, href) ? "active" : ""}`} href={href}><span className="cluster"><Icon size={18} />{label}</span><ChevronRight size={17} /></Link>)}</nav><div className="drawer-footer"><div className="drawer-account"><span className="avatar">{initial}</span><div><strong>{user.displayName}</strong><div className="muted">{roleLabel}</div></div></div><Link className="account-action" href="/admin/account" onClick={() => setIsOpen(false)}><Settings size={17} /> ตั้งค่าบัญชี</Link><LogoutButton labeled /></div></aside></>}
+    {isOpen && <><button type="button" className="drawer-backdrop" aria-label="ปิดเมนู" onClick={() => setIsOpen(false)} /><dialog open ref={drawerRef} className="drawer" id="admin-mobile-menu" aria-modal="true" aria-label="เมนูระบบจัดการบนมือถือ"><div className="drawer-header"><Logo /><button type="button" ref={closeButtonRef} className="icon-btn" onClick={() => setIsOpen(false)} aria-label="ปิดเมนู"><X size={22} /></button></div><nav className="drawer-nav">{links.map(([href, label, Icon]) => <Link onClick={() => setIsOpen(false)} key={href} aria-current={navState(pathname, href)} className={`drawer-link ${navState(pathname, href) ? "active" : ""}`} href={href}><span className="cluster"><Icon size={18} />{label}</span><ChevronRight size={17} /></Link>)}</nav><div className="drawer-footer"><div className="drawer-account"><span className="avatar">{initial}</span><div><strong>{user.displayName}</strong><div className="muted">{roleLabel}</div></div></div><Link className="account-action" href="/admin/account" onClick={() => setIsOpen(false)}><Settings size={17} /> ตั้งค่าบัญชี</Link><LogoutButton labeled /></div></dialog></>}
   </div>;
 }
 
 /** สร้างส่วนหน้าจอ AdminPageHeader; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function AdminPageHeader({ eyebrow, title, description, action }: { eyebrow?: string; title: string; description: string; action?: React.ReactNode }) { return <div className="admin-head"><div>{eyebrow && <p className="eyebrow admin-eyebrow">{eyebrow}</p>}<h1 className="admin-title">{title}</h1><p className="admin-subtitle">{description}</p></div>{action}</div>; }
+export function AdminPageHeader({ eyebrow, title, description, action }: Readonly<{ eyebrow?: string; title: string; description: string; action?: React.ReactNode }>) { return <div className="admin-head"><div>{eyebrow && <p className="eyebrow admin-eyebrow">{eyebrow}</p>}<h1 className="admin-title">{title}</h1><p className="admin-subtitle">{description}</p></div>{action}</div>; }
 
 /** สร้างส่วนหน้าจอ SecurityNote; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function SecurityNote() { return <div className="security-note"><ShieldCheck size={16} aria-hidden="true" /> การทำรายการสำคัญจะถูกบันทึกในประวัติระบบ</div>; }

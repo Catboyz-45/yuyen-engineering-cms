@@ -31,6 +31,28 @@ export const legalNoticeInputSchema = z.object({
 type SaveContext = { requestId?: string; ipHash?: string; userAgent?: string | null };
 const adminInclude = { approvedBy: { select: { displayName: true } } } as const;
 
+type NoticeFields = { privacyEmail: string | null; serviceProviders: string | null; retention: string | null };
+
+function sameFields(current: NoticeFields | null, next: NoticeFields) {
+  return current !== null && next.privacyEmail === current.privacyEmail && next.serviceProviders === current.serviceProviders && next.retention === current.retention;
+}
+/** ค่าการรับรองที่จะบันทึก: ไม่ติ๊ก = ถอนการรับรอง, ติ๊กโดยไม่แก้อะไร = คงวันที่เดิม ({}), นอกนั้น = รับรองใหม่ */
+function approvalFields(approved: boolean, keepExisting: boolean, actorId: string) {
+  if (!approved) return { approvedAt: null, approvedRevision: null, approvedById: null };
+  if (keepExisting) return {};
+  return { approvedAt: new Date(), approvedRevision: legalRevision, approvedById: actorId };
+}
+function approvalAction(wasApproved: boolean, nowApproved: boolean) {
+  if (nowApproved && !wasApproved) return "LEGAL_NOTICE_APPROVED";
+  if (wasApproved && !nowApproved) return "LEGAL_NOTICE_WITHDRAWN";
+  return "LEGAL_NOTICE_UPDATED";
+}
+function expectedVersion(value: string | null) {
+  const expected = value ? new Date(value) : null;
+  if (!expected || Number.isNaN(expected.getTime())) throw new CmsError("CONFLICT", "ไม่พบเวอร์ชันข้อมูล กรุณาโหลดหน้าใหม่ก่อนบันทึก");
+  return expected;
+}
+
 export class LegalNoticeService {
   /**
    * บันทึกแถวเดียวของระบบและกันการเขียนทับเมื่อ Super Admin คนอื่นแก้ก่อน
@@ -41,24 +63,20 @@ export class LegalNoticeService {
     return db.$transaction(async tx => {
       const current = await tx.legalNotice.findUnique({ where: { singletonKey: "PRIMARY" } });
       const wasApproved = isLegalNoticeApproved(current);
-      const unchanged = current !== null && data.privacyEmail === current.privacyEmail && data.serviceProviders === current.serviceProviders && data.retention === current.retention;
-      const approval = !approved
-        ? { approvedAt: null, approvedRevision: null, approvedById: null }
-        : wasApproved && unchanged ? {} : { approvedAt: new Date(), approvedRevision: legalRevision, approvedById: options.actorId };
+      const approval = approvalFields(approved, wasApproved && sameFields(current, data), options.actorId);
       let id: string;
-      if (!current) {
-        id = (await tx.legalNotice.create({ data: { ...data, ...approval, singletonKey: "PRIMARY" }, select: { id: true } })).id;
-      } else {
-        const expected = options.expectedUpdatedAt ? new Date(options.expectedUpdatedAt) : null;
-        if (!expected || Number.isNaN(expected.getTime())) throw new CmsError("CONFLICT", "ไม่พบเวอร์ชันข้อมูล กรุณาโหลดหน้าใหม่ก่อนบันทึก");
+      if (current) {
+        const expected = expectedVersion(options.expectedUpdatedAt);
         const updated = await tx.legalNotice.updateMany({ where: { id: current.id, updatedAt: expected }, data: { ...data, ...approval } });
         if (updated.count !== 1) throw new CmsError("CONFLICT", "ข้อมูลถูกแก้ไขโดยผู้ดูแลคนอื่นแล้ว กรุณาโหลดหน้าใหม่และตรวจสอบข้อมูลก่อนบันทึก");
         id = current.id;
+      } else {
+        id = (await tx.legalNotice.create({ data: { ...data, ...approval, singletonKey: "PRIMARY" }, select: { id: true } })).id;
       }
       const record = await tx.legalNotice.findUniqueOrThrow({ where: { id }, include: adminInclude });
-      const nowApproved = isLegalNoticeApproved(record);
-      const action = nowApproved && !wasApproved ? "LEGAL_NOTICE_APPROVED" : wasApproved && !nowApproved ? "LEGAL_NOTICE_WITHDRAWN" : "LEGAL_NOTICE_UPDATED";
-      await tx.auditLog.create({ data: { actorId: options.actorId, action, targetType: "LegalNotice", targetId: record.id, result: "SUCCESS", requestId: options.context.requestId, userAgent: options.context.userAgent, metadata: { revision: legalRevision, ...(options.context.ipHash ? { ipHash: options.context.ipHash } : {}) } } });
+      const action = approvalAction(wasApproved, isLegalNoticeApproved(record));
+      const ipHash = options.context.ipHash ? { ipHash: options.context.ipHash } : {};
+      await tx.auditLog.create({ data: { actorId: options.actorId, action, targetType: "LegalNotice", targetId: record.id, result: "SUCCESS", requestId: options.context.requestId, userAgent: options.context.userAgent, metadata: { revision: legalRevision, ...ipHash } } });
       return record;
     });
   }

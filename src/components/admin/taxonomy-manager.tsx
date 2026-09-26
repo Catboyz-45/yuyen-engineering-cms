@@ -24,18 +24,28 @@ const tabs = [
   ["/admin/taxonomies/brands", "ยี่ห้อสินค้า"],
   ["/admin/taxonomies/product-types", "ประเภทสินค้า"],
 ] as const;
+/** ส่งคำขอ JSON ไปยัง API หลังบ้าน แล้วโยนข้อความข้อผิดพลาดจากเซิร์ฟเวอร์เมื่อไม่สำเร็จ */
+async function request(url: string, init: RequestInit) {
+  const response = await fetch(url, {
+    ...init,
+    headers: { "Content-Type": "application/json" },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error);
+}
+
 /** สร้างส่วนหน้าจอ TaxonomyManager; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function TaxonomyManager({
   title,
   description,
   singular,
   kind,
-}: {
+}: Readonly<{
   title: string;
   description: string;
   singular: string;
   kind: Kind;
-}) {
+}>) {
   const pathname = usePathname();
   const [items, setItems] = useState<Item[]>([]);
   const [name, setName] = useState("");
@@ -59,24 +69,16 @@ export function TaxonomyManager({
         if (!response.ok) throw new Error(body.error);
         if (active) setItems(body.items);
       })
-      .catch((caught) => {
+      .catch((caughtError) => {
         if (active)
           setError(
-            caught instanceof Error ? caught.message : "โหลดข้อมูลไม่สำเร็จ",
+            caughtError instanceof Error ? caughtError.message : "โหลดข้อมูลไม่สำเร็จ",
           );
       });
     return () => {
       active = false;
     };
   }, [kind]);
-  async function request(url: string, init: RequestInit) {
-    const response = await fetch(url, {
-      ...init,
-      headers: { "Content-Type": "application/json" },
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error);
-  }
   async function add(event: FormEvent) {
     event.preventDefault();
     if (pending) return;
@@ -96,8 +98,8 @@ export function TaxonomyManager({
       setSlug("");
       toast(`เพิ่ม${singular}แล้ว`);
       await load();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "บันทึกไม่สำเร็จ");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "บันทึกไม่สำเร็จ");
     } finally {
       setPending(null);
     }
@@ -118,8 +120,8 @@ export function TaxonomyManager({
       setEditing(null);
       await load();
       toast("บันทึกแล้ว");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "บันทึกไม่สำเร็จ");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "บันทึกไม่สำเร็จ");
     } finally {
       setPending(null);
     }
@@ -144,8 +146,8 @@ export function TaxonomyManager({
       if (!response.ok) throw new Error(body.error);
       await load();
       toast("ย้ายไปถังขยะแล้ว");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "ลบไม่สำเร็จ");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "ลบไม่สำเร็จ");
     } finally {
       setPending(null);
     }
@@ -177,7 +179,7 @@ export function TaxonomyManager({
           </div>
           <div className="form-stack">
             <label>
-              ชื่อ
+              <span>ชื่อ</span>
               <input
                 className="field"
                 value={name}
@@ -186,7 +188,7 @@ export function TaxonomyManager({
               />
             </label>
             <label>
-              ลิงก์ (slug) — ภาษาอังกฤษตัวพิมพ์เล็ก ตัวเลข และขีดกลาง
+              <span>ลิงก์ (slug) — ภาษาอังกฤษตัวพิมพ์เล็ก ตัวเลข และขีดกลาง</span>
               <input
                 className="field"
                 value={slug}
@@ -199,7 +201,7 @@ export function TaxonomyManager({
                 pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
               />
             </label>
-            <button
+            <button type="submit"
               className="btn btn-dark"
               disabled={pending !== null}
               aria-busy={pending === "add"}

@@ -47,7 +47,7 @@ export default async function HomePage() {
 
       {copy.highlights.length > 0 && <div className="container hero-stats">
         <div className="stats-card">
-          {copy.highlights.map((item, index) => { const Icon = highlightIcons[index % highlightIcons.length]; return <div className="stat" key={index}><span className="icon-box"><Icon size={22} /></span><div><strong>{item.title}</strong>{item.text && <span>{item.text}</span>}</div></div>; })}
+          {copy.highlights.map((item, index) => { const Icon = highlightIcons[index % highlightIcons.length]; return <div className="stat" key={`${item.title}|${item.text}`}><span className="icon-box"><Icon size={22} /></span><div><strong>{item.title}</strong>{item.text && <span>{item.text}</span>}</div></div>; })}
         </div>
       </div>}
 
@@ -55,7 +55,7 @@ export default async function HomePage() {
 
       <section className="section" style={{ background: "var(--cream-100)" }}><div className="container"><div className="section-head"><div><p className="eyebrow">RECOMMENDED PRODUCTS</p><h2 className="heading pre-line">{copy.productsHeading}</h2>{copy.productsText && <p className="lead">{copy.productsText}</p>}</div><SectionLink href="/products">ดูสินค้าทั้งหมด</SectionLink></div><div className="grid-4">{products.map(item => <ProductCard key={item.slug} item={item} />)}</div></div></section>
 
-      <section className="section band"><div className="container"><div className="section-head"><div><p className="eyebrow" style={{ color: "var(--lime-400)" }}>HOW WE WORK</p><h2 className="heading pre-line">{copy.processHeading}</h2></div></div>{copy.processSteps.length > 0 && <div className="process">{copy.processSteps.map((step, index) => <div className="process-item" key={index}><h3>{step.title}</h3>{step.text && <p>{step.text}</p>}</div>)}</div>}</div></section>
+      <section className="section band"><div className="container"><div className="section-head"><div><p className="eyebrow" style={{ color: "var(--lime-400)" }}>HOW WE WORK</p><h2 className="heading pre-line">{copy.processHeading}</h2></div></div>{copy.processSteps.length > 0 && <div className="process">{copy.processSteps.map(step => <div className="process-item" key={`${step.title}|${step.text}`}><h3>{step.title}</h3>{step.text && <p>{step.text}</p>}</div>)}</div>}</div></section>
 
       <section className="section"><div className="container"><div className="section-head"><div><p className="eyebrow">OUR PROJECTS</p><h2 className="heading pre-line">{copy.projectsHeading}</h2></div><SectionLink href="/projects">ดูผลงานทั้งหมด</SectionLink></div><div className="grid-3">{projects.map(item => <StoryCard key={item.slug} item={item} type="projects" />)}</div></div></section>
 

@@ -12,13 +12,13 @@ export function AuthShell({
   title,
   description,
   compact = false,
-}: {
+}: Readonly<{
   children: React.ReactNode;
   badge: React.ReactNode;
   title: React.ReactNode;
   description: string;
   compact?: boolean;
-}) {
+}>) {
   return (
     <main className="auth-page">
       <section className="auth-showcase">

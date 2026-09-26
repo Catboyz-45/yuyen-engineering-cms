@@ -18,8 +18,8 @@ export function useDirtyForm() {
   useEffect(() => {
     if (!isDirty) return;
     const beforeUnload = (event: BeforeUnloadEvent) => {
+      // เบราว์เซอร์ปัจจุบันถามยืนยันก่อนออกจากหน้าเมื่อเรียก preventDefault (returnValue เลิกใช้แล้ว)
       event.preventDefault();
-      event.returnValue = "";
     };
     const interceptNavigation = (event: MouseEvent) => {
       const anchor = (event.target as HTMLElement).closest("a");

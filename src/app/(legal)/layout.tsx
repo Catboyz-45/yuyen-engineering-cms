@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { robots: { index: (await getPublicLegalNotice()).approved, follow: true } };
 }
 
-export default async function LegalLayout({ children }: { children: React.ReactNode }) {
+export default async function LegalLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   // ใช้ข้อมูลบริษัทและบริการชุดเดียวกับหน้าเว็บหลัก เพื่อไม่ให้ footer ของหน้านโยบายแสดงค่าตัวอย่าง
   const content = new PublicContentService();
   const loaded = await Promise.all([content.getCompany(), content.listServices()]).catch(error => {

@@ -22,10 +22,10 @@ const FilterPendingContext = createContext(false);
 export function PublicFilterForm({
   action,
   children,
-}: {
+}: Readonly<{
   action: string;
   children: React.ReactNode;
-}) {
+}>) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [pending, setPending] = useState(false);
@@ -38,7 +38,7 @@ export function PublicFilterForm({
     if (pending) return;
     const parameters = new URLSearchParams();
     for (const [key, value] of new FormData(event.currentTarget))
-      parameters.append(key, String(value));
+      if (typeof value === "string") parameters.append(key, value);
     setPending(true);
     await new Promise<void>((resolve) =>
       window.requestAnimationFrame(() => resolve()),
@@ -83,7 +83,7 @@ export function PublicFilterSubmit() {
 }
 
 /** สร้างส่วนหน้าจอ ClearPublicFilters; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function ClearPublicFilters({ href }: { href: string }) {
+export function ClearPublicFilters({ href }: Readonly<{ href: string }>) {
   return (
     <Link
       className="btn btn-ghost clear-filters"
@@ -97,7 +97,7 @@ export function ClearPublicFilters({ href }: { href: string }) {
 }
 
 /** สร้างส่วนหน้าจอ PublicResultCount; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function PublicResultCount({ children }: { children: React.ReactNode }) {
+export function PublicResultCount({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <p
       className="muted filter-result-count"

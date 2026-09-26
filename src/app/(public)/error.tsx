@@ -6,4 +6,4 @@
 "use client";
 import { ErrorView } from "@/components/error-view";
 /** สร้างส่วนหน้าจอ PublicError; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export default function PublicError({ reset, error }: { reset: () => void; error: Error & { digest?: string } }) { return <div className="container section"><ErrorView reset={reset} reference={error.digest} /></div>; }
+export default function PublicError({ reset, error }: Readonly<{ reset: () => void; error: Error & { digest?: string } }>) { return <div className="container section"><ErrorView reset={reset} reference={error.digest} /></div>; }

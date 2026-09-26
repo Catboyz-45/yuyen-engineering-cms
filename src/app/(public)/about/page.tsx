@@ -35,7 +35,7 @@ export default async function AboutPage() {
   return <>
     <section className="page-hero"><div className="container"><p className="eyebrow">ABOUT US</p><h1 className="display pre-line">{siteCopy.aboutHeadline}</h1>{copy.shortDescription && <p className="lead">{copy.shortDescription}</p>}</div></section>
     {(copy.history || showImage) && <section className="section"><div className={showImage ? "container detail-grid" : "container"}>
-      {mainImage ? <ResponsiveMedia media={mainImage} className="media-office" priority /> : showImage && <div className="media office media-office" style={{ minHeight: 470, borderRadius: 24 }} role="img" aria-label="ภาพสำนักงานบริษัท (ภาพตัวอย่าง)" />}
+      {mainImage ? <ResponsiveMedia media={mainImage} className="media-office" priority /> : showImage && <div className="media office media-office" style={{ minHeight: 470, borderRadius: 24 }}><span className="sr-only">ภาพสำนักงานบริษัท (ภาพตัวอย่าง)</span></div>}
       {copy.history && <div><p className="eyebrow">OUR STORY</p><h2 className="heading pre-line">{siteCopy.storyHeadline}</h2><p className="lead" style={{ whiteSpace: "pre-wrap" }}>{copy.history}</p></div>}
     </div>{moreImages.length > 0 && <div className="container grid-3" style={{ marginTop: 36 }}>{moreImages.map(media => <ResponsiveMedia key={media.id} media={media} />)}</div>}</section>}
     {principles.length > 0 && <section className="section band"><div className="container"><div className="grid-3">{principles.map(item => <article className="process-item" key={item.title}><item.icon color="var(--lime-400)" /><h2>{item.title}</h2><p style={{ whiteSpace: "pre-wrap" }}>{item.text}</p></article>)}</div></div></section>}

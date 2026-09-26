@@ -24,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /** สร้างส่วนหน้าจอ PublicLayout; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+export default async function PublicLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const content = new PublicContentService();
   const [record, services] = await Promise.all([content.getCompany(), content.listServices()]);
   const company = resolvePublicCompany(record);

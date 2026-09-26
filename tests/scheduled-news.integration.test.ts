@@ -10,14 +10,18 @@ import { NewsRepository } from "@/server/repositories/content.repository";
 
 const suite = describe.runIf(process.env.RUN_INTEGRATION === "1");
 const slug = `scheduled-${randomUUID().slice(0, 8)}`;
+const username = `scheduled-news-${randomUUID().slice(0, 8)}`;
 let id = "";
+let adminId = "";
 
 suite("scheduled news", () => {
   beforeAll(async () => {
+    // ชุดนี้สร้างผู้ดูแลของตัวเอง ไม่พึ่งข้อมูลที่ชุดอื่นหรือ seed สร้างไว้
     const [admin, category] = await Promise.all([
-      db.admin.findFirstOrThrow({ where: { role: "SUPER_ADMIN", isActive: true }, select: { id: true } }),
+      db.admin.create({ data: { username, usernameNormalized: username, displayName: "Scheduled News Test", role: "SUPER_ADMIN", passwordHash: "integration-only-not-a-login-secret", mustChangePassword: false, twoFactorEnabled: true }, select: { id: true } }),
       db.newsCategory.findFirstOrThrow({ where: { isActive: true, deletedAt: null }, select: { id: true } }),
     ]);
+    adminId = admin.id;
     const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const record = await new ContentService().create("news", { slug, title: "ข่าวกำหนดเวลา (ทดสอบ)", summary: "ข้อมูลทดสอบ", categoryId: category.id, status: "DRAFT", publishedAt: scheduledAt }, { id: admin.id, role: "SUPER_ADMIN" }, {});
     id = record.id;
@@ -28,6 +32,10 @@ suite("scheduled news", () => {
       await db.auditLog.deleteMany({ where: { targetId: id } });
       await db.news.deleteMany({ where: { id } });
     }
+    if (adminId) {
+      await db.auditLog.deleteMany({ where: { actorId: adminId } });
+      await db.admin.deleteMany({ where: { id: adminId } });
+    }
     await db.$disconnect();
   });
 
@@ -35,7 +43,7 @@ suite("scheduled news", () => {
     const service = new ContentService();
     const draft = await service.get("news", id);
     expect(draft?.publishedAt).toBeInstanceOf(Date);
-    await service.transition("news", id, "publish", { id: (await db.admin.findFirstOrThrow({ where: { role: "SUPER_ADMIN", isActive: true }, select: { id: true } })).id, role: "SUPER_ADMIN" }, {});
+    await service.transition("news", id, "publish", { id: adminId, role: "SUPER_ADMIN" }, {});
     const scheduled = await service.get("news", id);
     expect(scheduled?.status).toBe("PUBLISHED");
     expect(scheduled?.publishedAt).toEqual(draft?.publishedAt);

@@ -18,10 +18,119 @@ export function ChangePasswordForm() {
   const [show, setShow] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const rules = useMemo(() => [password.length >= 12, /[A-Z]/.test(password), /[a-z]/.test(password), /\d/.test(password), /[^A-Za-z0-9]/.test(password)], [password]);
+  const rules = useMemo(
+    () => [
+      password.length >= 12,
+      /[A-Z]/.test(password),
+      /[a-z]/.test(password),
+      /\d/.test(password),
+      /[^A-Za-z0-9]/.test(password),
+    ],
+    [password],
+  );
   const strength = rules.filter(Boolean).length;
   const canSubmit = strength === rules.length && password === confirm;
-  async function submit(event: FormEvent) { event.preventDefault(); if (!canSubmit) return; setSubmitting(true); setError(""); const response = await fetch("/api/auth/password", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password, confirm }) }).catch(() => null); const result = await response?.json().catch(() => ({})) as { next?: string; error?: string } | undefined; if (!response?.ok || !result?.next) { setSubmitting(false); setError(result?.error ?? "ไม่สามารถเปลี่ยนรหัสผ่านได้ กรุณาลองใหม่"); return; } setFlashMessage("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว"); router.replace(result.next); router.refresh(); }
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setError("");
+    const response = await fetch("/api/auth/password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password, confirm }),
+    }).catch(() => null);
+    const result = (await response?.json().catch(() => ({}))) as { next?: string; error?: string } | undefined;
+    if (!response?.ok || !result?.next) {
+      setSubmitting(false);
+      setError(result?.error ?? "ไม่สามารถเปลี่ยนรหัสผ่านได้ กรุณาลองใหม่");
+      return;
+    }
+    setFlashMessage("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว");
+    router.replace(result.next);
+    router.refresh();
+  }
   const labels = ["อย่างน้อย 12 ตัวอักษร", "มีตัวพิมพ์ใหญ่", "มีตัวพิมพ์เล็ก", "มีตัวเลข", "มีอักขระพิเศษ"];
-  return <><div className="icon-box"><KeyRound size={22} /></div><p className="eyebrow" style={{ marginTop: 26 }}>FIRST SIGN-IN · STEP 1 OF 3</p><h2 className="heading">ตั้งรหัสผ่านใหม่</h2><p className="muted">รหัสผ่านชั่วคราวใช้ได้ครั้งเดียว กรุณาสร้างรหัสผ่านใหม่ก่อนใช้งานระบบ</p>{error && <div className="auth-alert error" role="alert"><AlertCircle size={19} /><div><strong>เปลี่ยนรหัสผ่านไม่สำเร็จ</strong><p>{error}</p></div></div>}<form className="form-stack" onSubmit={submit}><div className="form-group"><label htmlFor="new-password">รหัสผ่านใหม่</label><div className="password-field"><input id="new-password" className="field" type={show ? "text" : "password"} value={password} onChange={event => setPassword(event.target.value)} autoComplete="new-password" /><button type="button" className="icon-btn" onClick={() => setShow(value => !value)} aria-label={show ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}>{show ? <EyeOff size={18} /> : <Eye size={18} />}</button></div><div className="password-meter" aria-label={`ความแข็งแรง ${strength} จาก 5`}>{rules.slice(0, 4).map((met, index) => <span key={index} className={met ? "on" : ""} />)}</div><ul className="requirement-list">{labels.map((label, index) => <li className={rules[index] ? "met" : ""} key={label}><Check size={14} /> {label}</li>)}</ul></div><div className="form-group"><label htmlFor="confirm-password">ยืนยันรหัสผ่านใหม่</label><input id="confirm-password" className="field" type="password" value={confirm} onChange={event => setConfirm(event.target.value)} autoComplete="new-password" aria-invalid={Boolean(confirm && confirm !== password)} />{confirm && confirm !== password && <span style={{ color: "var(--danger)", fontSize: ".76rem" }}>รหัสผ่านไม่ตรงกัน</span>}</div><button className="btn btn-dark" disabled={!canSubmit || submitting}>{submitting ? <><LoaderCircle className="spin" size={18} /> กำลังบันทึก</> : <>บันทึกและดำเนินการต่อ <ArrowRight size={17} /></>}</button></form></>;
+  return (
+    <>
+      <div className="icon-box">
+        <KeyRound size={22} />
+      </div>
+      <p className="eyebrow" style={{ marginTop: 26 }}>
+        FIRST SIGN-IN · STEP 1 OF 3
+      </p>
+      <h2 className="heading">ตั้งรหัสผ่านใหม่</h2>
+      <p className="muted">รหัสผ่านชั่วคราวใช้ได้ครั้งเดียว กรุณาสร้างรหัสผ่านใหม่ก่อนใช้งานระบบ</p>
+      {error && (
+        <div className="auth-alert error" role="alert">
+          <AlertCircle size={19} />
+          <div>
+            <strong>เปลี่ยนรหัสผ่านไม่สำเร็จ</strong>
+            <p>{error}</p>
+          </div>
+        </div>
+      )}
+      <form className="form-stack" onSubmit={submit}>
+        <div className="form-group">
+          <label htmlFor="new-password">รหัสผ่านใหม่</label>
+          <div className="password-field">
+            <input
+              id="new-password"
+              className="field"
+              type={show ? "text" : "password"}
+              value={password}
+              onChange={event => setPassword(event.target.value)}
+              autoComplete="new-password"
+            />
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setShow(value => !value)}
+              aria-label={show ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+            >
+              {show ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+          <div className="password-meter" aria-label={`ความแข็งแรง ${strength} จาก 5`}>
+            {labels.slice(0, 4).map((label, index) => (
+              <span key={label} className={rules[index] ? "on" : ""} />
+            ))}
+          </div>
+          <ul className="requirement-list">
+            {labels.map((label, index) => (
+              <li className={rules[index] ? "met" : ""} key={label}>
+                <Check size={14} /> {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="form-group">
+          <label htmlFor="confirm-password">ยืนยันรหัสผ่านใหม่</label>
+          <input
+            id="confirm-password"
+            className="field"
+            type="password"
+            value={confirm}
+            onChange={event => setConfirm(event.target.value)}
+            autoComplete="new-password"
+            aria-invalid={Boolean(confirm && confirm !== password)}
+          />
+          {confirm && confirm !== password && (
+            <span style={{ color: "var(--danger)", fontSize: ".76rem" }}>รหัสผ่านไม่ตรงกัน</span>
+          )}
+        </div>
+        <button type="submit" className="btn btn-dark" disabled={!canSubmit || submitting}>
+          {submitting ? (
+            <>
+              <LoaderCircle className="spin" size={18} /> กำลังบันทึก
+            </>
+          ) : (
+            <>
+              บันทึกและดำเนินการต่อ <ArrowRight size={17} />
+            </>
+          )}
+        </button>
+      </form>
+    </>
+  );
 }

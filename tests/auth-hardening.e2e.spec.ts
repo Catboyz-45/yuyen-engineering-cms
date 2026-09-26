@@ -107,6 +107,7 @@ async function clearSharedTestIpThrottle() {
 }
 
 test.describe("authentication hardening", () => {
+  // ชุดนี้เขียนข้อมูลจริง จึงรันเฉพาะเมื่อผู้รันเปิดเองกับฐานข้อมูลทดสอบที่แยกไว้
   test.skip(!enabled, "Set RUN_AUTH_HARDENING_E2E=1 and use an isolated test database");
   test.describe.configure({ mode: "serial" });
 
@@ -226,6 +227,7 @@ test.describe("authentication hardening", () => {
 
   test("re-wraps an old TOTP key through the verification API", async ({ playwright }) => {
     const currentVersion = Number(process.env.TOTP_ENCRYPTION_CURRENT_VERSION ?? "1");
+    // ทดสอบการหมุนกุญแจได้เฉพาะเมื่อเซิร์ฟเวอร์ตั้งกุญแจ TOTP ไว้อย่างน้อย 2 รุ่น (CI ตั้งไว้แล้ว)
     test.skip(currentVersion < 2, "Server must run with a two-version TOTP keyring");
     const account = await createAccount({ keyVersion: 1 });
     const client = await context(playwright);

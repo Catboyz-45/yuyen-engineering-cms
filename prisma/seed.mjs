@@ -158,7 +158,12 @@ async function main() {
   });
 }
 
-main()
-  .then(() => console.log("Development seed completed"))
-  .catch((error) => { console.error("Development seed failed", error); process.exitCode = 1; })
-  .finally(() => prisma.$disconnect());
+try {
+  await main();
+  console.log("Development seed completed");
+} catch (error) {
+  console.error("Development seed failed", error);
+  process.exitCode = 1;
+} finally {
+  await prisma.$disconnect();
+}

@@ -14,14 +14,14 @@ const ACTIVATION_OFFSET = 140;
 /** เลือกหัวข้อที่กำลังอ่าน: หัวข้อสุดท้ายที่ขอบบนผ่านเส้นอ้างอิงแล้ว หรือหัวข้อสุดท้ายเมื่อเลื่อนถึงท้ายหน้า */
 export function activeSectionId(tops: { id: string; top: number }[], atBottom: boolean, offset = ACTIVATION_OFFSET) {
   if (!tops.length) return null;
-  if (atBottom) return tops[tops.length - 1].id;
+  if (atBottom) return tops.at(-1)?.id ?? null;
   let active = tops[0].id;
   for (const section of tops) if (section.top <= offset) active = section.id;
   return active;
 }
 
 /** สร้างส่วนหน้าจอ SectionNav; รับรายการหัวข้อแล้วคืนเมนูลิงก์ที่ไฮไลต์ตามตำแหน่งที่เลื่อน */
-export function SectionNav({ links, label, title = "ในหน้านี้" }: { links: SectionLink[]; label: string; title?: string }) {
+export function SectionNav({ links, label, title = "ในหน้านี้" }: Readonly<{ links: SectionLink[]; label: string; title?: string }>) {
   const [active, setActive] = useState(links[0]?.id ?? null);
   // ระหว่างเลื่อนแบบนุ่มนวลหลังกดลิงก์ ไม่ให้ไฮไลต์วิ่งผ่านหัวข้อระหว่างทาง
   const lockUntil = useRef(0);

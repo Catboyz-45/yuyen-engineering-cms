@@ -80,7 +80,7 @@ export function RecoveryLogin() {
             autoComplete="one-time-code"
           />
         </div>
-        <button
+        <button type="submit"
           className="btn btn-dark"
           disabled={submitting}
           aria-busy={submitting}

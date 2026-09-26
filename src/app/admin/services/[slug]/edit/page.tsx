@@ -5,4 +5,4 @@
  */
 import { GeneralEditor } from "@/components/admin/content-editors";
 /** สร้างส่วนหน้าจอ EditServicePage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export default async function EditServicePage({ params }: { params: Promise<{ slug: string }> }) { return <GeneralEditor mode="edit" kind="service" idOrSlug={(await params).slug} />; }
+export default async function EditServicePage({ params }: Readonly<{ params: Promise<{ slug: string }> }>) { return <GeneralEditor mode="edit" kind="service" idOrSlug={(await params).slug} />; }

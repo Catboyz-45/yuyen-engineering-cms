@@ -29,7 +29,13 @@ export async function POST(request: NextRequest) {
   }
   await clearFailures(throttleBuckets);
   const { token, session } = await createSession(user.id, "PASSWORD_VERIFIED", context);
-  const next = user.mustChangePassword ? "/change-password" : user.twoFactorEnabled ? "/verify-2fa" : "/setup-2fa";
+  const next = nextAuthStep(user);
   await audit({ actorId: user.id, action: "AUTH_PASSWORD_VERIFIED", targetType: "AdminSession", targetId: session.id, result: "SUCCESS", ...context });
   const response = NextResponse.json({ next }); response.cookies.set(SESSION_COOKIE, token, { ...sessionCookieOptions, expires: session.expiresAt }); return response;
+}
+
+/** ขั้นถัดไปหลังรหัสผ่านถูก: เปลี่ยนรหัสผ่านชั่วคราวก่อน แล้วยืนยันหรือตั้งค่า 2FA */
+function nextAuthStep(user: { mustChangePassword: boolean; twoFactorEnabled: boolean }) {
+  if (user.mustChangePassword) return "/change-password";
+  return user.twoFactorEnabled ? "/verify-2fa" : "/setup-2fa";
 }

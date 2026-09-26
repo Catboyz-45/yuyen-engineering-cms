@@ -24,6 +24,7 @@ import { ThemeSelect } from "../theme-select";
 import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { LoadingLabel } from "../loading-label";
 import { setFlashMessage } from "@/lib/client-flash";
+import { formText } from "@/lib/form-data";
 import {
   FieldErrors,
   fieldMessage,
@@ -69,7 +70,7 @@ const configs = {
   news: { label: "ข่าวสาร", api: "news", list: "/admin/news", eyebrow: "NEWS" },
 } as const;
 const string = (form: FormData, key: string) =>
-  String(form.get(key) ?? "").trim();
+  formText(form, key).trim();
 const nullable = (form: FormData, key: string) => string(form, key) || null;
 const numberOrNull = (form: FormData, key: string) =>
   string(form, key) ? Number(string(form, key)) : null;
@@ -79,15 +80,21 @@ const dateTimeOrNull = (form: FormData, key: string) => {
 };
 const ValidationContext = createContext<FieldErrors>({});
 
+/** ข้อความแจ้งหลังบันทึก: กำหนดเวลาเผยแพร่, เผยแพร่ทันที หรือเก็บเป็นฉบับร่าง */
+function savedMessage(label: string, status: string, scheduled: boolean) {
+  if (scheduled) return "บันทึกข่าวและกำหนดเวลาเผยแพร่แล้ว";
+  return status === "PUBLISHED" ? `บันทึกและเผยแพร่${label}แล้ว` : `บันทึก${label}เป็นฉบับร่างแล้ว`;
+}
+
 function ContentEditor({
   mode,
   kind,
   idOrSlug,
-}: {
+}: Readonly<{
   mode: "new" | "edit";
   kind: Kind;
   idOrSlug?: string;
-}) {
+}>) {
   const config = configs[kind];
   const router = useRouter();
   const { markDirty, markClean } = useDirtyForm();
@@ -151,10 +158,10 @@ function ContentEditor({
           }),
       );
     void Promise.all(tasks)
-      .catch((caught) => {
+      .catch((caughtError) => {
         if (active)
           setError(
-            caught instanceof Error ? caught.message : "โหลดข้อมูลไม่สำเร็จ",
+            caughtError instanceof Error ? caughtError.message : "โหลดข้อมูลไม่สำเร็จ",
           );
       })
       .finally(() => {
@@ -292,16 +299,12 @@ function ContentEditor({
         requestedPublication !== null &&
         new Date(requestedPublication).getTime() > Date.now();
       setFlashMessage(
-        scheduled
-          ? "บันทึกข่าวและกำหนดเวลาเผยแพร่แล้ว"
-          : status === "PUBLISHED"
-            ? `บันทึกและเผยแพร่${config.label}แล้ว`
-            : `บันทึก${config.label}เป็นฉบับร่างแล้ว`,
+        savedMessage(config.label, status, scheduled),
       );
       router.push(config.list);
       router.refresh();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "บันทึกไม่สำเร็จ");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "บันทึกไม่สำเร็จ");
       setSaving(false);
     }
   }
@@ -317,7 +320,7 @@ function ContentEditor({
     typeof record[key] === "string" || typeof record[key] === "number"
       ? String(record[key])
       : fallback;
-  if (loading) return <div className="panel card-body" role="status">กำลังโหลดข้อมูล…</div>;
+  if (loading) return <output className="panel card-body">กำลังโหลดข้อมูล…</output>;
   return (
     <ValidationContext.Provider value={fieldErrors}>
       <EditorHeader
@@ -554,8 +557,8 @@ function ContentEditor({
                       name="content"
                       defaultValue={value("content")}
                     />
-                    <div className="form-group">
-                      <label>บริการที่เกี่ยวข้อง</label>
+                    <fieldset className="form-group">
+                      <legend>บริการที่เกี่ยวข้อง</legend>
                       {options.services.map((item) => (
                         <Check
                           key={item.id}
@@ -574,7 +577,7 @@ function ContentEditor({
                           }
                         />
                       ))}
-                    </div>
+                    </fieldset>
                   </>
                 )}
                 {kind === "news" && (
@@ -677,7 +680,7 @@ function ContentEditor({
           <aside className="editor-aside">
             <FormSection title="บันทึก">
               <div className="editor-actions">
-                <button
+                <button type="submit"
                   className="btn btn-dark"
                   name="status"
                   value="DRAFT"
@@ -690,7 +693,7 @@ function ContentEditor({
                     </>
                   </LoadingLabel>
                 </button>
-                <button
+                <button type="submit"
                   className="btn btn-outline"
                   name="status"
                   value="PUBLISHED"
@@ -772,7 +775,7 @@ function Field({
   pattern,
   maxLength,
   help,
-}: {
+}: Readonly<{
   label: string;
   name: string;
   defaultValue: string;
@@ -781,7 +784,7 @@ function Field({
   pattern?: string;
   maxLength?: number;
   help?: string;
-}) {
+}>) {
   const message = fieldMessage(useContext(ValidationContext), name);
   const errorId = `${name}-error`;
   const effectiveMaxLength =
@@ -836,14 +839,14 @@ function Area({
   required,
   maxLength,
   help,
-}: {
+}: Readonly<{
   label: string;
   name: string;
   defaultValue: string;
   required?: boolean;
   maxLength?: number;
   help?: string;
-}) {
+}>) {
   const message = fieldMessage(useContext(ValidationContext), name);
   const errorId = `${name}-error`;
   const effectiveMaxLength =
@@ -887,13 +890,13 @@ function Select({
   items,
   defaultValue,
   onDirty,
-}: {
+}: Readonly<{
   label: string;
   name: string;
   items: Option[];
   defaultValue: string;
   onDirty: () => void;
-}) {
+}>) {
   const message = fieldMessage(useContext(ValidationContext), name);
   const errorId = `${name}-error`;
   return (
@@ -925,12 +928,12 @@ function Check({
   label,
   initial,
   value,
-}: {
+}: Readonly<{
   name: string;
   label: string;
   initial: boolean;
   value?: string;
-}) {
+}>) {
   return (
     <label className="cluster" style={{ padding: "6px 0" }}>
       <input
@@ -948,20 +951,20 @@ function Check({
 export function ProductEditor({
   mode,
   idOrSlug,
-}: {
+}: Readonly<{
   mode: "new" | "edit";
   idOrSlug?: string;
-}) {
+}>) {
   return <ContentEditor mode={mode} kind="product" idOrSlug={idOrSlug} />;
 }
 /** สร้างส่วนหน้าจอ ProjectEditor; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function ProjectEditor({
   mode,
   idOrSlug,
-}: {
+}: Readonly<{
   mode: "new" | "edit";
   idOrSlug?: string;
-}) {
+}>) {
   return <ContentEditor mode={mode} kind="project" idOrSlug={idOrSlug} />;
 }
 /** สร้างส่วนหน้าจอ GeneralEditor; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
@@ -969,10 +972,10 @@ export function GeneralEditor({
   mode,
   kind,
   idOrSlug,
-}: {
+}: Readonly<{
   mode: "new" | "edit";
   kind: "service" | "news" | "banner";
   idOrSlug?: string;
-}) {
+}>) {
   return <ContentEditor mode={mode} kind={kind} idOrSlug={idOrSlug} />;
 }

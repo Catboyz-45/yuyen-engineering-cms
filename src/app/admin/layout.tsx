@@ -9,4 +9,4 @@ import { requireAdmin } from "@/server/auth/session";
 
 export const metadata: Metadata = { title: "ระบบจัดการเว็บไซต์", robots: { index: false, follow: false } };
 /** สร้างส่วนหน้าจอ AdminLayout; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export default async function AdminLayout({ children }: { children: React.ReactNode }) { const session = await requireAdmin(); return <AdminShell user={{ displayName: session.admin.displayName, username: session.admin.username, role: session.admin.role }}>{children}</AdminShell>; }
+export default async function AdminLayout({ children }: Readonly<{ children: React.ReactNode }>) { const session = await requireAdmin(); return <AdminShell user={{ displayName: session.admin.displayName, username: session.admin.username, role: session.admin.role }}>{children}</AdminShell>; }

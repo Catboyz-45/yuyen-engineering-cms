@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Check, Share2 } from "lucide-react";
 
 /** สร้างส่วนหน้าจอ ShareButton; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function ShareButton({ title }: { title: string }) {
+export function ShareButton({ title }: Readonly<{ title: string }>) {
   const [copied, setCopied] = useState(false);
   const share = async () => {
     const data = { title, text: title, url: window.location.href };

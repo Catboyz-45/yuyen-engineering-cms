@@ -41,7 +41,7 @@ export type PublicCompany = {
 
 function text(value: string | null | undefined) {
   const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
+  return trimmed || null;
 }
 
 /** ค่าจาก CMS มีผลเสมอเมื่อมีแถวบริษัทแล้ว ค่าตัวอย่าง/ENV ใช้เฉพาะก่อนบันทึกครั้งแรก */

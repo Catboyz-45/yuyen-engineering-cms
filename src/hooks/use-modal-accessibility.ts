@@ -18,12 +18,14 @@ type ModalAccessibilityOptions = {
   containerRef: RefObject<HTMLElement | null>;
   initialFocusRef?: RefObject<HTMLElement | null>;
   restoreFocusRef?: RefObject<HTMLElement | null>;
+  /** ฉากหลังของหน้าต่าง: กดที่ฉากหลัง (นอกหน้าต่าง) แล้วปิดหน้าต่าง */
+  backdropRef?: RefObject<HTMLElement | null>;
   onClose: () => void;
   closeDisabled?: boolean;
 };
 
 /** React Hook useModalAccessibility รวม state และพฤติกรรมฝั่ง browser เพื่อให้คอมโพเนนต์เรียกใช้ตามกฎเดียวกัน */
-export function useModalAccessibility({ active = true, containerRef, initialFocusRef, restoreFocusRef, onClose, closeDisabled = false }: ModalAccessibilityOptions) {
+export function useModalAccessibility({ active = true, containerRef, initialFocusRef, restoreFocusRef, backdropRef, onClose, closeDisabled = false }: ModalAccessibilityOptions) {
   const onCloseRef = useRef(onClose);
   const closeDisabledRef = useRef(closeDisabled);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -64,22 +66,27 @@ export function useModalAccessibility({ active = true, containerRef, initialFocu
         .filter(element => !element.hidden && element.getAttribute("aria-hidden") !== "true");
       if (!focusable.length) { event.preventDefault(); containerRef.current?.focus(); return; }
       const first = focusable[0];
-      const last = focusable[focusable.length - 1];
+      const last = focusable.at(-1);
       if (event.shiftKey && (document.activeElement === first || !containerRef.current?.contains(document.activeElement))) {
-        event.preventDefault(); last.focus();
+        event.preventDefault(); last?.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
         event.preventDefault(); first.focus();
       }
     };
+    const handleBackdropPointer = (event: MouseEvent) => {
+      if (!closeDisabledRef.current && backdropRef?.current && event.target === backdropRef.current) onCloseRef.current();
+    };
 
     document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("mousedown", handleBackdropPointer);
     return () => {
       window.cancelAnimationFrame(frame);
       document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("mousedown", handleBackdropPointer);
       document.body.style.overflow = bodyOverflow;
       window.requestAnimationFrame(() => {
         if (previousFocus?.isConnected) previousFocus.focus();
       });
     };
-  }, [active, containerRef, initialFocusRef, restoreFocusRef]);
+  }, [active, containerRef, initialFocusRef, restoreFocusRef, backdropRef]);
 }

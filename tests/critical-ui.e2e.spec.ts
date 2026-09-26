@@ -82,6 +82,7 @@ test("mobile drawer trap focus ปิดด้วย Escape และคืน f
 });
 
 test.describe("authenticated CMS interaction", () => {
+  // ชุดนี้เขียนข้อมูลจริง จึงรันเฉพาะเมื่อผู้รันเปิดเองกับฐานข้อมูลทดสอบที่แยกไว้
   test.skip(!runAdmin, "Set RUN_CRITICAL_UI_E2E=1 and use an isolated test database");
   test("ป้องกันข้อมูลฟอร์มหาย ใช้ confirmation dialog และ logout ได้จริง", async ({ page }) => {
     const cleanup = await authenticateTemporaryAdmin(page);
@@ -108,6 +109,7 @@ test.describe("authenticated CMS interaction", () => {
   });
 
   test("แก้ข้อมูลบริษัท โลโก้ และรูปบริษัทจากหลังบ้าน แล้วหน้าเว็บแสดงตามจริง", async ({ page }) => {
+    // อัปโหลดรูปต้องมี object storage และ ClamAV ของชุดทดสอบ
     test.skip(!process.env.S3_ENDPOINT, "ต้องมี object storage และ ClamAV สำหรับอัปโหลดรูป");
     const database = new PrismaClient();
     const original = await database.company.findUnique({ where: { singletonKey: "PRIMARY" }, include: { gallery: true } });

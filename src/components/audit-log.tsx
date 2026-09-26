@@ -35,7 +35,7 @@ export function AuditLog() {
       setLoading(true);
       void load()
         .then(() => setError(""))
-        .catch(caught => setError(caught instanceof Error ? caught.message : "โหลดข้อมูลไม่สำเร็จ"))
+        .catch(caughtError => setError(caughtError instanceof Error ? caughtError.message : "โหลดข้อมูลไม่สำเร็จ"))
         .finally(() => setLoading(false));
     }, 250);
     return () => clearTimeout(timer);
@@ -53,11 +53,11 @@ export function AuditLog() {
       {error && <div className="auth-alert warning" role="alert">{error}</div>}
       <section className="panel">
         <div className="table-wrap">
-          <table className="data-table">
+          <table className="data-table" aria-busy={loading}>
             <thead><tr><th>กิจกรรม</th><th>ผู้ดำเนินการ</th><th>ผลลัพธ์</th><th>วันและเวลา</th></tr></thead>
             <tbody>
               {loading && !items.length
-                ? Array.from({ length: 5 }, (_, index) => <tr key={index} className="skeleton-row" aria-hidden="true"><td><span className="skeleton" style={{ width: "62%" }} /></td><td><span className="skeleton" style={{ width: 110 }} /></td><td><span className="skeleton" style={{ width: 70 }} /></td><td><span className="skeleton" style={{ width: 130 }} /></td></tr>)
+                ? ["62%", "48%", "56%", "70%", "52%"].map(width => <tr key={width} className="skeleton-row"><td><span className="skeleton" style={{ width }} /></td><td><span className="skeleton" style={{ width: 110 }} /></td><td><span className="skeleton" style={{ width: 70 }} /></td><td><span className="skeleton" style={{ width: 130 }} /></td></tr>)
                 : items.map(item => (
                   <tr key={item.id}>
                     <td>
@@ -82,9 +82,9 @@ export function AuditLog() {
         <div className="pagination">
           <span>ทั้งหมด {total} รายการ</span>
           <div className="cluster">
-            <button className="btn btn-ghost" disabled={page === 1 || loading} onClick={() => setPage(value => value - 1)}>ก่อนหน้า</button>
+            <button type="button" className="btn btn-ghost" disabled={page === 1 || loading} onClick={() => setPage(value => value - 1)}>ก่อนหน้า</button>
             <span>หน้า {page}/{pageCount}</span>
-            <button className="btn btn-ghost" disabled={page >= pageCount || loading} onClick={() => setPage(value => value + 1)}>ถัดไป</button>
+            <button type="button" className="btn btn-ghost" disabled={page >= pageCount || loading} onClick={() => setPage(value => value + 1)}>ถัดไป</button>
           </div>
         </div>
       </section>

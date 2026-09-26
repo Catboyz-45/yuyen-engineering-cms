@@ -1,4 +1,5 @@
 # หน้าที่ของไฟล์นี้: เปิดแอปและ PostgreSQL สำหรับพัฒนาในเครื่อง โดยรับค่าลับจาก environment
+# รหัสผ่านทุกตัวต้องตั้งใน .env (ดู .env.example) ไฟล์นี้ไม่มีค่าเริ่มต้นของรหัสผ่าน
 # ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
 name: yuyen-engineering
 services:
@@ -7,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: yuyen
       POSTGRES_USER: yuyen
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-only}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ตั้ง POSTGRES_PASSWORD ใน .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -24,7 +25,7 @@ services:
     command: server /data --console-address :9001
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin-local-only}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?ตั้ง MINIO_ROOT_PASSWORD ใน .env}
     volumes:
       - minio_data:/data
     ports:
@@ -60,7 +61,7 @@ services:
       - path: .env
         required: false
     environment:
-      DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/yuyen?schema=public
+      DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:?ตั้ง POSTGRES_PASSWORD ใน .env}@postgres:5432/yuyen?schema=public
       S3_ENDPOINT: http://minio:9000
       # เบราว์เซอร์เรียก signed URL เอง จึงต้องเป็นชื่อที่เข้าถึงจากเครื่องผู้ใช้ได้ ไม่ใช่ minio:9000
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
@@ -97,7 +98,7 @@ services:
       - path: .env
         required: false
     environment:
-      DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/yuyen?schema=public
+      DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:?ตั้ง POSTGRES_PASSWORD ใน .env}@postgres:5432/yuyen?schema=public
       S3_ENDPOINT: http://minio:9000
       # เบราว์เซอร์เรียก signed URL เอง จึงต้องเป็นชื่อที่เข้าถึงจากเครื่องผู้ใช้ได้ ไม่ใช่ minio:9000
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}

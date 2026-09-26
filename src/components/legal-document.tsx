@@ -9,7 +9,7 @@ type Section = { id: string; title: string; content: ReactNode };
 const thaiDate = new Intl.DateTimeFormat("th-TH", { dateStyle: "long", timeZone: "Asia/Bangkok" });
 
 /** แสดงหัวข้ออย่างเป็นลำดับ อ่านด้วยคีย์บอร์ดและโปรแกรมอ่านหน้าจอได้ */
-export function LegalDocument({ title, summary, sections, notice }: { title: string; summary: string; sections: Section[]; notice: PublicLegalNotice }) {
+export function LegalDocument({ title, summary, sections, notice }: Readonly<{ title: string; summary: string; sections: Section[]; notice: PublicLegalNotice }>) {
   return (
     <article className="container legal-document">
       <header className="stack">

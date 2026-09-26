@@ -5,4 +5,4 @@
  */
 import { ProjectEditor } from "@/components/admin/content-editors";
 /** สร้างส่วนหน้าจอ EditProjectPage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export default async function EditProjectPage({ params }: { params: Promise<{ slug: string }> }) { return <ProjectEditor mode="edit" idOrSlug={(await params).slug} />; }
+export default async function EditProjectPage({ params }: Readonly<{ params: Promise<{ slug: string }> }>) { return <ProjectEditor mode="edit" idOrSlug={(await params).slug} />; }

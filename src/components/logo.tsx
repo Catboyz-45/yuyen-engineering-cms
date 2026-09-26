@@ -6,7 +6,7 @@
 import { Leaf } from "lucide-react";
 
 /** สร้างส่วนหน้าจอ Logo; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
-export function Logo({ inverse = false, media }: { inverse?: boolean; media?: { id: string } | null }) {
+export function Logo({ inverse = false, media }: Readonly<{ inverse?: boolean; media?: { id: string } | null }>) {
   return (
     <span className="brand">
       {/* โลโก้จาก CMS แทนไอคอนเริ่มต้น; ชื่อบริษัทข้างๆ ทำหน้าที่เป็นข้อความแทนรูปอยู่แล้ว */}
