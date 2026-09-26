@@ -8,6 +8,7 @@ import { z } from "zod";
 import { audit } from "@/server/auth/audit";
 import { currentSession, revokeUserSessions, rotateSession, SESSION_COOKIE, sessionCookieOptions } from "@/server/auth/session";
 import { db } from "@/server/db";
+import { authThrottleBuckets, clearFailures, reserveAttempt, retryAfterSeconds } from "@/server/auth/throttle";
 import { hashPassword, verifyPassword } from "@/server/security/crypto";
 import { assertSameOrigin, requestContext } from "@/server/security/request";
 
@@ -42,10 +43,19 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true });
   }
 
+  // เซสชันที่ถูกขโมยต้องเดารหัสผ่านปัจจุบันไม่ได้เรื่อยๆ จึงใช้โควตาเดียวกับการล็อกอินของบัญชีนี้
+  const throttleBuckets = authThrottleBuckets("login", session.admin.usernameNormalized, context.ipHash);
+  const reservation = await reserveAttempt(throttleBuckets);
+  if (!reservation.allowed) {
+    await audit({ actorId: session.adminId, action: "ADMIN_SELF_PASSWORD_CHANGED", targetType: "Admin", targetId: session.adminId, result: "FAILURE", errorCode: "RATE_LIMITED", ...context });
+    return NextResponse.json({ error: "ลองหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่", retryAfter: reservation.lockedUntil.toISOString() }, { status: 429, headers: { "Retry-After": String(retryAfterSeconds(reservation.lockedUntil)) } });
+  }
   if (!await verifyPassword(session.admin.passwordHash, parsed.data.currentPassword)) {
     await audit({ actorId: session.adminId, action: "ADMIN_SELF_PASSWORD_CHANGED", targetType: "Admin", targetId: session.adminId, result: "FAILURE", ...context });
     return NextResponse.json({ error: "รหัสผ่านปัจจุบันไม่ถูกต้อง" }, { status: 400 });
   }
+  await clearFailures(throttleBuckets);
+  if (parsed.data.password === parsed.data.currentPassword) return NextResponse.json({ error: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม" }, { status: 400 });
   const passwordHash = await hashPassword(parsed.data.password);
   await db.admin.update({ where: { id: session.adminId }, data: { passwordHash } });
   await revokeUserSessions(session.adminId, session.id);

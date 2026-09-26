@@ -11,7 +11,8 @@
 
 1. สำรองฐานข้อมูลและทดสอบ restore ล่าสุด
 2. สร้าง image จาก commit/tag ที่ผ่าน GitHub Actions โดย public URL เป็น build-time configuration
-   ส่วน S3 origin ใน Content-Security-Policy อ่านจาก environment ตอนรัน (`S3_PUBLIC_ENDPOINT` หรือ `S3_ENDPOINT`):
+   ส่วน origin ของ S3 ใน Content-Security-Policy คำนวณตอนรันจาก `S3_PUBLIC_ENDPOINT` (หรือ `S3_ENDPOINT`),
+   `S3_BUCKET`, `S3_REGION` และ `S3_FORCE_PATH_STYLE` จึงไม่ต้อง build image ใหม่เมื่อเปลี่ยน storage:
 
 ```bash
 docker build \
@@ -24,6 +25,13 @@ docker build \
 5. เริ่ม application: `docker compose up -d app`
 6. ตรวจ `/api/health/live` และ `/api/health/ready` ต้องตอบ HTTP 200
 7. Smoke test หน้าแรก, login, CMS, รูปภาพ และ audit log ก่อนสลับ traffic
+
+ระบบจำกัดการลองรหัสผ่านและรหัส 2FA ตาม `AUTH_RATE_LIMIT_ATTEMPTS` และ `AUTH_RATE_LIMIT_MINUTES` ทั้งต่อบัญชี
+และต่อ IP (ต่อ IP ให้โควตามากกว่า 5 เท่าเพราะสำนักงานเดียวกันใช้ IP ร่วมกัน) รหัส 2FA การตั้งค่า 2FA และรหัสกู้คืน
+ใช้โควตาร่วมกัน ระบบนับครั้งก่อนตรวจรหัสเสมอ จึงยิงคำขอพร้อมกันให้เกินโควตาไม่ได้ ก่อนครบโควตาจะหน่วงเวลาทีละน้อย
+เมื่อครบจะล็อกชั่วคราวและเพิ่มเวลาเป็นเท่าตัวทุกครั้งที่ผิดซ้ำ (สูงสุด 8 เท่า) หากบัญชีถูกล็อก Super Admin
+สามารถรีเซ็ตรหัสผ่านหรือ 2FA ให้ ซึ่งจะปลดล็อกบัญชีนั้นด้วย การจำกัดราย IP ต้องตั้ง `AUTH_TRUSTED_PROXY_HOPS`
+ให้ถูกตามหัวข้อด้านล่าง
 
 ห้ามใช้ `prisma migrate dev`, `prisma db push` หรือ development seed ใน production
 

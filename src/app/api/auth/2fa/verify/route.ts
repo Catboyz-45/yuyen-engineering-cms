@@ -18,9 +18,8 @@ import { verifyTotpTimeStep } from "@/server/security/totp";
 import {
   authThrottleBuckets,
   clearFailures,
-  recordFailure,
   retryAfterSeconds,
-  throttleStatus,
+  reserveAttempt,
 } from "@/server/auth/throttle";
 
 /** จุดเริ่มของคำขอ HTTP POST: สร้างข้อมูลหรือสั่งให้เกิดการทำงาน และคืนสถานะที่เหมาะสมให้ผู้เรียก */
@@ -44,8 +43,10 @@ export async function POST(request: NextRequest) {
       { status: 401 },
     );
   const throttleBuckets = authThrottleBuckets("totp", session.adminId, context.ipHash);
-  const lockedUntil = await throttleStatus(throttleBuckets);
-  if (lockedUntil)
+  // นับครั้งนี้ก่อนตรวจรหัส (atomic) คำขอที่ยิงพร้อมกันจึงเกินโควตาไม่ได้
+  const reservation = await reserveAttempt(throttleBuckets); const lockedUntil = reservation.allowed ? null : reservation.lockedUntil;
+  if (lockedUntil) {
+    await audit({ actorId: session.adminId, action: "AUTH_TOTP", result: "FAILURE", errorCode: "RATE_LIMITED", ...context });
     return NextResponse.json(
       {
         error: "ไม่สามารถยืนยันรหัสได้ในขณะนี้",
@@ -56,12 +57,13 @@ export async function POST(request: NextRequest) {
         headers: { "Retry-After": String(retryAfterSeconds(lockedUntil)) },
       },
     );
+  }
   const secret = await readTotpSecret(session.admin);
   const timeStep = secret
     ? verifyTotpTimeStep(secret, session.admin.username, parsed.data.code)
     : null;
   if (timeStep === null) {
-    const nextLock = await recordFailure(throttleBuckets);
+    const nextLock = reservation.lockedUntil; // ครั้งนี้ถูกนับไว้แล้วตอนจอง
     await audit({
       actorId: session.adminId,
       action: "AUTH_TOTP",

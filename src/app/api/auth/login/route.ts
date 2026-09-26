@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/server/db";
 import { audit } from "@/server/auth/audit";
 import { createSession, SESSION_COOKIE, sessionCookieOptions } from "@/server/auth/session";
-import { authThrottleBuckets, clearFailures, recordFailure, retryAfterSeconds, throttleStatus } from "@/server/auth/throttle";
+import { authThrottleBuckets, clearFailures, reserveAttempt, retryAfterSeconds } from "@/server/auth/throttle";
 import { loginSchema } from "@/server/auth/validation";
 import { hashPassword, verifyPassword } from "@/server/security/crypto";
 import { assertSameOrigin, requestContext } from "@/server/security/request";
@@ -18,12 +18,13 @@ export async function POST(request: NextRequest) {
   const parsed = loginSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง" }, { status: 400 });
   const context = requestContext(request); const username = parsed.data.username.toLowerCase(); const throttleBuckets = authThrottleBuckets("login", username, context.ipHash);
-  const lockedUntil = await throttleStatus(throttleBuckets);
-  if (lockedUntil) return NextResponse.json({ error: "ไม่สามารถเข้าสู่ระบบได้ในขณะนี้", retryAfter: lockedUntil.toISOString() }, { status: 429, headers: { "Retry-After": String(retryAfterSeconds(lockedUntil)) } });
+  // นับครั้งนี้ก่อนตรวจรหัส (atomic) คำขอที่ยิงพร้อมกันจึงเกินโควตาไม่ได้
+  const reservation = await reserveAttempt(throttleBuckets); const lockedUntil = reservation.allowed ? null : reservation.lockedUntil;
+  if (lockedUntil) { await audit({ action: "AUTH_LOGIN", targetType: "AdminUser", result: "FAILURE", errorCode: "RATE_LIMITED", ...context }); return NextResponse.json({ error: "ไม่สามารถเข้าสู่ระบบได้ในขณะนี้", retryAfter: lockedUntil.toISOString() }, { status: 429, headers: { "Retry-After": String(retryAfterSeconds(lockedUntil)) } }); }
   const user = await db.admin.findUnique({ where: { usernameNormalized: username } });
   const valid = user ? await verifyPassword(user.passwordHash, parsed.data.password) : (await hashPassword(parsed.data.password), false);
   if (!user || !valid || !user.isActive || user.deletedAt) {
-    const nextLock = await recordFailure(throttleBuckets); await audit({ action: "AUTH_LOGIN", targetType: "AdminUser", result: "FAILURE", ...context });
+    const nextLock = reservation.lockedUntil; // ครั้งนี้ถูกนับไว้แล้วตอนจอง await audit({ action: "AUTH_LOGIN", targetType: "AdminUser", result: "FAILURE", ...context });
     return NextResponse.json({ error: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง", ...(nextLock ? { retryAfter: nextLock.toISOString() } : {}) }, { status: nextLock ? 429 : 401, headers: nextLock ? { "Retry-After": String(retryAfterSeconds(nextLock)) } : undefined });
   }
   await clearFailures(throttleBuckets);

@@ -34,10 +34,17 @@ export async function cmsSession() {
   const session = await currentSession();
   return session?.twoFactorAt && !session.admin.mustChangePassword && session.admin.twoFactorEnabled ? session : null;
 }
+/** เซสชันของ Super Admin ที่ยืนยันตัวตนครบแล้ว; ใช้กับงานที่ Editor ทำไม่ได้ */
+export async function superAdminSession() {
+  const session = await cmsSession();
+  return session?.admin.role === "SUPER_ADMIN" ? session : null;
+}
 /** ฟังก์ชันสาธารณะ validMutation เป็นทางเข้าที่โมดูลอื่นเรียกใช้; รายละเอียดเงื่อนไขอยู่ในบรรทัดภายในฟังก์ชัน */
 export function validMutation(request: NextRequest) { return assertSameOrigin(request) && request.headers.get("content-type")?.startsWith("application/json") === true; }
 /** ฟังก์ชันสาธารณะ cmsError เป็นทางเข้าที่โมดูลอื่นเรียกใช้; รายละเอียดเงื่อนไขอยู่ในบรรทัดภายในฟังก์ชัน */
 export function cmsError(error: unknown, requestId?: string) {
+  if (error instanceof SyntaxError) return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") return NextResponse.json({ error: "ไม่พบรายการ" }, { status: 404 });
   if (error instanceof ZodError) return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง", fields: error.flatten().fieldErrors }, { status: 400 });
   if (error instanceof CmsError) return NextResponse.json({ error: error.message }, { status: error.code === "NOT_FOUND" ? 404 : error.code === "FORBIDDEN" ? 403 : 409 });
   if (error instanceof Error && error.message === "MEDIA_IN_USE") return NextResponse.json({ error: "ไฟล์นี้ยังถูกใช้งานโดยเนื้อหา จึงยังลบไม่ได้" }, { status: 409 });

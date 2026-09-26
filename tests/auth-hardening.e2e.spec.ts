@@ -83,12 +83,13 @@ async function fullyAuthenticate(client: APIRequestContext, account: Awaited<Ret
   expect(response.status()).toBe(200);
 }
 
+// ตรงกับ authThrottleKey ใน src/server/auth/throttle.ts: 2FA และรหัสกู้คืนใช้โควตา "second-factor" ร่วมกัน
 function throttleKeys(purpose: "login" | "totp" | "recovery", account: string) {
   const ipHash = keyedHash("unattributed");
+  const budget = purpose === "login" ? "login" : "second-factor";
   const keys = [
-    keyedHash(`${purpose}:account:${account}`),
-    keyedHash(`${purpose}:ip:${ipHash}`),
-    keyedHash(`${purpose}:account-ip:${account}:${ipHash}`),
+    keyedHash(`${budget}:account:${account}`),
+    keyedHash(`${budget}:ip:${ipHash}`),
   ];
   keys.forEach(key => createdThrottleKeys.add(key));
   return keys;

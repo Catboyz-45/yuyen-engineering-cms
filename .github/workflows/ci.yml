@@ -131,6 +131,9 @@ jobs:
       # and Playwright only returns Secure cookies over plain HTTP to localhost.
       APP_URL: http://localhost:3000
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      # Throwaway credentials for the isolated CI database only.
+      E2E_ADMIN_USERNAME: e2e-owner
+      E2E_ADMIN_PASSWORD: ci-only-temporary-password-1A!
       SESSION_SECRET: ci-only-session-secret-at-least-32-characters
       TOTP_ENCRYPTION_KEY: Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=
       TOTP_ENCRYPTION_KEYS: '{"1":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDA=","2":"Y2ktb25seS0zMi1ieXRlLWtleS1mb3ItdGVzdHMtMDE="}'
@@ -157,6 +160,11 @@ jobs:
       - run: npm run db:generate && npm run db:test:migrate:deploy
       # Public search/filter E2E tests need the clearly labelled development catalog.
       - run: npm run db:seed
+      - name: Create the first Super Admin for the E2E workflows
+        run: npm run auth:bootstrap
+        env:
+          BOOTSTRAP_ADMIN_USERNAME: ${{ env.E2E_ADMIN_USERNAME }}
+          BOOTSTRAP_ADMIN_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
       - name: Create isolated object-storage bucket
         # minio/mc can no longer be pulled from Docker Hub; the project's own S3 SDK needs no extra image.
         run: npx tsx scripts/ensure-test-bucket.ts

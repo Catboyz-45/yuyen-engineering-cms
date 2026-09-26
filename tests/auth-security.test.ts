@@ -72,18 +72,19 @@ describe("authentication cryptography", () => {
     );
     expect(codes.every((item) => !item.hash.includes(item.plain))).toBe(true);
   });
-  it("separates throttle buckets by authentication purpose, account, and IP", () => {
+  it("separates throttle buckets by budget, account, and IP", () => {
     const ipHash = "hashed-ip";
-    expect(authThrottleKey("totp", "account-ip", `admin-1:${ipHash}`)).not.toBe(
-      authThrottleKey("recovery", "account-ip", `admin-1:${ipHash}`),
-    );
     expect(authThrottleKey("totp", "account", "admin-1")).not.toBe(
       authThrottleKey("totp", "account", "admin-2"),
     );
     const buckets = authThrottleBuckets("login", "owner", ipHash);
-    expect(buckets).toHaveLength(3);
-    expect(buckets.map((bucket) => bucket.thresholdMultiplier)).toEqual([1, 5, 1]);
-    expect(new Set(buckets.map((bucket) => bucket.key)).size).toBe(3);
+    expect(buckets).toHaveLength(2);
+    expect(buckets.map((bucket) => bucket.thresholdMultiplier)).toEqual([1, 5]);
+    expect(new Set(buckets.map((bucket) => bucket.key)).size).toBe(2);
+    // รหัส 2FA ตอนตั้งค่า และรหัสกู้คืน ใช้โควตาร่วมกัน สลับวิธีแล้วไม่ได้โควตาเพิ่ม
+    expect(authThrottleKey("totp", "account", "admin-1")).toBe(authThrottleKey("recovery", "account", "admin-1"));
+    expect(authThrottleKey("totp-enrollment", "account", "admin-1")).toBe(authThrottleKey("totp", "account", "admin-1"));
+    expect(authThrottleKey("login", "account", "admin-1")).not.toBe(authThrottleKey("totp", "account", "admin-1"));
   });
   it("applies an exponential delay before the full lockout", () => {
     expect(calculateProgressiveDelaySeconds(1, 5)).toBe(0);

@@ -4,6 +4,10 @@
  */
 import { PrismaClient } from "@prisma/client";
 import argon2 from "argon2";
+import { createHmac } from "node:crypto";
+
+// Mirrors throttleKeys in src/server/auth/throttle.ts, which cannot be imported outside Next.js.
+function throttleKey(value: string, secret: string) { return createHmac("sha256", secret).update(value).digest("hex"); }
 
 async function main() {
   const db = new PrismaClient();
@@ -18,6 +22,7 @@ async function main() {
       db.admin.update({ where: { id: user.id }, data: { passwordHash, mustChangePassword: true, twoFactorEnabled: false, totpSecretEncrypted: null, totpKeyVersion: null, lastTotpTimeStep: null, isActive: true, deletedAt: null, purgeAt: null } }),
       db.session.updateMany({ where: { adminId: user.id, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: "EMERGENCY_RECOVERY" } }),
       db.recoveryCode.deleteMany({ where: { adminId: user.id } }),
+      ...(process.env.SESSION_SECRET ? [db.authThrottle.deleteMany({ where: { key: { in: [throttleKey(`login-user:${user.usernameNormalized}`, process.env.SESSION_SECRET), throttleKey(`second-factor:${user.id}`, process.env.SESSION_SECRET)] } } })] : []),
       db.auditLog.create({ data: { actorId: user.id, action: "EMERGENCY_ADMIN_RECOVERY", targetType: "Admin", targetId: user.id, result: "SUCCESS", metadata: { source: "server-cli" } } }),
     ]);
     console.log("Emergency recovery completed. Sessions and 2FA were revoked; password change and enrollment are required.");

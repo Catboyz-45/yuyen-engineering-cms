@@ -85,7 +85,7 @@ BOOTSTRAP_ADMIN_USERNAME=owner BOOTSTRAP_ADMIN_PASSWORD='temporary-secret' npm r
 
 The first login forces a password change and TOTP enrollment. Recovery codes are
 shown once. For a verified emergency where all Super Admins have lost access,
-run `npm run auth:recover -- <username>` on a trusted server; the command revokes
+run `RECOVERY_ADMIN_USERNAME=<username> RECOVERY_TEMPORARY_PASSWORD=<temporary> npm run auth:recover` on a trusted server; the command revokes
 all sessions and requires fresh password and 2FA setup. Never run it as a routine
 password-reset path.
 
@@ -118,10 +118,14 @@ npm run auth:cleanup
 ```
 
 The CMS command permanently removes only expired records whose required
-references can be deleted safely. The authentication command retains inactive
-sessions for 30 days and expired throttle records for 7 days by default; both
-values are configurable. Each command writes a system audit event. Back up the
-production database and test restore procedures before enabling the schedule.
+references can be deleted safely. Trashed administrator accounts are anonymized
+instead of deleted so audit history keeps a stable actor. The authentication
+command retains inactive sessions for 30 days and expired throttle records for
+7 days by default; both values are configurable. Each command writes a system
+audit event and loads the same server environment as the application
+(`DATABASE_URL`, `APP_URL`, `NEXT_PUBLIC_SITE_URL`, `SESSION_SECRET`,
+`TOTP_ENCRYPTION_KEY`). Back up the production database and test restore
+procedures before enabling the schedule.
 
 ## Media storage
 

@@ -12,7 +12,7 @@
     "test:visual": "playwright test tests/visual-accessibility.spec.ts",
     "test:unit": "vitest run --exclude '**/*.integration.test.ts'",
     "test:integration": "RUN_INTEGRATION=1 tsx scripts/run-with-test-env.ts vitest run --no-file-parallelism tests/database.integration.test.ts tests/cms-workflows.integration.test.ts",
-    "test:e2e": "tsx scripts/run-with-test-env.ts playwright test tests/security.e2e.spec.ts tests/critical-ui.e2e.spec.ts tests/cms-auth.e2e.spec.ts tests/auth-hardening.e2e.spec.ts tests/admin-accounts.e2e.spec.ts tests/media-lifecycle.e2e.spec.ts",
+    "test:e2e": "tsx scripts/run-with-test-env.ts playwright test tests/security.e2e.spec.ts tests/critical-ui.e2e.spec.ts tests/cms-auth.e2e.spec.ts tests/auth-hardening.e2e.spec.ts tests/admin-accounts.e2e.spec.ts tests/media-lifecycle.e2e.spec.ts tests/cms-workflows.e2e.spec.ts",
     "test:e2e:critical": "RUN_CRITICAL_UI_E2E=1 RUN_ADMIN_E2E=1 RUN_AUTH_HARDENING_E2E=1 tsx scripts/run-with-test-env.ts playwright test --workers=1 tests/critical-ui.e2e.spec.ts tests/cms-auth.e2e.spec.ts tests/admin-accounts.e2e.spec.ts tests/auth-hardening.e2e.spec.ts",
     "test:e2e:admins": "RUN_ADMIN_E2E=1 tsx scripts/run-with-test-env.ts playwright test tests/admin-accounts.e2e.spec.ts",
     "test:e2e:media": "RUN_MEDIA_E2E=1 tsx scripts/run-with-test-env.ts playwright test tests/media-lifecycle.e2e.spec.ts",

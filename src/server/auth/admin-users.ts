@@ -1,84 +1,100 @@
 /**
- * หน้าที่ของไฟล์นี้: ตรรกะยืนยันตัวตน admin-users ทำงานเฉพาะฝั่งเซิร์ฟเวอร์เพื่อดูแลบัญชี เซสชัน 2FA หรือสิทธิ์อย่างปลอดภัย
+ * หน้าที่ของไฟล์นี้: จัดการบัญชีผู้ดูแล (สร้าง แก้ไข รีเซ็ต ย้ายลงถังขยะ กู้คืน ลบถาวร) พร้อมกฎ Super Admin คนสุดท้าย
  *
- * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: ลบถาวรจะลบข้อมูลส่วนตัวและรหัสทั้งหมด แต่คงแถวไว้ให้ประวัติการทำงานยังอ้างถึงได้
  */
 import "server-only";
-import { Prisma, type AdminRole } from "@prisma/client";
+import type { AdminRole, Prisma } from "@prisma/client";
 import { db } from "@/server/db";
-import { hashPassword, randomToken } from "@/server/security/crypto";
+import { serializable } from "@/server/db/transaction";
+import { CmsError } from "@/server/cms/errors";
 import { retentionDate } from "@/server/cms/rules";
-import { wouldRemoveLastActiveSuperAdmin } from "./admin-rules";
+import { hashPassword, randomToken } from "@/server/security/crypto";
+import { anonymizedAdminData } from "./admin-retention";
 import { revokeUserSessions } from "./session";
+import { clearAdminThrottles } from "./throttle";
 
-/** สร้างข้อมูลหรือเริ่มกระบวนการ createAdmin พร้อมใช้กฎตรวจสอบของฝั่งเซิร์ฟเวอร์ */
+const notFound = () => new CmsError("NOT_FOUND", "ไม่พบบัญชีผู้ดูแล");
+
+async function findLiveAdmin(tx: Prisma.TransactionClient, userId: string) {
+  const target = await tx.admin.findUnique({ where: { id: userId } });
+  if (!target || target.deletedAt) throw notFound();
+  return target;
+}
+
+/** Throws when the change would leave no active Super Admin able to manage accounts. */
+async function assertSuperAdminRemains(tx: Prisma.TransactionClient, target: { id: string; role: AdminRole; isActive: boolean; deletedAt: Date | null }) {
+  if (target.role !== "SUPER_ADMIN" || !target.isActive || target.deletedAt) return;
+  const others = await tx.admin.count({ where: { id: { not: target.id }, role: "SUPER_ADMIN", isActive: true, deletedAt: null } });
+  if (others < 1) throw new CmsError("LAST_SUPER_ADMIN", "ไม่สามารถเปลี่ยน Super Admin คนสุดท้ายได้");
+}
+
 export async function createAdmin(input: { username: string; displayName: string; role: AdminRole }) {
   const temporaryPassword = `${randomToken(12)}Aa!1`; const passwordHash = await hashPassword(temporaryPassword);
   const normalized = input.username.toLowerCase(); const user = await db.admin.create({ data: { username: input.username, usernameNormalized: normalized, displayName: input.displayName, role: input.role, passwordHash, mustChangePassword: true } });
   return { user, temporaryPassword };
 }
 
-type AdminUpdate = { displayName?: string; role?: AdminRole; isActive?: boolean };
-
-/** ปรับปรุงสถานะผ่าน updateAdminRecordSafely; ผู้เรียกต้องผ่านการตรวจข้อมูลและสิทธิ์ที่เกี่ยวข้องก่อน */
-export async function updateAdminRecordSafely(tx: Prisma.TransactionClient, userId: string, input: AdminUpdate) {
-  const target = await tx.admin.findUniqueOrThrow({ where: { id: userId } });
-  const removingSuperAccess = target.role === "SUPER_ADMIN" && target.isActive && (input.role === "EDITOR" || input.isActive === false);
-  if (removingSuperAccess) {
-    const activeSuperAdmins = await tx.admin.count({ where: { role: "SUPER_ADMIN", isActive: true, deletedAt: null } });
-    if (wouldRemoveLastActiveSuperAdmin(target, input, activeSuperAdmins)) throw new Error("LAST_SUPER_ADMIN");
-  }
-  return tx.admin.update({ where: { id: userId }, data: input });
-}
-
-/** ปรับปรุงสถานะผ่าน updateAdminSafely; ผู้เรียกต้องผ่านการตรวจข้อมูลและสิทธิ์ที่เกี่ยวข้องก่อน */
-export async function updateAdminSafely(userId: string, input: AdminUpdate) {
-  const result = await db.$transaction(tx => updateAdminRecordSafely(tx, userId, input), { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+export async function updateAdminSafely(actorId: string, userId: string, input: { displayName?: string; role?: AdminRole; isActive?: boolean }) {
+  if (actorId === userId && (input.role !== undefined || input.isActive !== undefined)) throw new CmsError("FORBIDDEN", "ไม่สามารถเปลี่ยนบทบาทหรือสถานะของบัญชีตัวเองได้");
+  const result = await serializable(async tx => {
+    const target = await findLiveAdmin(tx, userId);
+    if (input.role === "EDITOR" || input.isActive === false) await assertSuperAdminRemains(tx, target);
+    return tx.admin.update({ where: { id: userId }, data: input, select: { id: true, username: true, displayName: true, role: true, isActive: true } });
+  });
   if (input.role !== undefined || input.isActive !== undefined) await revokeUserSessions(userId);
   return result;
 }
 
-/** ออก temporary password ใหม่ บังคับเปลี่ยนครั้งถัดไป และยกเลิก session เดิม */
 export async function resetAdminPassword(userId: string) {
   const temporaryPassword = `${randomToken(12)}Aa!1`; const passwordHash = await hashPassword(temporaryPassword);
-  await db.admin.update({ where: { id: userId }, data: { passwordHash, mustChangePassword: true } }); await revokeUserSessions(userId);
+  const user = await serializable(async tx => { await findLiveAdmin(tx, userId); return tx.admin.update({ where: { id: userId }, data: { passwordHash, mustChangePassword: true } }); });
+  await revokeUserSessions(userId);
+  await clearAdminThrottles(user);
   return temporaryPassword;
 }
 
-/** ล้าง TOTP และ recovery codes เดิม เพื่อบังคับลงทะเบียน 2FA ใหม่ */
 export async function resetAdminTwoFactor(userId: string) {
-  await db.$transaction([db.admin.update({ where: { id: userId }, data: { twoFactorEnabled: false, totpSecretEncrypted: null, totpKeyVersion: null, lastTotpTimeStep: null } }), db.recoveryCode.deleteMany({ where: { adminId: userId } }), db.session.updateMany({ where: { adminId: userId, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: "TWO_FACTOR_RESET" } })]);
+  const user = await serializable(async tx => {
+    await findLiveAdmin(tx, userId);
+    const updated = await tx.admin.update({ where: { id: userId }, data: { twoFactorEnabled: false, totpSecretEncrypted: null, totpKeyVersion: null, lastTotpTimeStep: null } });
+    await tx.recoveryCode.deleteMany({ where: { adminId: userId } });
+    await tx.session.updateMany({ where: { adminId: userId, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: "TWO_FACTOR_RESET" } });
+    return updated;
+  });
+  await clearAdminThrottles(user);
 }
 
-/** ย้ายบัญชีลงถังขยะหลังตรวจว่าไม่ใช่ตนเองและไม่ใช่ Super Admin คนสุดท้าย */
-export async function trashAdmin(userId: string, actorId: string) {
-  if (userId === actorId) throw new Error("SELF_ADMIN_OPERATION");
-  await db.$transaction(async tx => {
-    const target = await tx.admin.findUniqueOrThrow({ where: { id: userId } });
-    if (target.deletedAt) throw new Error("ADMIN_ALREADY_TRASHED");
-    if (target.role === "SUPER_ADMIN" && target.isActive) {
-      const activeSuperAdmins = await tx.admin.count({ where: { role: "SUPER_ADMIN", isActive: true, deletedAt: null } });
-      if (activeSuperAdmins <= 1) throw new Error("LAST_SUPER_ADMIN");
-    }
-    const now = new Date();
-    await tx.admin.update({ where: { id: userId }, data: { isActive: false, deletedAt: now, purgeAt: retentionDate(now) } });
-    await tx.session.updateMany({ where: { adminId: userId, revokedAt: null }, data: { revokedAt: now, revokeReason: "ADMIN_TRASHED" } });
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-}
-
-/** กู้บัญชีจากถังขยะกลับมาแบบปิดใช้งาน เพื่อให้ Super Admin ตรวจสอบก่อนเปิด */
-export async function restoreAdmin(userId: string) {
-  await db.admin.updateMany({ where: { id: userId, deletedAt: { not: null } }, data: { isActive: true, deletedAt: null, purgeAt: null } }).then(result => {
-    if (result.count !== 1) throw new Error("ADMIN_NOT_TRASHED");
+export async function trashAdmin(actorId: string, userId: string) {
+  if (actorId === userId) throw new CmsError("FORBIDDEN", "ไม่สามารถย้ายบัญชีตัวเองไปถังขยะได้");
+  await serializable(async tx => {
+    const target = await findLiveAdmin(tx, userId);
+    await assertSuperAdminRemains(tx, target);
+    await tx.admin.update({ where: { id: userId }, data: { isActive: false, deletedAt: new Date(), purgeAt: retentionDate() } });
+    await tx.session.updateMany({ where: { adminId: userId, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: "ACCOUNT_TRASHED" } });
   });
 }
 
-/** ลบบัญชีถาวรตามสิทธิ์และกฎ retention โดยป้องกัน Super Admin คนสุดท้าย */
-export async function permanentlyDeleteAdmin(userId: string, actorId: string) {
-  if (userId === actorId) throw new Error("SELF_ADMIN_OPERATION");
-  await db.$transaction(async tx => {
-    const target = await tx.admin.findUniqueOrThrow({ where: { id: userId } });
-    if (!target.deletedAt) throw new Error("ADMIN_NOT_TRASHED");
-    await tx.admin.delete({ where: { id: userId } });
-  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+/** Restored accounts come back disabled so a Super Admin must deliberately re-enable access. */
+export async function restoreAdmin(userId: string) {
+  await serializable(async tx => {
+    const target = await tx.admin.findUnique({ where: { id: userId }, select: { deletedAt: true, purgeAt: true } });
+    if (!target?.deletedAt || !target.purgeAt) throw notFound();
+    await tx.admin.update({ where: { id: userId }, data: { deletedAt: null, purgeAt: null, isActive: false } });
+  });
+}
+
+/**
+ * Permanent deletion keeps the row so audit history still points at a stable actor, but removes the
+ * person's name, username and every credential. The account can never sign in again.
+ */
+export async function purgeAdmin(userId: string) {
+  const passwordHash = await hashPassword(randomToken(32));
+  await serializable(async tx => {
+    const target = await tx.admin.findUnique({ where: { id: userId }, select: { deletedAt: true, purgeAt: true } });
+    if (!target?.deletedAt || !target.purgeAt) throw new CmsError("INVALID_TRANSITION", "ต้องย้ายบัญชีไปถังขยะก่อนลบถาวร");
+    await tx.recoveryCode.deleteMany({ where: { adminId: userId } });
+    await tx.session.deleteMany({ where: { adminId: userId } });
+    await tx.admin.update({ where: { id: userId }, data: anonymizedAdminData(userId, passwordHash) });
+  });
 }

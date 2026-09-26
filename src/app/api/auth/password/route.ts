@@ -8,7 +8,7 @@ import { db } from "@/server/db";
 import { audit } from "@/server/auth/audit";
 import { getSessionByToken, revokeUserSessions, rotateSession, SESSION_COOKIE, sessionCookieOptions } from "@/server/auth/session";
 import { passwordSchema } from "@/server/auth/validation";
-import { hashPassword } from "@/server/security/crypto";
+import { hashPassword, verifyPassword } from "@/server/security/crypto";
 import { assertSameOrigin, requestContext } from "@/server/security/request";
 
 /** จุดเริ่มของคำขอ HTTP POST: สร้างข้อมูลหรือสั่งให้เกิดการทำงาน และคืนสถานะที่เหมาะสมให้ผู้เรียก */
@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
   if (!session) return NextResponse.json({ error: "ไม่สามารถเปลี่ยนรหัสผ่านได้" }, { status: 401 });
   if (!session.admin.mustChangePassword) return NextResponse.json({ error: "ไม่สามารถเปลี่ยนรหัสผ่านผ่านขั้นตอนนี้ได้" }, { status: 403 });
   if (!parsed.success) return NextResponse.json({ error: "ข้อมูลไม่ถูกต้อง" }, { status: 400 });
+  // รหัสชั่วคราวมีคนอื่นเห็นแล้ว จึงห้ามตั้งซ้ำเป็นรหัสจริง
+  if (await verifyPassword(session.admin.passwordHash, parsed.data.password)) return NextResponse.json({ error: "รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม", fields: { password: ["รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม"] } }, { status: 400 });
   const passwordHash = await hashPassword(parsed.data.password);
   await db.$transaction([db.admin.update({ where: { id: session.adminId }, data: { passwordHash, mustChangePassword: false } }), db.session.updateMany({ where: { adminId: session.adminId, id: { not: session.id }, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: "PASSWORD_CHANGED" } })]);
   const token = await rotateSession(session.id, "PASSWORD_VERIFIED"); const context = requestContext(request); await audit({ actorId: session.adminId, action: "AUTH_PASSWORD_CHANGED", result: "SUCCESS", ...context });

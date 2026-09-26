@@ -3,7 +3,7 @@
  *
  * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
  */
-import "server-only";
+// ใช้ทั้งในแอปและใน scripts/cleanup-auth.ts จึงห้าม import "server-only" (แพ็กเกจนี้มีเฉพาะใน Next.js)
 import type { PrismaClient } from "@prisma/client";
 
 const DAY_MS = 24 * 60 * 60 * 1000;

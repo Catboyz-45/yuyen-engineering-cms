@@ -3,10 +3,23 @@
  * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
  */
 import "dotenv/config";
-import { db } from "../src/server/db";
+import argon2 from "argon2";
+import { randomBytes } from "node:crypto";
+import { db } from "../src/server/db/client";
+import { anonymizedAdminData } from "../src/server/auth/admin-retention";
 
 async function main() {
   const now = new Date(); let purged = 0;
+  // Administrator rows stay as audit anchors; only their personal data and credentials are removed.
+  const expiredAdmins = await db.admin.findMany({ where: { deletedAt: { not: null }, purgeAt: { lte: now } }, select: { id: true } });
+  for (const admin of expiredAdmins) {
+    const passwordHash = await argon2.hash(randomBytes(32).toString("base64url"), { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 1 });
+    await db.$transaction([
+      db.recoveryCode.deleteMany({ where: { adminId: admin.id } }), db.session.deleteMany({ where: { adminId: admin.id } }),
+      db.admin.update({ where: { id: admin.id }, data: anonymizedAdminData(admin.id, passwordHash) }),
+      db.auditLog.create({ data: { action: "ADMIN_DELETED_PERMANENTLY", targetType: "Admin", targetId: admin.id, result: "SUCCESS", metadata: { source: "retention-job" } } }),
+    ]);
+  }
   await db.$transaction(async tx => {
     const [banners, products, projects, news] = await Promise.all([
       tx.banner.deleteMany({ where: { deletedAt: { not: null }, purgeAt: { lte: now } } }),
@@ -21,10 +34,8 @@ async function main() {
     const types = await tx.productType.deleteMany({ where: { deletedAt: { not: null }, purgeAt: { lte: now }, products: { none: {} } } });
     const categories = await tx.newsCategory.deleteMany({ where: { deletedAt: { not: null }, purgeAt: { lte: now }, news: { none: {} } } });
     purged += brands.count + types.count + categories.count;
-    const admins = await tx.admin.deleteMany({ where: { deletedAt: { not: null }, purgeAt: { lte: now } } });
-    purged += admins.count;
-    await tx.auditLog.create({ data: { action: "RETENTION_PURGE_COMPLETED", targetType: "System", result: "SUCCESS", metadata: { purged } } });
+    await tx.auditLog.create({ data: { action: "RETENTION_PURGE_COMPLETED", targetType: "System", result: "SUCCESS", metadata: { purged, anonymizedAdmins: expiredAdmins.length } } });
   });
-  process.stdout.write(`Purged ${purged} expired records.\n`);
+  process.stdout.write(`Purged ${purged} expired records and anonymized ${expiredAdmins.length} administrator accounts.\n`);
 }
 main().catch(error => { process.stderr.write(`${error instanceof Error ? error.message : "Cleanup failed"}\n`); process.exitCode = 1; }).finally(() => db.$disconnect());

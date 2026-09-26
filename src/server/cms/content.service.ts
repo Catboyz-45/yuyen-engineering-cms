@@ -6,6 +6,7 @@
 import "server-only";
 import { ContentStatus, Prisma, type AdminRole } from "@prisma/client";
 import { db } from "@/server/db";
+import { serializable } from "@/server/db/transaction";
 import { CmsError } from "./errors";
 import { bannerSchema, listQuerySchema, newsSchema, productSchema, projectSchema, serviceSchema, type ContentKind } from "./schemas";
 import { canTransition, newsPublicationDate, retentionDate } from "./rules";
@@ -69,7 +70,7 @@ export class ContentService {
   }
 
   async create(kind: ContentKind, input: unknown, actor: Actor, context: AuditContext) {
-    return db.$transaction(async tx => {
+    return serializable(async tx => {
       let record: { id: string };
       if (kind === "banners") { const data = bannerSchema.parse(input); await assertMedia(tx, [data.imageId]); record = await tx.banner.create({ data: { ...data, publishedAt: publishedAt(data.status) } }); }
       else if (kind === "services") { const data = serviceSchema.parse(input); await assertMedia(tx, [data.coverMediaId]); record = await tx.service.create({ data: { ...data, publishedAt: publishedAt(data.status) } }); }
@@ -77,11 +78,11 @@ export class ContentService {
       else if (kind === "projects") { const data = projectSchema.parse(input); await assertMedia(tx, [data.coverMediaId, ...data.galleryMediaIds]); const { galleryMediaIds, serviceIds, ...values } = data; record = await tx.project.create({ data: { ...values, publishedAt: publishedAt(data.status), gallery: { create: galleryMediaIds.map((mediaId, sortOrder) => ({ mediaId, sortOrder })) }, services: { create: serviceIds.map(serviceId => ({ serviceId })) } } }); }
       else { const data = newsSchema.parse(input); await assertMedia(tx, [data.coverMediaId]); record = await tx.news.create({ data: { ...data, publishedAt: newsPublicationDate(data.publishedAt, data.status) } }); }
       await tx.auditLog.create({ data: auditData(actor, "CONTENT_CREATED", kind, record.id, context) }); return record;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
   }
 
   async update(kind: ContentKind, id: string, input: unknown, actor: Actor, context: AuditContext, expectedUpdatedAt?: string | null) {
-    return db.$transaction(async tx => {
+    return serializable(async tx => {
       const current = await this.findForUpdate(tx, kind, id); if (!current || current.deletedAt) throw new CmsError("NOT_FOUND", "ไม่พบรายการ");
       if (expectedUpdatedAt && current.updatedAt.toISOString() !== expectedUpdatedAt) throw new CmsError("CONFLICT", "ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น กรุณาโหลดหน้าใหม่ก่อนบันทึก");
       let record: { id: string }; let nextSlug: string | undefined; let desiredStatus: ContentStatus;
@@ -94,12 +95,12 @@ export class ContentService {
         const prefix = paths[kind]; if (prefix) await tx.redirect.upsert({ where: { fromPath: `${prefix}/${current.slug}` }, create: { fromPath: `${prefix}/${current.slug}`, toPath: `${prefix}/${nextSlug}`, statusCode: 301 }, update: { toPath: `${prefix}/${nextSlug}`, statusCode: 301, isActive: true } });
       }
       await tx.auditLog.create({ data: auditData(actor, current.status === desiredStatus ? "CONTENT_UPDATED" : `CONTENT_${desiredStatus}`, kind, id, context, { slugChanged: Boolean(current.slug && nextSlug && current.slug !== nextSlug), previousStatus: current.status }) }); return record;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
   }
 
   async transition(kind: ContentKind, id: string, action: "publish" | "unpublish" | "archive" | "trash" | "restore" | "delete", actor: Actor, context: AuditContext) {
     if (action === "delete" && actor.role !== "SUPER_ADMIN") throw new CmsError("FORBIDDEN", "เฉพาะ Super Admin เท่านั้น");
-    return db.$transaction(async tx => {
+    return serializable(async tx => {
       const current = await this.findForUpdate(tx, kind, id); if (!current) throw new CmsError("NOT_FOUND", "ไม่พบรายการ");
       if (action === "delete") { if (!current.deletedAt) throw new CmsError("INVALID_TRANSITION", "ต้องย้ายรายการไปถังขยะก่อน"); await this.remove(tx, kind, id); await tx.auditLog.create({ data: auditData(actor, "CONTENT_DELETED_PERMANENTLY", kind, id, context) }); return { deleted: true }; }
       if (action === "trash") { if (current.deletedAt) throw new CmsError("INVALID_TRANSITION", "รายการอยู่ในถังขยะแล้ว"); await this.softDelete(tx, kind, id); await tx.auditLog.create({ data: auditData(actor, "CONTENT_TRASHED", kind, id, context) }); return { status: current.status }; }
@@ -109,7 +110,7 @@ export class ContentService {
       if (!canTransition(current.status, target)) throw new CmsError("INVALID_TRANSITION", "ไม่อนุญาตให้เปลี่ยนสถานะตามลำดับนี้");
       await this.setStatus(tx, kind, id, target, target === ContentStatus.PUBLISHED ? current.publishedAt ?? new Date() : target === ContentStatus.DRAFT ? null : current.publishedAt);
       await tx.auditLog.create({ data: auditData(actor, `CONTENT_${target}`, kind, id, context) }); return { status: target };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
   }
 
   private findForUpdate(tx: Prisma.TransactionClient, kind: ContentKind, id: string) {

@@ -5,7 +5,7 @@
 import "dotenv/config";
 import { z } from "zod";
 import { cleanupAuthenticationRecords } from "../src/server/auth/cleanup";
-import { db } from "../src/server/db";
+import { db } from "../src/server/db/client";
 
 const envSchema = z.object({
   AUTH_SESSION_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),

@@ -15,25 +15,25 @@ import { setFlashMessage } from "@/lib/client-flash";
 export function RecoveryLogin() {
   const router = useRouter();
   const [value, setValue] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<"invalid" | "locked" | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (submitting) return;
     if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(value.toUpperCase())) {
-      setError(true);
+      setError("invalid");
       return;
     }
     setSubmitting(true);
-    setError(false);
+    setError(null);
     const response = await fetch("/api/auth/recovery", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: value }),
     }).catch(() => null);
     if (!response?.ok) {
-      setError(true);
+      setError(response?.status === 429 ? "locked" : "invalid");
       setSubmitting(false);
       return;
     }
@@ -59,8 +59,8 @@ export function RecoveryLogin() {
         <div className="auth-alert error" role="alert">
           <AlertCircle size={18} />
           <div>
-            <strong>รหัสไม่ถูกต้อง</strong>
-            <p>ตรวจรูปแบบ รหัสอาจถูกใช้แล้ว หรือหมดอายุ</p>
+            <strong>{error === "locked" ? "ลองหลายครั้งเกินไป" : "รหัสไม่ถูกต้อง"}</strong>
+            <p>{error === "locked" ? "ระบบพักการยืนยันชั่วคราว กรุณารอสักครู่แล้วลองใหม่" : "ตรวจรูปแบบ รหัสอาจถูกใช้แล้ว หรือหมดอายุ"}</p>
           </div>
         </div>
       )}
@@ -74,7 +74,7 @@ export function RecoveryLogin() {
             disabled={submitting}
             onChange={(event) => {
               setValue(event.target.value.toUpperCase().slice(0, 14));
-              setError(false);
+              setError(null);
             }}
             placeholder="XXXX-XXXX-XXXX"
             autoComplete="one-time-code"

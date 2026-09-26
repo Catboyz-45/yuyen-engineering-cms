@@ -4,13 +4,15 @@
  * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
  */
 import { z } from "zod";
+import { isHttpsUrl } from "@/lib/links";
 import { safeMapEmbedUrl } from "@/lib/map-embed";
 import { db } from "@/server/db";
 import { CmsError } from "@/server/cms/errors";
 import { assertMedia } from "@/server/cms/content.service";
 import { siteCopySchema } from "./site-copy";
 
-const optionalUrl = z.union([z.literal(""), z.string().url()]).transform((value) => value || null);
+// ลิงก์ที่ผู้เยี่ยมชมกดได้ต้องเป็น https เท่านั้น กัน javascript:, data: และลิงก์ http ที่ไม่เข้ารหัส
+const optionalUrl = z.union([z.literal(""), z.string().trim().max(2000).url().refine(isHttpsUrl, "ลิงก์ต้องขึ้นต้นด้วย https://")]).transform((value) => value || null);
 export const COMPANY_GALLERY_LIMIT = 12;
 
 export const companyInputSchema = z.object({

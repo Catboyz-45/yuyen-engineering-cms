@@ -4,7 +4,7 @@
  * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
  */
 import { createHash, randomUUID } from "node:crypto";
-import { db } from "@/server/db";
+import { db } from "@/server/db/client";
 import { storage } from "@/server/storage/s3";
 import { optimizeImage } from "./images";
 import { assertMalwareFree } from "./malware";

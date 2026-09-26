@@ -281,9 +281,9 @@ suite("CMS database integration workflows", () => {
     const peer = await db.admin.create({ data: { username: peerUsername, usernameNormalized: peerUsername, displayName: "CMS Integration Peer", role: "SUPER_ADMIN", passwordHash: "integration-only-not-a-login-secret", mustChangePassword: false, twoFactorEnabled: true } });
     try {
       const session = await db.session.create({ data: { tokenHash: randomUUID().replaceAll("-", "").padEnd(64, "0"), adminId, twoFactorAt: new Date(), expiresAt: new Date(Date.now() + 60_000) } });
-      await updateAdminSafely(adminId, { role: "EDITOR" });
+      await updateAdminSafely(peer.id, adminId, { role: "EDITOR" });
       expect(await db.session.findUniqueOrThrow({ where: { id: session.id } })).toMatchObject({ revokeReason: "SECURITY_CHANGE" });
-      await updateAdminSafely(adminId, { role: "SUPER_ADMIN" });
+      await updateAdminSafely(peer.id, adminId, { role: "SUPER_ADMIN" });
     } finally {
       await db.admin.delete({ where: { id: peer.id } });
     }

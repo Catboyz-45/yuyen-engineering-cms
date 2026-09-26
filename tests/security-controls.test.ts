@@ -24,12 +24,14 @@ describe("request security", () => {
     expect(isSameOrigin(null, "https://cms.example.com")).toBe(false);
     expect(isSameOrigin("not a url", "https://cms.example.com")).toBe(false);
   });
-  it("delays progressively and locks fully at the configured threshold", () => {
+  it("delays progressively, locks at the threshold and doubles the lock up to eight times", () => {
     const now = Date.parse("2026-09-01T00:00:00Z");
     expect(calculateLockout(1, 5, 15, now)).toBeNull();
     expect(calculateLockout(4, 5, 15, now)?.toISOString()).toBe("2026-09-01T00:00:04.000Z");
     expect(calculateLockout(5, 5, 15, now)?.toISOString()).toBe("2026-09-01T00:15:00.000Z");
-    expect(calculateLockout(8, 5, 15, now)?.toISOString()).toBe("2026-09-01T00:15:00.000Z");
+    expect(calculateLockout(6, 5, 15, now)?.toISOString()).toBe("2026-09-01T00:30:00.000Z");
+    expect(calculateLockout(8, 5, 15, now)?.toISOString()).toBe("2026-09-01T02:00:00.000Z");
+    expect(calculateLockout(20, 5, 15, now)?.toISOString()).toBe("2026-09-01T02:00:00.000Z");
   });
   it("does not expose stack traces through normalized error details", () => {
     const details = errorDetails(new Error("database unavailable"));
