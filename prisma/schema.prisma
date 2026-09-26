@@ -44,6 +44,20 @@ enum MediaFormat {
 }
 
 /// ผลของเหตุการณ์ที่บันทึกเพื่อตรวจสอบย้อนหลัง
+/// ไอคอนที่เลือกได้สำหรับการ์ดบริการ (ชื่อตรงกับ src/lib/service-icons.ts)
+enum ServiceIcon {
+  AIR_VENT
+  SNOWFLAKE
+  DROPLETS
+  WRENCH
+  CLIPBOARD_CHECK
+  BUILDING
+  ZAP
+  FAN
+  THERMOMETER
+  HARD_HAT
+}
+
 enum AuditResult {
   SUCCESS
   FAILURE
@@ -141,6 +155,8 @@ model Service {
   slug           String           @unique @db.VarChar(180)
   title          String           @db.VarChar(180)
   eyebrow        String?          @db.VarChar(80)
+  /// ไอคอนบนการ์ดบริการ ว่างไว้ให้ระบบเลือกจากชื่อบริการ
+  icon           ServiceIcon?
   summary        String           @db.VarChar(500)
   content        String?          @db.Text
   sortOrder      Int              @default(0)
@@ -167,18 +183,22 @@ model Service {
 
 /// ยี่ห้อสินค้า ใช้กรองสินค้าและป้องกันการพิมพ์ชื่อยี่ห้อหลายแบบ
 model Brand {
-  id        String    @id @default(cuid()) @db.VarChar(30)
-  slug      String    @unique @db.VarChar(120)
-  name      String    @unique @db.VarChar(120)
-  sortOrder Int       @default(0)
-  isActive  Boolean   @default(true)
-  deletedAt DateTime? @db.Timestamptz(3)
-  purgeAt   DateTime? @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
-  products  Product[]
+  id          String    @id @default(cuid()) @db.VarChar(30)
+  slug        String    @unique @db.VarChar(120)
+  name        String    @unique @db.VarChar(120)
+  /// โลโก้ในแถบแบรนด์หน้าแรก ไม่มีโลโก้แสดงเป็นชื่อแบรนด์แทน
+  logoMediaId String?   @db.VarChar(30)
+  logoMedia   Media?    @relation("BrandLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  purgeAt     DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  products    Product[]
 
   @@index([isActive, sortOrder])
+  @@index([logoMediaId])
   @@index([deletedAt, purgeAt])
 }
 
@@ -399,6 +419,7 @@ model Media {
   createdAt       DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime       @updatedAt @db.Timestamptz(3)
   companyLogos    Company[]      @relation("CompanyLogo")
+  brandLogos      Brand[]        @relation("BrandLogo")
   companyGallery  CompanyMedia[]
   bannerImages    Banner[]       @relation("BannerImage")
   serviceCovers   Service[]      @relation("ServiceCover")

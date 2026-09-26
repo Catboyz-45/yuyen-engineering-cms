@@ -14,6 +14,9 @@ import { formatThaiDate } from "@/lib/date";
 import { resolvePublicCompany } from "@/lib/company-display";
 import { resolveSiteCopy } from "@/server/services/site-copy";
 import { TypingHeadline } from "@/components/type-text";
+import { CountUp, CountUpFallback } from "@/components/count-up";
+import { BrandStrip } from "@/components/brand-strip";
+import { resolveServiceIcon } from "@/lib/service-icons";
 
 /** SEO ของหน้าแรกมาจากช่อง SEO ในข้อมูลบริษัท ถ้าเว้นว่างใช้ค่าเริ่มต้น */
 export async function generateMetadata() {
@@ -26,11 +29,14 @@ export const dynamic = "force-dynamic";
 /** สร้างส่วนหน้าจอ HomePage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export default async function HomePage() {
   const content = new PublicContentService();
-  const [serviceRecords, productResult, projectRecords, newsResult, banner, companyRecord] = await Promise.all([content.listServices(), content.listProducts({ pageSize: 4 }), content.listProjects({ pageSize: 3 }), content.listNews({ pageSize: 3 }), content.getHomeBanner(), content.getCompany()]);
+  const [serviceRecords, productResult, projectRecords, newsResult, banner, companyRecord, brands] = await Promise.all([content.listServices(), content.listProducts({ pageSize: 4 }), content.listProjects({ pageSize: 3 }), content.listNews({ pageSize: 3 }), content.getHomeBanner(), content.getCompany(), content.listBrandStrip()]);
   const company = resolvePublicCompany(companyRecord);
   const copy = resolveSiteCopy(companyRecord?.siteCopy);
+  const featuredServices = serviceRecords.slice(0, 4);
+  // แสดงรูปปกเมื่อทุกบริการในแถวมีรูป ถ้ามีแค่บางการ์ด การ์ดที่ไม่มีรูปจะดูโล่งผิดกัน
+  const serviceHasPhotos = featuredServices.every(item => item.coverMedia);
+  const services = featuredServices.map(item => ({ slug: item.slug, title: item.title, eyebrow: item.eyebrow ?? "SERVICE", description: item.summary, icon: resolveServiceIcon(item), media: serviceHasPhotos ? item.coverMedia : null }));
   const highlightIcons = [ShieldCheck, Clock3, Headphones];
-  const services = serviceRecords.slice(0, 4).map(item => ({ slug: item.slug, title: item.title, eyebrow: item.eyebrow ?? "SERVICE", description: item.summary, icon: "snowflake" }));
   const products = productResult.items.map(item => ({ slug: item.slug, name: item.name, brand: item.brand.name, type: item.productType.name, btu: item.btuMin && item.btuMax ? `${item.btuMin.toLocaleString()}–${item.btuMax.toLocaleString()} BTU` : "สอบถามขนาด", feature: item.summary, tone: "silver", media: item.coverMedia }));
   const projects = projectRecords.items.map(item => ({ slug: item.slug, title: item.title, category: item.projectType, area: item.area, summary: item.summary, tone: "office", media: item.coverMedia }));
   const news = newsResult.items.map(item => ({ slug: item.slug, title: item.title, category: item.category.name, date: formatThaiDate(item.publishedAt), summary: item.summary, tone: "mint", media: item.coverMedia }));
@@ -46,13 +52,21 @@ export default async function HomePage() {
         </div></div>
       </section>
 
-      {copy.highlights.length > 0 && <div className="container hero-stats">
+      {/* กล่องขาวใต้ภาพ: แสดงตัวเลขเมื่อบริษัทใส่ไว้ ถ้าไม่มีตัวเลขใช้จุดเด่นแทน */}
+      {copy.stats.length > 0 ? <div className="container hero-stats">
+        <CountUpFallback />
+        <dl className="stats-card stats-card-numbers">
+          {copy.stats.map(item => <div className="stat stat-number" key={`${item.value}|${item.label}`}><dt>{item.label}</dt><dd><CountUp value={item.value} suffix={item.suffix} /></dd></div>)}
+        </dl>
+      </div> : copy.highlights.length > 0 && <div className="container hero-stats">
         <div className="stats-card">
-          {copy.highlights.map((item, index) => { const Icon = highlightIcons[index % highlightIcons.length]; return <div className="stat" key={`${item.title}|${item.text}`}><span className="icon-box"><Icon size={22} /></span><div><strong>{item.title}</strong>{item.text && <span>{item.text}</span>}</div></div>; })}
+          {copy.highlights.map((item, index) => { const Icon = highlightIcons[index % highlightIcons.length]; return <div className="stat" key={`${item.title}|${item.text}`}><span className="line-icon"><Icon size={30} strokeWidth={1.5} aria-hidden="true" /></span><div><strong>{item.title}</strong>{item.text && <span>{item.text}</span>}</div></div>; })}
         </div>
       </div>}
 
       <section className="section"><div className="container"><div className="section-head"><div><p className="eyebrow">OUR SERVICES</p><h2 className="heading pre-line">{copy.servicesHeading}</h2></div><SectionLink href="/services">ดูบริการทั้งหมด</SectionLink></div><div className="grid-4">{services.map(item => <ServiceCard key={item.slug} item={item} />)}</div></div></section>
+
+      {brands.length > 0 && <section className="section proof-section"><div className="container"><BrandStrip heading={copy.brandsHeading} brands={brands} /></div></section>}
 
       <section className="section" style={{ background: "var(--cream-100)" }}><div className="container"><div className="section-head"><div><p className="eyebrow">RECOMMENDED PRODUCTS</p><h2 className="heading pre-line">{copy.productsHeading}</h2>{copy.productsText && <p className="lead">{copy.productsText}</p>}</div><SectionLink href="/products">ดูสินค้าทั้งหมด</SectionLink></div><div className="grid-4">{products.map(item => <ProductCard key={item.slug} item={item} />)}</div></div></section>
 

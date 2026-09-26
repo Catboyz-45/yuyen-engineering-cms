@@ -5,6 +5,8 @@
  * ขึ้นบรรทัดใหม่ในหัวข้อได้ด้วยการกด Enter ในช่องกรอก
  */
 export type CopyItem = { title: string; text: string };
+/** ตัวเลขในแถบตัวเลขหน้าแรก เช่น 200 + "+" + "งานติดตั้ง" แสดงเป็น "200+" และนับขึ้นเมื่อเลื่อนมาถึง */
+export type StatItem = { value: number; suffix: string; label: string };
 
 export type SiteCopy = {
   heroBadge: string;
@@ -12,6 +14,8 @@ export type SiteCopy = {
   heroText: string;
   highlights: CopyItem[];
   servicesHeading: string;
+  stats: StatItem[];
+  brandsHeading: string;
   productsHeading: string;
   productsText: string;
   processHeading: string;
@@ -32,6 +36,8 @@ export type SiteCopy = {
 
 export const HIGHLIGHT_LIMIT = 3;
 export const PROCESS_STEP_LIMIT = 6;
+export const STAT_LIMIT = 4;
+export const STAT_LIMITS = { value: 9_999_999, suffix: 8, label: 60 } as const;
 export const COPY_ITEM_LIMITS = { title: 60, text: 200 } as const;
 
 /** ช่องที่เป็นหัวข้อของส่วนต่างๆ ต้องมีข้อความเสมอ ช่องอื่นเว้นว่างเพื่อซ่อนได้ */
@@ -40,6 +46,7 @@ export const siteCopyTextFields = [
   { key: "heroTitle", label: "หัวข้อหน้าแรก (ใช้เมื่อไม่มีแบนเนอร์)", max: 120, required: true, group: "หน้าแรก" },
   { key: "heroText", label: "ข้อความหน้าแรก (ใช้เมื่อไม่มีแบนเนอร์)", max: 300, required: false, group: "หน้าแรก" },
   { key: "servicesHeading", label: "หัวข้อส่วนบริการ", max: 120, required: true, group: "หน้าแรก" },
+  { key: "brandsHeading", label: "หัวข้อแถบแบรนด์ (โลโก้มาจากเมนูยี่ห้อสินค้า เว้นว่างเพื่อไม่แสดงหัวข้อ)", max: 120, required: false, group: "หน้าแรก" },
   { key: "productsHeading", label: "หัวข้อส่วนสินค้า", max: 120, required: true, group: "หน้าแรก" },
   { key: "productsText", label: "คำอธิบายส่วนสินค้า", max: 300, required: false, group: "หน้าแรก" },
   { key: "processHeading", label: "หัวข้อขั้นตอนการทำงาน", max: 120, required: true, group: "หน้าแรก" },
@@ -55,9 +62,28 @@ export const siteCopyTextFields = [
   { key: "newsIntro", label: "คำนำหน้าข่าวสาร", max: 300, required: false, group: "คำนำหน้ารายการ" },
   { key: "contactIntro", label: "คำนำหน้าติดต่อเรา", max: 300, required: false, group: "คำนำหน้ารายการ" },
   { key: "footerTagline", label: "คำโปรยท้ายเว็บ", max: 300, required: false, group: "ท้ายเว็บ" },
-] as const satisfies readonly { key: Exclude<keyof SiteCopy, "highlights" | "processSteps">; label: string; max: number; required: boolean; group: string }[];
+] as const satisfies readonly { key: Exclude<keyof SiteCopy, "highlights" | "processSteps" | "stats">; label: string; max: number; required: boolean; group: string }[];
 
 export type SiteCopyTextKey = (typeof siteCopyTextFields)[number]["key"];
+
+export const SAMPLE_STATS: StatItem[] = [
+  { value: 10, suffix: "+", label: "ปีประสบการณ์ของทีมช่าง" },
+  { value: 200, suffix: "+", label: "งานติดตั้งและซ่อมบำรุง" },
+  { value: 50, suffix: "+", label: "ลูกค้าองค์กรและอาคาร" },
+  { value: 24, suffix: "ชม.", label: "ตอบกลับภายใน" },
+];
+
+/** ตัวเลขพร้อมหน่วย: เครื่องหมายอย่าง + หรือ % ติดกับตัวเลข หน่วยที่เป็นคำ เช่น ชม. เว้นวรรคหนึ่งช่อง */
+export function formatStat(value: number, suffix: string) {
+  const number = value.toLocaleString("en-US");
+  if (!suffix) return number;
+  return /^\p{L}/u.test(suffix) ? `${number} ${suffix}` : `${number}${suffix}`;
+}
+
+/** ยังเป็นตัวเลขตัวอย่างอยู่หรือไม่ ใช้แจ้งเตือนในหลังบ้าน */
+export function isSampleStats(stats: StatItem[]) {
+  return JSON.stringify(stats) === JSON.stringify(SAMPLE_STATS);
+}
 
 export const DEFAULT_SITE_COPY: SiteCopy = {
   heroBadge: "ดูแลโดยทีมช่างผู้มีประสบการณ์",
@@ -69,6 +95,9 @@ export const DEFAULT_SITE_COPY: SiteCopy = {
     { title: "ดูแลต่อเนื่อง", text: "พร้อมให้คำแนะนำหลังส่งมอบ" },
   ],
   servicesHeading: "บริการที่ดูแลได้ครบ\nตั้งแต่ต้นจนจบ",
+  // ตัวเลขตัวอย่างเท่านั้น บริษัทต้องแก้เป็นตัวเลขจริงก่อนเปิดเว็บ (หน้าข้อมูลบริษัทแจ้งเตือนจนกว่าจะแก้)
+  stats: SAMPLE_STATS,
+  brandsHeading: "แบรนด์ที่เราจำหน่ายและดูแล",
   productsHeading: "สินค้าที่คัดสรรเพื่อพื้นที่ของคุณ",
   productsText: "เลือกดูตามยี่ห้อ ประเภท และขนาด BTU พร้อมให้ทีมงานช่วยแนะนำรุ่นที่เหมาะสม",
   processHeading: "ทุกงานเริ่มจากความเข้าใจ\nและจบด้วยความเรียบร้อย",

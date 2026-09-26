@@ -4,11 +4,17 @@
  * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: ข้อความทั้งหมดแสดงเป็นตัวอักษรธรรมดา ไม่รองรับ HTML เพื่อกันการแทรกโค้ด
  */
 import { z } from "zod";
-import { COPY_ITEM_LIMITS, DEFAULT_SITE_COPY, HIGHLIGHT_LIMIT, PROCESS_STEP_LIMIT, siteCopyTextFields, type SiteCopy } from "@/lib/site-copy";
+import { COPY_ITEM_LIMITS, DEFAULT_SITE_COPY, HIGHLIGHT_LIMIT, PROCESS_STEP_LIMIT, STAT_LIMIT, STAT_LIMITS, siteCopyTextFields, type SiteCopy } from "@/lib/site-copy";
 
 const item = z.object({
   title: z.string().trim().min(1).max(COPY_ITEM_LIMITS.title),
   text: z.string().trim().max(COPY_ITEM_LIMITS.text),
+}).strict();
+
+const stat = z.object({
+  value: z.number().int().min(0).max(STAT_LIMITS.value),
+  suffix: z.string().trim().max(STAT_LIMITS.suffix),
+  label: z.string().trim().min(1).max(STAT_LIMITS.label),
 }).strict();
 
 const textShape = Object.fromEntries(siteCopyTextFields.map(field => [
@@ -20,6 +26,7 @@ export const siteCopySchema = z.object({
   ...textShape,
   highlights: z.array(item).max(HIGHLIGHT_LIMIT),
   processSteps: z.array(item).max(PROCESS_STEP_LIMIT),
+  stats: z.array(stat).max(STAT_LIMIT),
 }).strict();
 
 /**

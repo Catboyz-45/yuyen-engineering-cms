@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { ContentService } from "@/server/cms/content.service";
 import { referenceCount } from "@/server/media/references";
+import { publicReference } from "@/server/media/access";
 import { TaxonomyService } from "@/server/cms/taxonomy.service";
 import { createSession, getSessionByToken, revokeUserSessions, rotateSession } from "@/server/auth/session";
 import type { ContentKind } from "@/server/cms/schemas";
@@ -107,6 +108,27 @@ suite("content, taxonomy and session lifecycle", () => {
     expect(await referenceCount(serviceImage.id)).toBe(1);
     await content.update("services", withGallery.id, { slug: `${prefix}-service-gallery`, title: `${prefix} Service gallery`, summary: "x", galleryMediaIds: [], status: "DRAFT" }, actor, context);
     expect(await referenceCount(serviceImage.id)).toBe(0);
+  });
+
+  it("saves a chosen service icon and brand logos that stay in use until removed", async () => {
+    const service = await make("services", { slug: `${prefix}-icon`, title: `${prefix} Icon`, summary: "x", icon: "WRENCH", status: "DRAFT" });
+    expect(await content.get("services", service.id)).toMatchObject({ icon: "WRENCH" });
+
+    const logo = await db.media.create({ data: { kind: "IMAGE", objectKey: `media/${prefix}/brand-logo.webp`, originalName: "logo.png", mimeType: "image/webp", sizeBytes: BigInt(2_048), status: "READY" } });
+    const brand = { name: `${prefix} Brand`, slug: `${prefix}-brand`, sortOrder: 1, isActive: true };
+    const isPublic = async () => Boolean(await db.media.findFirst({ where: { id: logo.id, ...publicReference() }, select: { id: true } }));
+    expect(await isPublic()).toBe(false);
+    await taxonomies.update("brands", brandId, { ...brand, logoMediaId: logo.id }, actor, context);
+    expect(await referenceCount(logo.id)).toBe(1);
+    expect(await isPublic()).toBe(true);
+    // แก้ชื่อโดยไม่ส่งโลโก้มา โลโก้เดิมยังอยู่
+    await taxonomies.update("brands", brandId, brand, actor, context);
+    expect(await db.brand.findUnique({ where: { id: brandId }, select: { logoMediaId: true } })).toEqual({ logoMediaId: logo.id });
+    // หมวดอื่นไม่มีโลโก้ ส่งมาต้องถูกปฏิเสธ
+    await expect(taxonomies.update("product-types", typeId, { name: `${prefix} Type`, slug: `${prefix}-type`, sortOrder: 1, isActive: true, logoMediaId: logo.id }, actor, context)).rejects.toThrow();
+    await taxonomies.update("brands", brandId, { ...brand, logoMediaId: null }, actor, context);
+    expect(await referenceCount(logo.id)).toBe(0);
+    expect(await isPublic()).toBe(false);
   });
 
   it("redirects the old address when a published slug changes", async () => {

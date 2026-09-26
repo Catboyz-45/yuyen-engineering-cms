@@ -26,6 +26,8 @@ import { LoadingLabel } from "../loading-label";
 import { setFlashMessage } from "@/lib/client-flash";
 import { formText } from "@/lib/form-data";
 import { GALLERY_LIMITS } from "@/lib/gallery";
+import { SERVICE_ICONS } from "@/lib/service-icons";
+import { ServiceIcon } from "../service-icon";
 import {
   FieldErrors,
   fieldMessage,
@@ -198,6 +200,7 @@ function ContentEditor({
         slug: string(form, "slug"),
         title: string(form, "title"),
         eyebrow: nullable(form, "eyebrow"),
+        icon: nullable(form, "icon"),
         summary: string(form, "summary"),
         content: nullable(form, "content"),
         sortOrder: Number(string(form, "sortOrder") || 0),
@@ -414,6 +417,7 @@ function ContentEditor({
                       name="eyebrow"
                       defaultValue={value("eyebrow")}
                     />
+                    <IconPicker defaultValue={value("icon")} />
                     <Area
                       label="คำอธิบายสั้น"
                       name="summary"
@@ -929,6 +933,29 @@ function Select({
         </p>
       )}
     </div>
+  );
+}
+/** เลือกไอคอนการ์ดบริการจากรายการที่กำหนด หรือปล่อยให้ระบบเลือกจากชื่อบริการ */
+function IconPicker({ defaultValue }: Readonly<{ defaultValue: string }>) {
+  return (
+    <fieldset className="form-group">
+      <legend>ไอคอนการ์ดบริการ</legend>
+      <p className="help" id="icon-help">แสดงเมื่อบริการบนหน้าเว็บยังมีรูปปกไม่ครบทุกรายการ</p>
+      <div className="icon-picker" aria-describedby="icon-help">
+        <label className="icon-option">
+          <input type="radio" name="icon" value="" defaultChecked={!defaultValue} />
+          <span className="icon-option-auto" aria-hidden="true">อัตโนมัติ</span>
+          <span className="icon-option-label">เลือกจากชื่อบริการ</span>
+        </label>
+        {SERVICE_ICONS.map((item) => (
+          <label className="icon-option" key={item.key}>
+            <input type="radio" name="icon" value={item.key} defaultChecked={defaultValue === item.key} />
+            <ServiceIcon name={item.key} size={26} />
+            <span className="icon-option-label">{item.label}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 function Check({

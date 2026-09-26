@@ -8,7 +8,8 @@ import { Prisma, type AdminRole } from "@prisma/client";
 import { db } from "@/server/db";
 import { serializable } from "@/server/db/transaction";
 import { CmsError } from "./errors";
-import { taxonomySchema, type TaxonomyKind } from "./schemas";
+import { brandSchema, taxonomySchema, type TaxonomyKind } from "./schemas";
+import { assertMedia } from "./content.service";
 import { retentionDate } from "./rules";
 
 type Actor = { id: string; role: AdminRole };
@@ -37,7 +38,15 @@ function audit(
   };
 }
 
-type TaxonomyData = ReturnType<typeof taxonomySchema.parse>;
+type TaxonomyData = ReturnType<typeof taxonomySchema.parse> & { logoMediaId?: string | null };
+
+/** ตรวจข้อมูลตามชนิด ยี่ห้อรับโลโก้ได้ ส่วนหมวดอื่นไม่รับช่องที่ไม่รู้จัก */
+async function parseTaxonomy(tx: Prisma.TransactionClient, kind: TaxonomyKind, input: unknown): Promise<TaxonomyData> {
+  if (kind !== "brands") return taxonomySchema.parse(input);
+  const data = brandSchema.parse(input);
+  await assertMedia(tx, [data.logoMediaId]);
+  return data;
+}
 type TaxonomyState = { deletedAt: Date | null; purgeAt: Date | null; isActive: boolean };
 
 function createTaxonomy(tx: Prisma.TransactionClient, kind: TaxonomyKind, data: TaxonomyData) {
@@ -94,7 +103,7 @@ export class TaxonomyService {
       case "brands":
         return db.brand.findMany({
           where: { deletedAt: null },
-          include: { _count: { select: { products: true } } },
+          include: { _count: { select: { products: true } }, logoMedia: { select: { id: true, originalName: true } } },
           orderBy,
         });
       case "product-types":
@@ -112,16 +121,16 @@ export class TaxonomyService {
     }
   }
   create(kind: TaxonomyKind, input: unknown, actor: Actor, context: Context) {
-    const data = taxonomySchema.parse(input);
     return serializable(async tx => {
+      const data = await parseTaxonomy(tx, kind, input);
       const record = await createTaxonomy(tx, kind, data);
       await tx.auditLog.create({ data: audit(actor, kind, record.id, "TAXONOMY_CREATED", context) });
       return record;
     });
   }
   update(kind: TaxonomyKind, id: string, input: unknown, actor: Actor, context: Context) {
-    const data = taxonomySchema.parse(input);
     return serializable(async tx => {
+      const data = await parseTaxonomy(tx, kind, input);
       const record = await updateTaxonomy(tx, kind, id, data);
       await tx.auditLog.create({ data: audit(actor, kind, id, "TAXONOMY_UPDATED", context) });
       return record;

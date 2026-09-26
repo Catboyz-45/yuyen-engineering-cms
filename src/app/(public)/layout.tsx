@@ -5,6 +5,7 @@
  */
 import type { Metadata } from "next";
 import { PublicShell } from "@/components/site-shell";
+import { RevealOnScroll } from "@/components/reveal-on-scroll";
 import { LocalBusinessStructuredData } from "@/components/structured-data";
 import { PublicContentService } from "@/server/services/public-content.service";
 import { resolvePublicCompany } from "@/lib/company-display";
@@ -28,5 +29,5 @@ export default async function PublicLayout({ children }: Readonly<{ children: Re
   const content = new PublicContentService();
   const [record, services] = await Promise.all([content.getCompany(), content.listServices()]);
   const company = resolvePublicCompany(record);
-  return <><LocalBusinessStructuredData company={company} /><PublicShell company={company} services={services.map(service => ({ title: service.title, slug: service.slug }))} tagline={resolveSiteCopy(record?.siteCopy).footerTagline}>{children}</PublicShell></>;
+  return <><LocalBusinessStructuredData company={company} /><PublicShell company={company} services={services.map(service => ({ title: service.title, slug: service.slug }))} tagline={resolveSiteCopy(record?.siteCopy).footerTagline}>{children}</PublicShell><RevealOnScroll /></>;
 }

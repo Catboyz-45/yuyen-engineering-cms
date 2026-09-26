@@ -642,10 +642,41 @@ output {
   box-shadow: 0 18px 50px rgba(7, 45, 30, 0.14);
 }
 .stat {
-  padding: 25px 30px;
+  padding: 26px 30px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+}
+/* กล่องขาวแบบตัวเลข: ตัวเลขใหญ่อยู่บน คำอธิบายอยู่ล่าง (ใน HTML คำอธิบายมาก่อน โปรแกรมอ่านหน้าจอจึงอ่านว่าตัวเลขนี้คืออะไร) */
+.stats-card-numbers {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0;
+}
+.stat.stat-number {
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.stat-number dt {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.stat-number dd {
+  margin: 0;
+  color: var(--green-900);
+  font-size: clamp(2rem, 3.2vw, 2.7rem);
+  font-weight: 750;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+/* ไอคอนเส้นไม่มีกล่องรอง ใช้กับการ์ดบริการและแถบจุดเด่น */
+.line-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--green-700);
 }
 .stat + .stat {
   border-left: 1px solid var(--line);
@@ -655,7 +686,9 @@ output {
   color: var(--green-900);
   font-size: 1.35rem;
 }
-.stat span {
+.stat strong + span {
+  display: block;
+  margin-top: 4px;
   color: var(--muted);
   font-size: 0.84rem;
 }
@@ -671,14 +704,28 @@ output {
   max-width: 690px;
 }
 .service-card {
-  padding: 28px;
-  min-height: 260px;
   display: flex;
   flex-direction: column;
 }
-.service-card .arrow {
+.service-card .card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 28px;
+}
+.service-card .card-body .muted {
+  margin-bottom: 22px;
+}
+.service-card .line-icon {
+  margin-bottom: 26px;
+}
+.card-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-top: auto;
   color: var(--green-700);
+  font-weight: 750;
 }
 .band {
   background: var(--green-900);
@@ -3043,5 +3090,251 @@ fieldset.form-group {
   .status,
   .tag {
     border: 1px solid currentColor;
+  }
+}
+
+/* ตัวเลือกไอคอนการ์ดบริการในหน้าแก้ไข */
+.icon-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 10px;
+}
+.icon-option {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+  min-height: 96px;
+  padding: 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--green-700);
+  text-align: center;
+  cursor: pointer;
+}
+.icon-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.icon-option:has(input:checked) {
+  border-color: var(--green-700);
+  background: var(--mint-100);
+  box-shadow: inset 0 0 0 1px var(--green-700);
+}
+.icon-option:has(input:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--lime-400) 72%, white);
+  outline-offset: 3px;
+}
+.icon-option-auto {
+  font-weight: 750;
+  font-size: 0.95rem;
+  line-height: 26px;
+}
+.icon-option-label {
+  color: var(--ink);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+/* ===== ตัวเลขและแบรนด์ใต้ส่วนบริการ ===== */
+.proof-section {
+  padding-top: 0;
+  padding-bottom: 72px;
+}
+.proof-section .brand-strip {
+  padding-top: 0;
+}
+.brand-strip {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 20px;
+  padding-top: 40px;
+}
+.brand-strip-heading {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.logo-loop {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.logo-loop-track {
+  display: flex;
+  width: max-content;
+  animation: logo-loop var(--loop-duration, 30s) linear infinite;
+}
+.logo-loop:hover .logo-loop-track,
+.logo-loop[data-paused] .logo-loop-track {
+  animation-play-state: paused;
+}
+.logo-loop-list {
+  display: flex;
+  align-items: center;
+  gap: 64px;
+  margin: 0;
+  padding: 0 32px;
+  list-style: none;
+}
+.logo-loop-list li {
+  display: flex;
+  align-items: center;
+  height: 56px;
+}
+.logo-loop-list img {
+  width: auto;
+  max-width: 160px;
+  height: 40px;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: 0.75;
+  /* โลโก้พื้นขาวกลืนไปกับพื้นหลังครีม ไม่เห็นเป็นกล่องสีขาว */
+  mix-blend-mode: multiply;
+}
+.brand-wordmark {
+  color: var(--green-900);
+  font-size: 1.35rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+@keyframes logo-loop {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.loop-toggle {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: white;
+  color: var(--green-800);
+  cursor: pointer;
+}
+.loop-toggle:hover {
+  border-color: var(--green-700);
+}
+@media (max-width: 680px) {
+  .logo-loop-list {
+    gap: 40px;
+    padding: 0 20px;
+  }
+}
+
+/* ===== การเคลื่อนไหวเบาๆ ของหน้าเว็บ ===== */
+/* การค่อยๆ ปรากฏเมื่อเลื่อนมาถึงอยู่ใน RevealOnScroll (Web Animations API) */
+/* รูปแบนเนอร์หน้าแรกซูมเข้าช้าๆ ครั้งเดียว */
+.hero-media img {
+  transform-origin: 65% 45%;
+  animation: hero-drift 22s ease-out both;
+}
+@keyframes hero-drift {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.06);
+  }
+}
+/* รูปในการ์ดซูมเล็กน้อยเมื่อชี้ บอกว่าการ์ดกดได้ */
+.card-hover .responsive-media img {
+  transition: transform 0.5s ease;
+}
+.card-hover:hover .responsive-media img {
+  transform: scale(1.04);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-media img,
+  .logo-loop-track {
+    animation: none;
+  }
+  .card-hover .responsive-media img {
+    transition: none;
+  }
+  .card-hover:hover .responsive-media img {
+    transform: none;
+  }
+  /* ไม่เลื่อน: แสดงแบรนด์ชุดเดียวเรียงกัน ซ่อนชุดที่ซ้ำและปุ่มหยุด */
+  .logo-loop {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .logo-loop-track {
+    width: auto;
+  }
+  .logo-loop-list {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 12px;
+  }
+  .logo-loop-list:nth-child(2),
+  .logo-loop-list .logo-loop-repeat,
+  .loop-toggle {
+    display: none;
+  }
+}
+
+/* ===== หลังบ้าน: โลโก้ยี่ห้อและตัวเลขหน้าแรก ===== */
+.brand-logo-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.brand-logo-cell img {
+  width: 64px;
+  height: 32px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: white;
+}
+.brand-logo-row td {
+  background: var(--cream-50);
+}
+/* ช่องอัปโหลดโลโก้อยู่กลางแถว */
+.brand-logo-row form {
+  display: grid;
+  gap: 14px;
+  max-width: 560px;
+  margin-inline: auto;
+  padding: 8px 0;
+  text-align: center;
+}
+.brand-logo-row form .cluster {
+  justify-content: center;
+}
+.copy-item.stat-item {
+  grid-template-columns: 30px minmax(0, 0.7fr) minmax(0, 0.8fr) minmax(0, 1.6fr);
+}
+@media (max-width: 700px) {
+  .copy-item.stat-item {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 680px) {
+  .stats-card-numbers {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stats-card-numbers .stat + .stat {
+    border-top: 0;
+    border-left: 0;
+  }
+  .stats-card-numbers .stat:nth-child(even) {
+    border-left: 1px solid var(--line);
+  }
+  .stats-card-numbers .stat:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
   }
 }

@@ -10,6 +10,15 @@ export class TaxonomyRepository {
     return db.brand.findMany({ where: { isActive: true, deletedAt: null }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
   }
 
+  /** แถบแบรนด์หน้าแรก: เลือกเฉพาะชื่อและโลโก้ที่แสดงต่อสาธารณะได้ */
+  listBrandStrip() {
+    return db.brand.findMany({
+      where: { isActive: true, deletedAt: null },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, logoMedia: { select: { id: true, altText: true, width: true, height: true } } },
+    });
+  }
+
   listActiveProductTypes() {
     return db.productType.findMany({ where: { isActive: true, deletedAt: null }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
   }

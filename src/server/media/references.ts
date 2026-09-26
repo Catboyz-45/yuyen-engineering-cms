@@ -7,8 +7,9 @@ import { db } from "@/server/db/client";
 
 /** นับจำนวนตำแหน่งที่อ้างถึง media ก่อนอนุญาตให้ลบ ป้องกันรูปหรือ PDF หายจากเนื้อหา */
 export async function referenceCount(mediaId: string) {
-  const [company, companyGallery, banners, services, serviceGallery, productCovers, productCatalogs, productGallery, projectCovers, projectGallery, news] = await db.$transaction([
+  const [company, brandLogos, companyGallery, banners, services, serviceGallery, productCovers, productCatalogs, productGallery, projectCovers, projectGallery, news] = await db.$transaction([
     db.company.count({ where: { logoMediaId: mediaId } }),
+    db.brand.count({ where: { logoMediaId: mediaId } }),
     db.companyMedia.count({ where: { mediaId } }),
     db.banner.count({ where: { imageId: mediaId } }),
     db.service.count({ where: { coverMediaId: mediaId } }),
@@ -20,5 +21,5 @@ export async function referenceCount(mediaId: string) {
     db.projectMedia.count({ where: { mediaId } }),
     db.news.count({ where: { coverMediaId: mediaId } }),
   ]);
-  return company + companyGallery + banners + services + serviceGallery + productCovers + productCatalogs + productGallery + projectCovers + projectGallery + news;
+  return company + brandLogos + companyGallery + banners + services + serviceGallery + productCovers + productCatalogs + productGallery + projectCovers + projectGallery + news;
 }

@@ -4,12 +4,14 @@
  * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
  */
 "use client";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Check, LoaderCircle, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, ImagePlus, LoaderCircle, Pencil, Plus, Trash2, X } from "lucide-react";
 import { AdminPageHeader } from "../admin-shell";
 import { useUI } from "../ui-feedback";
+import { MediaUploader } from "./editor-ui";
+import { formText } from "@/lib/form-data";
 type Kind = "brands" | "product-types" | "news-categories";
 type Item = {
   id: string;
@@ -18,6 +20,7 @@ type Item = {
   sortOrder: number;
   isActive: boolean;
   _count: { products?: number; news?: number };
+  logoMedia?: { id: string; originalName: string | null } | null;
 };
 const tabs = [
   ["/admin/taxonomies/news-categories", "หมวดหมู่ข่าว"],
@@ -52,6 +55,8 @@ export function TaxonomyManager({
   const [slug, setSlug] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [logoFor, setLogoFor] = useState<string | null>(null);
+  const brands = kind === "brands";
   const [error, setError] = useState("");
   const [pending, setPending] = useState<string | null>(null);
   const { confirm, toast } = useUI();
@@ -120,6 +125,31 @@ export function TaxonomyManager({
       setEditing(null);
       await load();
       toast("บันทึกแล้ว");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "บันทึกไม่สำเร็จ");
+    } finally {
+      setPending(null);
+    }
+  }
+  /** บันทึกโลโก้ยี่ห้อ (ไม่เลือกไฟล์ = เอาโลโก้ออก แถบแบรนด์จะแสดงชื่อแทน) */
+  async function saveLogo(event: FormEvent<HTMLFormElement>, item: Item) {
+    event.preventDefault();
+    if (pending) return;
+    setPending(item.id);
+    try {
+      await request(`/api/admin/taxonomies/${kind}/${item.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: item.name,
+          slug: item.slug,
+          sortOrder: item.sortOrder,
+          isActive: item.isActive,
+          logoMediaId: formText(new FormData(event.currentTarget), "logoMediaId") || null,
+        }),
+      });
+      setLogoFor(null);
+      await load();
+      toast("บันทึกโลโก้แล้ว");
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "บันทึกไม่สำเร็จ");
     } finally {
@@ -224,6 +254,7 @@ export function TaxonomyManager({
               <thead>
                 <tr>
                   <th>ชื่อ</th>
+                  {brands && <th>โลโก้</th>}
                   <th>ลิงก์ (slug)</th>
                   <th>ใช้งาน</th>
                   <th aria-label="การทำงาน" />
@@ -233,7 +264,8 @@ export function TaxonomyManager({
                 {items.map((item) => {
                   const count = item._count.products ?? item._count.news ?? 0;
                   return (
-                    <tr key={item.id}>
+                    <Fragment key={item.id}>
+                    <tr>
                       <td>
                         {editing === item.id ? (
                           <input
@@ -248,6 +280,28 @@ export function TaxonomyManager({
                           <strong>{item.name}</strong>
                         )}
                       </td>
+                      {brands && (
+                        <td>
+                          <div className="brand-logo-cell">
+                            {item.logoMedia ? (
+                              // eslint-disable-next-line @next/next/no-img-element -- รูปย่อจาก API สื่อหลังบ้าน ขนาดคงที่
+                              <img src={`/api/media/${item.logoMedia.id}?width=160`} alt="" width={64} height={32} />
+                            ) : (
+                              <span className="muted">ใช้ชื่อแทน</span>
+                            )}
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              disabled={pending !== null}
+                              aria-expanded={logoFor === item.id}
+                              aria-label={`${item.logoMedia ? "เปลี่ยน" : "เพิ่ม"}โลโก้ ${item.name}`}
+                              onClick={() => setLogoFor(logoFor === item.id ? null : item.id)}
+                            >
+                              <ImagePlus size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                       <td>{item.slug}</td>
                       <td>{count} รายการ</td>
                       <td>
@@ -311,6 +365,29 @@ export function TaxonomyManager({
                         </div>
                       </td>
                     </tr>
+                    {logoFor === item.id && (
+                      <tr className="brand-logo-row">
+                        <td colSpan={5}>
+                          <form onSubmit={(event) => saveLogo(event, item)} aria-busy={pending === item.id}>
+                            <MediaUploader
+                              name="logoMediaId"
+                              title={`โลโก้ ${item.name}`}
+                              multiple={false}
+                              describe={false}
+                              initial={item.logoMedia ? [{ id: item.logoMedia.id, name: item.logoMedia.originalName ?? "ไฟล์เดิม", preview: `/api/media/${item.logoMedia.id}?width=640` }] : []}
+                            />
+                            <p className="help">แสดงในแถบแบรนด์หน้าแรกคู่กับชื่อยี่ห้อ ใช้ไฟล์พื้นหลังโปร่งใสหรือพื้นขาว ลบรูปออกแล้วบันทึกเพื่อกลับไปแสดงชื่อแทน</p>
+                            <div className="cluster">
+                              <button type="submit" className="btn btn-dark" disabled={pending !== null}>
+                                {pending === item.id ? <><LoaderCircle className="spin" size={17} /> กำลังบันทึก…</> : <><Check size={17} /> บันทึกโลโก้</>}
+                              </button>
+                              <button type="button" className="btn btn-ghost" disabled={pending !== null} onClick={() => setLogoFor(null)}>ยกเลิก</button>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   );
                 })}
               </tbody>

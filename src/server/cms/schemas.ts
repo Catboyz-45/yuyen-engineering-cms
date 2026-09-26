@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { GALLERY_LIMITS } from "@/lib/gallery";
 import { isSafeHref } from "@/lib/links";
+import { SERVICE_ICON_KEYS } from "@/lib/service-icons";
 
 export const contentKinds = ["banners", "services", "products", "projects", "news"] as const;
 /** กฎตรวจชื่อประเภทเนื้อหา ป้องกันผู้เรียกส่งชื่อตารางอื่นนอกเหนือจากรายการที่อนุญาต */
@@ -25,7 +26,7 @@ export const bannerSchema = z.object({
 }).strict();
 
 export const serviceSchema = z.object({
-  slug, title: z.string().trim().min(1).max(180), eyebrow: nullableText(80), summary: z.string().trim().min(1).max(500),
+  slug, title: z.string().trim().min(1).max(180), eyebrow: nullableText(80), icon: z.enum(SERVICE_ICON_KEYS).nullable().default(null), summary: z.string().trim().min(1).max(500),
   content: nullableText(50_000), sortOrder: z.coerce.number().int().min(0).max(100_000).default(0), isFeatured: z.boolean().default(false),
   isSearchable: z.boolean().default(true), seoTitle: nullableText(60), seoDescription: nullableText(160), coverMediaId: nullableId,
   galleryMediaIds: z.array(z.string().min(1).max(30)).max(GALLERY_LIMITS.service, `รูปในแกลเลอรีบริการใส่ได้ไม่เกิน ${GALLERY_LIMITS.service} รูป`).default([]), ...common,
@@ -69,3 +70,5 @@ export const taxonomyKinds = ["brands", "product-types", "news-categories"] as c
 export const taxonomyKindSchema = z.enum(taxonomyKinds);
 export type TaxonomyKind = z.infer<typeof taxonomyKindSchema>;
 export const taxonomySchema = z.object({ name: z.string().trim().min(1).max(120), slug: slug.max(120), sortOrder: z.coerce.number().int().min(0).max(100_000).default(0), isActive: z.boolean().default(true) }).strict();
+/** ยี่ห้อสินค้ามีโลโก้เพิ่ม ไม่ส่งช่องนี้มา = คงโลโก้เดิม, ส่ง null = เอาโลโก้ออก */
+export const brandSchema = taxonomySchema.extend({ logoMediaId: z.union([z.string().trim().min(1).max(30), z.null()]).optional() }).strict();

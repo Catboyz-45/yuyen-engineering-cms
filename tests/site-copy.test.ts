@@ -3,7 +3,7 @@
  * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
  */
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SITE_COPY } from "@/lib/site-copy";
+import { DEFAULT_SITE_COPY, formatStat, isSampleStats, SAMPLE_STATS } from "@/lib/site-copy";
 import { resolveSiteCopy, siteCopySchema } from "@/server/services/site-copy";
 import { readSiteCopy } from "@/components/admin/site-copy-fields";
 
@@ -44,5 +44,35 @@ describe("editable site copy", () => {
     expect("copy" in read && read.copy).toMatchObject({ heroTitle: "หัวข้อใหม่", heroBadge: "", highlights: [{ title: "มาตรฐาน", text: "ใส่ใจ" }], processSteps: [{ title: "ส่งมอบ", text: "" }] });
     form.set("copy.highlights.1.text", "มีแต่คำอธิบาย");
     expect(readSiteCopy(form)).toEqual({ error: "จุดเด่นที่ 2 ต้องมีหัวข้อ" });
+  });
+
+  it("keeps home-page stats editable, validated and flagged while they are still samples", () => {
+    expect(isSampleStats(DEFAULT_SITE_COPY.stats)).toBe(true);
+    expect(resolveSiteCopy({ heroTitle: "x" }).stats).toEqual(SAMPLE_STATS);
+    expect(resolveSiteCopy({ ...DEFAULT_SITE_COPY, stats: [] }).stats).toEqual([]);
+    expect(siteCopySchema.safeParse({ ...DEFAULT_SITE_COPY, stats: [{ value: -1, suffix: "", label: "x" }] }).success).toBe(false);
+    expect(siteCopySchema.safeParse({ ...DEFAULT_SITE_COPY, stats: [{ value: 1.5, suffix: "", label: "x" }] }).success).toBe(false);
+    expect(siteCopySchema.safeParse({ ...DEFAULT_SITE_COPY, stats: Array.from({ length: 5 }, () => ({ value: 1, suffix: "", label: "x" })) }).success).toBe(false);
+
+    const form = new FormData();
+    form.set("copy.stats.0.value", "1,200");
+    form.set("copy.stats.0.suffix", "+");
+    form.set("copy.stats.0.label", "งานติดตั้ง");
+    const read = readSiteCopy(form);
+    expect("copy" in read && read.copy.stats).toEqual([{ value: 1200, suffix: "+", label: "งานติดตั้ง" }]);
+    expect(isSampleStats("copy" in read ? read.copy.stats : [])).toBe(false);
+    form.set("copy.stats.1.value", "12.5");
+    form.set("copy.stats.1.label", "ปี");
+    expect(readSiteCopy(form)).toMatchObject({ error: expect.stringContaining("ตัวเลขที่ 2") });
+    form.set("copy.stats.1.value", "12");
+    form.set("copy.stats.1.label", "");
+    expect(readSiteCopy(form)).toEqual({ error: "ตัวเลขที่ 2 ต้องมีคำอธิบาย" });
+  });
+
+  it("formats stats with symbols attached and word units spaced", () => {
+    expect(formatStat(1200, "+")).toBe("1,200+");
+    expect(formatStat(98, "%")).toBe("98%");
+    expect(formatStat(24, "ชม.")).toBe("24 ชม.");
+    expect(formatStat(5, "")).toBe("5");
   });
 });

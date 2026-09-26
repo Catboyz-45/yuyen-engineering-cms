@@ -159,6 +159,13 @@ export class PublicContentService {
     )();
   }
 
+  listBrandStrip() {
+    return unstable_cache(() => this.taxonomies.listBrandStrip(), ["public-brand-strip"], {
+      tags: ["public-content", "taxonomies"],
+      revalidate: 3600,
+    })();
+  }
+
   getNewsCategories() {
     return unstable_cache(() => this.taxonomies.listActiveNewsCategories(), ["public-news-categories"], {
       tags: ["public-content", "taxonomies"],
