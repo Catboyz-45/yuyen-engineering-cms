@@ -37,12 +37,12 @@ export default async function HomePage() {
     <>
       <section className="hero">
         {banner?.image && <ResponsiveMedia media={banner.image} className="hero-media" priority />}
-        <div className="container hero-content">
+        <div className="container"><div className="hero-content">
           {copy.heroBadge && <span className="hero-badge"><BadgeCheck size={16} /> {copy.heroBadge}</span>}
           <h1 className="display pre-line">{banner?.title ?? copy.heroTitle}</h1>
           {(banner?.description ?? copy.heroText) && <p className="lead">{banner?.description ?? copy.heroText}</p>}
-          <div className="cluster" style={{ marginTop: 32 }}><Link className="btn btn-primary" href="/services">ดูบริการของเรา <ArrowRight size={18} /></Link><Link className="btn btn-outline" style={{ borderColor: "rgba(255,255,255,.4)", color: "white" }} href="/contact"><Phone size={17} /> ติดต่อสอบถาม</Link></div>
-        </div>
+          <div className="cluster" style={{ marginTop: 32 }}><HeroButton label={banner?.buttonLabel} href={banner?.buttonUrl} /><Link className="btn btn-outline" style={{ borderColor: "rgba(255,255,255,.4)", color: "white" }} href="/contact"><Phone size={17} /> ติดต่อสอบถาม</Link></div>
+        </div></div>
       </section>
 
       {copy.highlights.length > 0 && <div className="container hero-stats">
@@ -64,4 +64,13 @@ export default async function HomePage() {
       <section className="section"><div className="container"><div className="cta"><div><p className="eyebrow" style={{ color: "var(--lime-400)" }}>LET&apos;S TALK</p><h2 className="heading pre-line">{copy.ctaTitle}</h2>{copy.ctaText && <p style={{ color: "rgba(255,255,255,.7)" }}>{copy.ctaText}</p>}</div><div className="cluster cta-actions">{company.phoneHref && <a className="btn btn-white" href={`tel:${company.phoneHref}`}><Phone size={18} /> โทรหาเรา</a>}<Link className="btn btn-primary" href="/contact"><MapPin size={18} /> ช่องทางติดต่อ</Link></div></div></div></section>
     </>
   );
+}
+
+/** ปุ่มหลักใช้ข้อความและลิงก์ที่กรอกในแบนเนอร์ (ตรวจแล้วว่าเป็น / หรือ https:// ตอนบันทึก) ถ้ากรอกไม่ครบใช้ปุ่มดูบริการ */
+function HeroButton({ label, href }: Readonly<{ label?: string | null; href?: string | null }>) {
+  const text = label?.trim();
+  const target = href?.trim();
+  if (!text || !target) return <Link className="btn btn-primary" href="/services">ดูบริการของเรา <ArrowRight size={18} /></Link>;
+  if (target.startsWith("/")) return <Link className="btn btn-primary" href={target}>{text} <ArrowRight size={18} /></Link>;
+  return <a className="btn btn-primary" href={target} rel="noopener">{text} <ArrowRight size={18} /></a>;
 }
