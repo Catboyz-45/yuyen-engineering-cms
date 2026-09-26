@@ -13,15 +13,17 @@ const slug = `scheduled-${randomUUID().slice(0, 8)}`;
 const username = `scheduled-news-${randomUUID().slice(0, 8)}`;
 let id = "";
 let adminId = "";
+let categoryId = "";
 
 suite("scheduled news", () => {
   beforeAll(async () => {
-    // ชุดนี้สร้างผู้ดูแลของตัวเอง ไม่พึ่งข้อมูลที่ชุดอื่นหรือ seed สร้างไว้
+    // ชุดนี้สร้างผู้ดูแลและหมวดข่าวของตัวเอง ไม่พึ่งข้อมูลที่ชุดอื่นหรือ seed สร้างไว้ (CI ไม่ได้ seed ก่อนรัน)
     const [admin, category] = await Promise.all([
       db.admin.create({ data: { username, usernameNormalized: username, displayName: "Scheduled News Test", role: "SUPER_ADMIN", passwordHash: "integration-only-not-a-login-secret", mustChangePassword: false, twoFactorEnabled: true }, select: { id: true } }),
-      db.newsCategory.findFirstOrThrow({ where: { isActive: true, deletedAt: null }, select: { id: true } }),
+      db.newsCategory.create({ data: { name: `${slug} Category`, slug: `${slug}-category` }, select: { id: true } }),
     ]);
     adminId = admin.id;
+    categoryId = category.id;
     const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
     const record = await new ContentService().create("news", { slug, title: "ข่าวกำหนดเวลา (ทดสอบ)", summary: "ข้อมูลทดสอบ", categoryId: category.id, status: "DRAFT", publishedAt: scheduledAt }, { id: admin.id, role: "SUPER_ADMIN" }, {});
     id = record.id;
@@ -36,6 +38,7 @@ suite("scheduled news", () => {
       await db.auditLog.deleteMany({ where: { actorId: adminId } });
       await db.admin.deleteMany({ where: { id: adminId } });
     }
+    if (categoryId) await db.newsCategory.deleteMany({ where: { id: categoryId } });
     await db.$disconnect();
   });
 
