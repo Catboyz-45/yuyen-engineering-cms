@@ -285,7 +285,6 @@ output {
   position: absolute;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.7);
-  filter: blur(1px);
 }
 .media::before {
   width: 66%;
@@ -898,6 +897,40 @@ select.filter-select {
   color: var(--muted);
   font-size: 0.84rem;
   margin-bottom: 24px;
+}
+/* หน้ารายละเอียด: ปุ่มย้อนกลับมุมซ้ายบนเป็นลำดับแรกของเส้นทาง ชื่อยาวขึ้นบรรทัดใหม่ได้ */
+.detail-nav {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+.back-link {
+  min-height: 36px;
+  padding: 6px 14px 6px 10px;
+  border: 1px solid var(--line, #d7e0da);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--green-950);
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.6);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.back-link:hover {
+  border-color: var(--green-700);
+  background: white;
+}
+.back-link svg {
+  transition: transform 0.18s ease;
+}
+.back-link:hover svg {
+  transform: translateX(-3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .back-link,
+  .back-link svg {
+    transition: none;
+  }
 }
 
 .footer {
@@ -1945,15 +1978,18 @@ a.metric-card:hover {
   overflow: hidden;
   color: white;
 }
-.auth-showcase::after {
-  content: "";
+/* ตัว S กับ Y จากโลโก้ ล้นขอบขวาล่างเป็นลายจางๆ แทนวงแหวนเดิม */
+.auth-monogram {
   position: absolute;
-  width: 65%;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  right: -20%;
-  bottom: -28%;
-  border: 80px solid rgba(134, 214, 62, 0.07);
+  right: -5%;
+  bottom: -12%;
+  height: 80%;
+  color: rgba(134, 214, 62, 0.08);
+  pointer-events: none;
+}
+.auth-mobile-brand {
+  display: none;
+  margin-bottom: 36px;
 }
 .auth-showcase .display {
   color: white;
@@ -2488,6 +2524,116 @@ fieldset.form-group {
   min-height: 470px;
   border-radius: 24px;
 }
+/* แกลเลอรีรูปสินค้า: รางรูปเลื่อนในกรอบ ปุ่มลูกศรลอยบนรูป รูปย่อด้านล่าง */
+.product-gallery {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.gallery-viewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 24px;
+  background: linear-gradient(140deg, #eff1ef, #cbd2cf);
+  touch-action: pan-y;
+}
+.gallery-viewport:focus-visible {
+  outline: 3px solid var(--green-700);
+  outline-offset: 3px;
+}
+.gallery-track {
+  display: flex;
+  cursor: grab;
+}
+.gallery-track:active {
+  cursor: grabbing;
+}
+.gallery-slide {
+  flex: 0 0 100%;
+  aspect-ratio: 4 / 3;
+}
+.gallery-slide .responsive-media {
+  height: 100%;
+}
+.gallery-slide img {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--green-950);
+  box-shadow: 0 6px 18px rgba(7, 45, 30, 0.16);
+  transform: translateY(-50%);
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+.gallery-arrow:hover {
+  background: white;
+  transform: translateY(-50%) scale(1.06);
+}
+.gallery-arrow.prev {
+  left: 14px;
+}
+.gallery-arrow.next {
+  right: 14px;
+}
+.gallery-counter {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(7, 45, 30, 0.72);
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.gallery-thumbs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 3px;
+}
+.gallery-thumb {
+  flex: 0 0 auto;
+  width: 84px;
+  height: 63px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #e5ece8;
+  opacity: 0.62;
+  cursor: pointer;
+  transition: opacity 0.18s ease, border-color 0.18s ease;
+}
+.gallery-thumb:hover,
+.gallery-thumb[aria-current="true"] {
+  opacity: 1;
+}
+.gallery-thumb[aria-current="true"] {
+  border-color: var(--green-700);
+}
+.gallery-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gallery-arrow,
+  .gallery-thumb {
+    transition: none;
+  }
+}
 .media-thumb button {
   position: absolute;
   right: 6px;
@@ -2711,6 +2857,9 @@ fieldset.form-group {
   }
   .auth-showcase {
     display: none;
+  }
+  .auth-mobile-brand {
+    display: block;
   }
   .auth-form-wrap {
     min-height: 100vh;
