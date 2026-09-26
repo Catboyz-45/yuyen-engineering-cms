@@ -1,3 +1,7 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชุดทดสอบ cms-auth.e2e.spec ยืนยันว่าล็อกอินไม่เปิดเผยว่าชื่อผู้ใช้มีอยู่หรือไม่
+ * การล็อกอินครั้งแรกด้วยบัญชีเริ่มต้นทดสอบใน cms-workflows.e2e.spec เพราะรหัสผ่านชั่วคราวใช้ได้ครั้งเดียว
+ */
 import { expect, test } from "@playwright/test";
 
 test("login rejects invalid credentials without account enumeration", async ({ request }) => {

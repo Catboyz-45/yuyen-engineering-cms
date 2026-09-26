@@ -1,8 +1,13 @@
-import { AdminPageHeader } from "@/components/admin-shell";
-import { ChangePasswordForm } from "@/components/change-password-form";
+/**
+ * หน้าที่ของไฟล์นี้: หน้าเว็บเส้นทาง /admin/account; เตรียมข้อมูลที่จำเป็นแล้วประกอบส่วนติดต่อผู้ใช้ที่ผู้เยี่ยมชมหรือผู้ดูแลเห็น
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
+import { AccountSettings } from "@/components/account-settings";
 import { requireAdmin } from "@/server/auth/session";
 
+/** สร้างส่วนหน้าจอ AccountPage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export default async function AccountPage() {
   const session = await requireAdmin();
-  return <><AdminPageHeader title="บัญชีของฉัน" description={`${session.admin.displayName} · ${session.admin.username} · ${session.admin.role === "SUPER_ADMIN" ? "Super Admin" : "Editor"}`} /><section className="panel" style={{ maxWidth: 560 }}><div className="panel-header"><h2>เปลี่ยนรหัสผ่าน</h2></div><div className="card-body"><ChangePasswordForm mode="self" /></div></section></>;
+  return <AccountSettings initialUser={{ displayName: session.admin.displayName, username: session.admin.username, role: session.admin.role, twoFactorEnabled: session.admin.twoFactorEnabled }} />;
 }

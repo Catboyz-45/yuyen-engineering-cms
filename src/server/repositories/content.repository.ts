@@ -1,8 +1,22 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชั้น repository content.repository เป็นจุดอ่านและเขียนฐานข้อมูลของโดเมนนี้ เพื่อไม่ให้ UI ติดต่อฐานข้อมูลโดยตรง
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import { ContentStatus, type Prisma } from "@prisma/client";
 import { db } from "@/server/db/client";
 import { parsePagination, toOffset, toPage, type Page, type PaginationInput } from "@/server/db/pagination";
 
 const publicMediaSelect = { id: true, objectKey: true, altText: true, width: true, height: true } satisfies Prisma.MediaSelect;
+
+/** บริการที่ผูกกับผลงาน เฉพาะที่เผยแพร่อยู่ ลิงก์จากหน้าผลงานจึงไม่พาไปหน้าร่างหรือถังขยะ */
+function liveRelatedServices() {
+  return {
+    where: { service: { status: ContentStatus.PUBLISHED, deletedAt: null, publishedAt: { lte: new Date() } } },
+    orderBy: { service: { sortOrder: "asc" } },
+    select: { service: { select: { slug: true, title: true } } },
+  } satisfies Prisma.Project$servicesArgs;
+}
 
 export class ServiceRepository {
   listPublished() {
@@ -16,7 +30,7 @@ export class ServiceRepository {
   findPublishedBySlug(slug: string) {
     return db.service.findFirst({
       where: { slug, status: ContentStatus.PUBLISHED, deletedAt: null, publishedAt: { lte: new Date() } },
-      include: { coverMedia: { select: publicMediaSelect } },
+      include: { coverMedia: { select: publicMediaSelect }, gallery: { orderBy: { sortOrder: "asc" }, include: { media: { select: publicMediaSelect } } } },
     });
   }
 }
@@ -77,7 +91,7 @@ export class ProjectRepository {
       ...(input.projectType ? { projectType: input.projectType } : {}),
     };
     const [items, total] = await db.$transaction([
-      db.project.findMany({ where, skip: toOffset(pagination), take: pagination.pageSize, orderBy: [{ isFeatured: "desc" }, { completedAt: "desc" }], include: { coverMedia: { select: publicMediaSelect }, services: { include: { service: true } } } }),
+      db.project.findMany({ where, skip: toOffset(pagination), take: pagination.pageSize, orderBy: [{ isFeatured: "desc" }, { completedAt: "desc" }], include: { coverMedia: { select: publicMediaSelect }, services: liveRelatedServices() } }),
       db.project.count({ where }),
     ]);
     return toPage(items, total, pagination);
@@ -86,7 +100,7 @@ export class ProjectRepository {
   findPublishedBySlug(slug: string) {
     return db.project.findFirst({
       where: { slug, status: ContentStatus.PUBLISHED, deletedAt: null, publishedAt: { lte: new Date() } },
-      include: { coverMedia: { select: publicMediaSelect }, gallery: { orderBy: { sortOrder: "asc" }, include: { media: { select: publicMediaSelect } } }, services: { include: { service: true } } },
+      include: { coverMedia: { select: publicMediaSelect }, gallery: { orderBy: { sortOrder: "asc" }, include: { media: { select: publicMediaSelect } } }, services: liveRelatedServices() },
     });
   }
 }

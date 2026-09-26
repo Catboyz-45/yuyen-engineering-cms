@@ -1,13 +1,24 @@
+/**
+ * หน้าที่ของไฟล์นี้: คอมโพเนนต์ React admin-accounts ซึ่งรวมหน้าตาและพฤติกรรมที่นำกลับมาใช้ซ้ำในหน้าเว็บ
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Edit3, KeyRound, MoreHorizontal, RotateCcw, ShieldCheck, ShieldOff, Trash2, UserPlus, X } from "lucide-react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { CheckCircle2, Edit3, KeyRound, ShieldCheck, ShieldOff, UserPlus, X } from "lucide-react";
 import { AdminPageHeader } from "./admin-shell";
+import { ThemeSelect } from "./theme-select";
+import { AccountActionsMenu } from "./admin/account-actions-menu";
+import { useModalAccessibility } from "@/hooks/use-modal-accessibility";
+import { formText } from "@/lib/form-data";
 
 type Role = "SUPER_ADMIN" | "EDITOR";
-type AdminUser = { id: string; displayName: string; username: string; role: Role; isActive: boolean; twoFactorEnabled: boolean; deletedAt: string | null; purgeAt: string | null };
+type AdminUser = { id: string; displayName: string; username: string; role: Role; isActive: boolean; twoFactorEnabled: boolean; deletedAt?: string | null };
+// บัญชีในถังขยะจัดการที่หน้าถังขยะ ตารางนี้แสดงเฉพาะบัญชีที่ใช้งานได้
 type UsersResponse = { users: AdminUser[]; currentUserId: string };
-type DialogState = { type: "create" | "edit" | "password" | "twoFactor" | "disable" | "trash" | "restore" | "purge"; user?: AdminUser } | null;
+const liveUsers = (result: UsersResponse) => result.users.filter(user => !user.deletedAt);
+type DialogState = { type: "create" | "edit" | "resetPassword" | "twoFactor" | "disable" | "trash"; user?: AdminUser } | null;
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, headers: { "Content-Type": "application/json", ...init?.headers } });
@@ -16,97 +27,228 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return body;
 }
 
+type DialogType = NonNullable<DialogState>["type"];
+type ActionResult = { message: string; temporaryPassword?: string };
+
+const roleLabels: Record<Role, string> = { SUPER_ADMIN: "Super Admin", EDITOR: "Editor" };
+const hintStyle = { fontSize: ".73rem" };
+const noteStyle = { fontSize: ".68rem" };
+
+const errorMessage = (value: unknown, fallback: string) => (value instanceof Error ? value.message : fallback);
+
+function dialogTitle(dialog: NonNullable<DialogState>) {
+  switch (dialog.type) {
+    case "create":
+      return "เพิ่มผู้ดูแล";
+    case "edit":
+      return "แก้ไขผู้ดูแล";
+    case "resetPassword":
+      return "รีเซ็ตรหัสผ่าน";
+    case "twoFactor":
+      return "รีเซ็ต 2FA";
+    case "trash":
+      return "ย้ายบัญชีลงถังขยะ";
+    default:
+      return dialog.user?.isActive ? "ปิดใช้งานบัญชี" : "เปิดใช้งานบัญชี";
+  }
+}
+
+function confirmMessage(dialog: NonNullable<DialogState>) {
+  const name = dialog.user?.displayName;
+  switch (dialog.type) {
+    case "resetPassword":
+      return `ระบบจะสร้างรหัสผ่านชั่วคราวให้ ${name} บังคับเปลี่ยนรหัสผ่านครั้งถัดไป และยกเลิก session เดิมทั้งหมด`;
+    case "twoFactor":
+      return `TOTP secret และ Recovery Codes เดิมของ ${name} จะใช้ไม่ได้ และต้องตั้งค่าใหม่เมื่อเข้าสู่ระบบ`;
+    case "trash":
+      return `บัญชี ${name} จะเข้าสู่ถังขยะเป็นเวลา 30 วัน ถูกปิดใช้งาน และ session ทั้งหมดจะถูกยกเลิก`;
+    default:
+      return `ยืนยันการเปลี่ยนสถานะบัญชี ${name}`;
+  }
+}
+
+/** เหตุผลที่ล็อกบทบาทหรือสถานะของบัญชี ใช้ทั้งในตารางและในฟอร์ม */
+function lockReason(isSelf: boolean, isLastSuperAdmin: boolean, inForm: boolean) {
+  if (isSelf) return inForm ? "เปลี่ยนบทบาทของบัญชีตัวเองไม่ได้ ให้ Super Admin คนอื่นเปลี่ยนให้" : "บัญชีของคุณ";
+  if (isLastSuperAdmin) return inForm ? "เพิ่ม Super Admin อีกคนก่อนจึงจะลดสิทธิ์บัญชีนี้ได้" : "Super Admin คนสุดท้าย";
+  return null;
+}
+
+/** เรียก API ของการกระทำที่ต้องยืนยัน แล้วคืนข้อความแจ้งผล (และรหัสผ่านชั่วคราวถ้ามี) */
+async function runAccountAction(type: DialogType, user: AdminUser): Promise<ActionResult> {
+  switch (type) {
+    case "resetPassword": {
+      const result = await api<{ temporaryPassword: string }>(`/api/admin/users/${user.id}/reset-password`, { method: "POST", body: "{}" });
+      return { message: "รีเซ็ตรหัสผ่านและยกเลิก session เดิมแล้ว", temporaryPassword: result.temporaryPassword };
+    }
+    case "twoFactor":
+      await api(`/api/admin/users/${user.id}/reset-2fa`, { method: "POST", body: "{}" });
+      return { message: "รีเซ็ต 2FA แล้ว ผู้ใช้ต้องตั้งค่าใหม่เมื่อเข้าสู่ระบบ" };
+    case "disable":
+      await api(`/api/admin/users/${user.id}`, { method: "PATCH", body: JSON.stringify({ isActive: !user.isActive }) });
+      return { message: "เปลี่ยนสถานะบัญชีและยกเลิก session เดิมแล้ว" };
+    default:
+      await api(`/api/admin/users/${user.id}/transition`, { method: "POST", body: JSON.stringify({ action: "trash" }) });
+      return { message: "ย้ายบัญชีลงถังขยะและยกเลิก session เดิมแล้ว" };
+  }
+}
+
+/** บันทึกฟอร์มผู้ดูแล: แก้ไขบัญชีเดิม หรือสร้างบัญชีใหม่แล้วคืนรหัสผ่านชั่วคราว */
+async function saveUser(editing: AdminUser | undefined, data: FormData): Promise<ActionResult> {
+  const displayName = formText(data, "displayName");
+  const role = formText(data, "role") as Role;
+  if (editing) {
+    // ส่งบทบาทเฉพาะเมื่อเปลี่ยนจริง: การส่งบทบาทจะยกเลิก session ของผู้ใช้นั้น จึงไม่ควรเกิดตอนแก้แค่ชื่อที่แสดง
+    const roleChange = role === editing.role ? {} : { role };
+    await api(`/api/admin/users/${editing.id}`, { method: "PATCH", body: JSON.stringify({ displayName, ...roleChange }) });
+    return { message: "บันทึกข้อมูลผู้ดูแลแล้ว" };
+  }
+  const result = await api<{ temporaryPassword: string }>("/api/admin/users", { method: "POST", body: JSON.stringify({ displayName, username: formText(data, "username"), role }) });
+  return { message: "สร้างบัญชีแล้ว โปรดส่งรหัสผ่านชั่วคราวผ่านช่องทางที่ปลอดภัย", temporaryPassword: result.temporaryPassword };
+}
+
+/** สร้างส่วนหน้าจอ AdminAccounts; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function AdminAccounts() {
-  const [allUsers, setUsers] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [currentUserId, setCurrentUserId] = useState("");
-  const [purgeConfirmation, setPurgeConfirmation] = useState("");
-  const users = allUsers.filter(user => !user.deletedAt);
-  const trashedUsers = allUsers.filter(user => user.deletedAt);
   const [dialog, setDialog] = useState<DialogState>(null);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [temporaryPassword, setTemporaryPassword] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const backdropRef = useRef<HTMLDivElement>(null);
+  const dialogOpenerRef = useRef<HTMLElement>(null);
   const activeSuperAdmins = users.filter(user => user.isActive && user.role === "SUPER_ADMIN").length;
 
   const loadUsers = useCallback(async () => {
     try {
       const result = await api<UsersResponse>("/api/admin/users");
-      setUsers(result.users); setCurrentUserId(result.currentUserId);
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "โหลดข้อมูลไม่สำเร็จ"); }
-    finally { setLoading(false); }
+      setUsers(liveUsers(result));
+      setCurrentUserId(result.currentUserId);
+    } catch (caughtError) {
+      setError(errorMessage(caughtError, "โหลดข้อมูลไม่สำเร็จ"));
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     let active = true;
     void api<UsersResponse>("/api/admin/users")
-      .then(result => { if (active) { setUsers(result.users); setCurrentUserId(result.currentUserId); } })
-      .catch(caught => { if (active) setError(caught instanceof Error ? caught.message : "โหลดข้อมูลไม่สำเร็จ"); })
+      .then(result => { if (active) { setUsers(liveUsers(result)); setCurrentUserId(result.currentUserId); } })
+      .catch(caughtError => { if (active) setError(errorMessage(caughtError, "โหลดข้อมูลไม่สำเร็จ")); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
   function notify(message: string) { setNotice(message); window.setTimeout(() => setNotice(""), 3200); }
-  function openDialog(next: DialogState) { setError(""); setTemporaryPassword(""); setPurgeConfirmation(""); setDialog(next); }
+  const closeDialog = useCallback(() => { if (!submitting) setDialog(null); }, [submitting]);
+  useModalAccessibility({ active: Boolean(dialog), containerRef: dialogRef, backdropRef, restoreFocusRef: dialogOpenerRef, onClose: closeDialog, closeDisabled: submitting });
+  function openDialog(next: DialogState) {
+    dialogOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setError(""); setTemporaryPassword(""); setDialog(next);
+  }
+  /** แสดงผลหลังบันทึกสำเร็จ: มีรหัสผ่านชั่วคราวก็เปิดหน้าต่างค้างไว้ให้คัดลอก ไม่มีก็ปิดหน้าต่าง */
+  async function finish(result: ActionResult) {
+    if (result.temporaryPassword) setTemporaryPassword(result.temporaryPassword);
+    else setDialog(null);
+    notify(result.message);
+    await loadUsers();
+  }
 
   async function submitUser(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const displayName = String(data.get("displayName"));
-    const role = String(data.get("role")) as Role;
     setSubmitting(true); setError("");
     try {
-      if (dialog?.type === "edit" && dialog.user) {
-        await api(`/api/admin/users/${dialog.user.id}`, { method: "PATCH", body: JSON.stringify({ displayName, role }) });
-        setDialog(null); notify("บันทึกข้อมูลผู้ดูแลแล้ว");
-      } else {
-        const result = await api<{ temporaryPassword: string }>("/api/admin/users", { method: "POST", body: JSON.stringify({ displayName, username: String(data.get("username")), role }) });
-        setTemporaryPassword(result.temporaryPassword); notify("สร้างบัญชีแล้ว โปรดส่งรหัสผ่านชั่วคราวผ่านช่องทางที่ปลอดภัย");
-      }
-      await loadUsers();
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "บันทึกไม่สำเร็จ"); }
-    finally { setSubmitting(false); }
+      await finish(await saveUser(dialog?.type === "edit" ? dialog.user : undefined, data));
+    } catch (caughtError) {
+      setError(errorMessage(caughtError, "บันทึกไม่สำเร็จ"));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function confirmAction() {
     if (!dialog?.user) return;
     setSubmitting(true); setError("");
     try {
-      if (dialog.type === "password") {
-        const result = await api<{ temporaryPassword: string }>(`/api/admin/users/${dialog.user.id}/reset-password`, { method: "POST", body: "{}" });
-        setTemporaryPassword(result.temporaryPassword);
-        notify("รีเซ็ตรหัสผ่านและยกเลิก session เดิมแล้ว");
-      } else if (dialog.type === "twoFactor") {
-        await api(`/api/admin/users/${dialog.user.id}/reset-2fa`, { method: "POST", body: "{}" });
-        setDialog(null); notify("รีเซ็ต 2FA แล้ว ผู้ใช้ต้องตั้งค่าใหม่เมื่อเข้าสู่ระบบ");
-      } else if (dialog.type === "trash" || dialog.type === "restore" || dialog.type === "purge") {
-        await api(`/api/admin/users/${dialog.user.id}/transition`, { method: "POST", body: JSON.stringify({ action: dialog.type === "purge" ? "delete" : dialog.type }) });
-        setDialog(null); notify(dialog.type === "trash" ? "ย้ายบัญชีไปถังขยะและยกเลิก session แล้ว" : dialog.type === "restore" ? "กู้คืนบัญชีแล้ว บัญชียังปิดใช้งานอยู่จนกว่าจะเปิดใช้งาน" : "ลบบัญชีถาวรแล้ว");
-      } else {
-        await api(`/api/admin/users/${dialog.user.id}`, { method: "PATCH", body: JSON.stringify({ isActive: !dialog.user.isActive }) });
-        setDialog(null); notify("เปลี่ยนสถานะบัญชีและยกเลิก session เดิมแล้ว");
-      }
-      await loadUsers();
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "ดำเนินการไม่สำเร็จ"); }
-    finally { setSubmitting(false); }
+      await finish(await runAccountAction(dialog.type, dialog.user));
+    } catch (caughtError) {
+      setError(errorMessage(caughtError, "ดำเนินการไม่สำเร็จ"));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return <>
-    <AdminPageHeader title="ผู้ดูแลระบบ" description="เพิ่มบัญชี กำหนดบทบาท รีเซ็ตข้อมูลความปลอดภัย และจัดการการเข้าถึง" action={<button className="btn btn-dark" onClick={() => openDialog({ type: "create" })}><UserPlus size={17} /> เพิ่มผู้ดูแล</button>} />
-    {notice && <div className="toast" role="status"><CheckCircle2 size={19} /> {notice}</div>}
+    <AdminPageHeader eyebrow="ความปลอดภัย" title="ผู้ดูแลระบบ" description="เพิ่มบัญชี กำหนดบทบาท รีเซ็ตข้อมูลความปลอดภัย และจัดการการเข้าถึง" action={<button type="button" className="btn btn-dark" onClick={() => openDialog({ type: "create" })}><UserPlus size={17} /> เพิ่มผู้ดูแล</button>} />
+    {notice && <output className="toast"><CheckCircle2 size={19} /> {notice}</output>}
     {error && !dialog && <div className="auth-alert warning" role="alert">{error}</div>}
-    <section className="panel"><div className="table-wrap"><table className="data-table"><thead><tr><th>ผู้ดูแล</th><th>ชื่อผู้ใช้</th><th>บทบาท</th><th>2FA</th><th>สถานะ</th><th /></tr></thead><tbody>
-      {loading && <tr><td colSpan={6}>กำลังโหลด…</td></tr>}
+    <section className="panel"><div className="table-wrap"><table className="data-table" aria-busy={loading}><thead><tr><th>ผู้ดูแล</th><th>ชื่อผู้ใช้</th><th>บทบาท</th><th>ยืนยัน 2 ขั้นตอน</th><th>สถานะ</th><th><span className="sr-only">การจัดการ</span></th></tr></thead><tbody>
+      {loading && [150, 100, 90].map(width => <tr key={width} className="skeleton-row"><td><span className="skeleton" style={{ width }} /></td><td><span className="skeleton" style={{ width: 100 }} /></td><td><span className="skeleton" style={{ width: 90 }} /></td><td><span className="skeleton" style={{ width: 90 }} /></td><td><span className="skeleton" style={{ width: 80 }} /></td><td /></tr>)}
       {!loading && users.length === 0 && <tr><td colSpan={6}>ยังไม่มีบัญชีผู้ดูแล</td></tr>}
-      {users.map(user => { const isLastSuperAdmin = user.role === "SUPER_ADMIN" && user.isActive && activeSuperAdmins === 1; const isSelf = user.id === currentUserId; return <tr key={user.id}><td><div className="cluster"><span className="avatar">{user.displayName[0]}</span><strong>{user.displayName}</strong></div></td><td>{user.username}</td><td><span className="tag">{user.role === "SUPER_ADMIN" ? "Super Admin" : "Editor"}</span></td><td><span className={`status ${user.twoFactorEnabled ? "" : "draft"}`}>{user.twoFactorEnabled ? <ShieldCheck size={13} /> : <ShieldOff size={13} />} {user.twoFactorEnabled ? "เปิดใช้งาน" : "รอตั้งค่า"}</span></td><td><span className={`status ${user.isActive ? "" : "draft"}`}>{user.isActive ? "ใช้งานอยู่" : "ปิดใช้งาน"}</span></td><td><div className="row-actions"><button className="icon-btn" onClick={() => openDialog({ type: "edit", user })} aria-label={`แก้ไข ${user.displayName}`}><Edit3 size={16} /></button><button className="icon-btn" onClick={() => openDialog({ type: "password", user })} aria-label={`รีเซ็ตรหัสผ่าน ${user.displayName}`}><KeyRound size={16} /></button><div className="account-menu"><button className="icon-btn" aria-label={`เมนู ${user.displayName}`}><MoreHorizontal size={17} /></button><div className="account-menu-items"><button onClick={() => openDialog({ type: "twoFactor", user })} disabled={!user.twoFactorEnabled}>รีเซ็ต 2FA</button><button onClick={() => openDialog({ type: "disable", user })} disabled={isLastSuperAdmin || isSelf}>{user.isActive ? "ปิดใช้งานบัญชี" : "เปิดใช้งานบัญชี"}</button><button onClick={() => openDialog({ type: "trash", user })} disabled={isLastSuperAdmin || isSelf}>ย้ายไปถังขยะ</button></div></div></div>{isLastSuperAdmin ? <span className="muted" style={{ fontSize: ".68rem" }}>Super Admin คนสุดท้าย</span> : isSelf && <span className="muted" style={{ fontSize: ".68rem" }}>บัญชีของคุณ</span>}</td></tr>; })}
+      {users.map(user => <UserRow key={user.id} user={user} isSelf={user.id === currentUserId} isLastSuperAdmin={user.role === "SUPER_ADMIN" && user.isActive && activeSuperAdmins === 1} onOpen={openDialog} />)}
     </tbody></table></div></section>
-    {trashedUsers.length > 0 && <section className="panel"><div className="panel-header"><h2>บัญชีในถังขยะ</h2></div><div className="table-wrap"><table className="data-table"><thead><tr><th>ผู้ดูแล</th><th>ชื่อผู้ใช้</th><th>ลบถาวรอัตโนมัติ</th><th /></tr></thead><tbody>
-      {trashedUsers.map(user => <tr key={user.id}><td><strong>{user.displayName}</strong></td><td>{user.username}</td><td>{user.purgeAt ? new Intl.DateTimeFormat("th-TH", { dateStyle: "medium" }).format(new Date(user.purgeAt)) : "-"}</td><td><div className="row-actions"><button className="btn btn-outline" onClick={() => openDialog({ type: "restore", user })}><RotateCcw size={15} /> กู้คืน</button><button className="icon-btn" onClick={() => openDialog({ type: "purge", user })} aria-label={`ลบบัญชี ${user.displayName} ถาวร`}><Trash2 size={16} /></button></div></td></tr>)}
-    </tbody></table></div></section>}
-    <div className="auth-alert warning" style={{ maxWidth: 680 }}><ShieldCheck size={18} /><div><strong>ระบบป้องกัน Super Admin คนสุดท้าย</strong><p>ไม่สามารถปิดใช้งาน ลดสิทธิ์ หรือย้ายบัญชี Super Admin คนสุดท้ายไปถังขยะได้ และไม่สามารถเปลี่ยนบทบาทหรือสถานะของบัญชีตัวเอง</p></div></div>
-    {dialog && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.currentTarget === event.target && !submitting) setDialog(null); }}><section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><div className="panel-header"><h2 id="dialog-title">{dialog.type === "create" ? "เพิ่มผู้ดูแล" : dialog.type === "edit" ? "แก้ไขผู้ดูแล" : dialog.type === "password" ? "รีเซ็ตรหัสผ่าน" : dialog.type === "twoFactor" ? "รีเซ็ต 2FA" : dialog.type === "trash" ? "ย้ายบัญชีไปถังขยะ" : dialog.type === "restore" ? "กู้คืนบัญชี" : dialog.type === "purge" ? "ลบบัญชีถาวร" : dialog.user?.isActive ? "ปิดใช้งานบัญชี" : "เปิดใช้งานบัญชี"}</h2><button className="icon-btn" onClick={() => setDialog(null)} disabled={submitting} aria-label="ปิด"><X size={19} /></button></div>
+    <div className="info-note"><ShieldCheck size={18} aria-hidden="true" /><div><strong>ระบบป้องกัน Super Admin คนสุดท้าย</strong><p>ไม่สามารถปิดใช้งาน ลดสิทธิ์ หรือย้ายบัญชี Super Admin คนสุดท้ายไปถังขยะได้ และเปลี่ยนบทบาทหรือสถานะของบัญชีตัวเองไม่ได้</p></div></div>
+    {dialog && <div ref={backdropRef} className="modal-backdrop"><dialog open ref={dialogRef} className="modal-card" aria-modal="true" aria-labelledby="dialog-title" aria-busy={submitting} tabIndex={-1}><div className="panel-header"><h2 id="dialog-title">{dialogTitle(dialog)}</h2><button type="button" className="icon-btn" onClick={closeDialog} disabled={submitting} aria-label="ปิด"><X size={19} /></button></div>
       {error && <div className="auth-alert warning" role="alert">{error}</div>}
-      {temporaryPassword ? <div className="card-body form-stack"><p>รหัสผ่านชั่วคราวจะแสดงเพียงครั้งเดียว ผู้ใช้จะถูกบังคับให้เปลี่ยนเมื่อเข้าสู่ระบบ</p><label htmlFor="temporary-password">รหัสผ่านชั่วคราว</label><input id="temporary-password" className="field" value={temporaryPassword} readOnly autoFocus /><button className="btn btn-dark" onClick={() => { setTemporaryPassword(""); setDialog(null); }}>รับทราบและปิด</button></div> : (dialog.type === "create" || dialog.type === "edit") ? <form className="card-body form-stack" onSubmit={submitUser}><div className="form-group"><label htmlFor="admin-name">ชื่อที่แสดง</label><input id="admin-name" name="displayName" className="field" defaultValue={dialog.user?.displayName} required autoFocus /></div><div className="form-group"><label htmlFor="admin-username">ชื่อผู้ใช้</label><input id="admin-username" name="username" className="field" defaultValue={dialog.user?.username} minLength={3} pattern="[a-zA-Z0-9._-]+" required disabled={dialog.type === "edit"} /></div><div className="form-group"><label htmlFor="admin-role">บทบาท</label><select id="admin-role" name="role" className="select" defaultValue={dialog.user?.role ?? "EDITOR"} disabled={Boolean((dialog.user?.role === "SUPER_ADMIN" && activeSuperAdmins === 1) || (dialog.user && dialog.user.id === currentUserId))}><option value="EDITOR">Editor</option><option value="SUPER_ADMIN">Super Admin</option></select>{dialog.user?.role === "SUPER_ADMIN" && activeSuperAdmins === 1 && <span className="muted" style={{ fontSize: ".73rem" }}>เพิ่ม Super Admin อีกคนก่อนจึงจะลดสิทธิ์บัญชีนี้ได้</span>}</div><button className="btn btn-dark" disabled={submitting}>{submitting ? "กำลังบันทึก…" : "บันทึก"}</button></form> : <div className="card-body"><p>{dialog.type === "password" ? `ระบบจะสร้างรหัสผ่านชั่วคราวให้ ${dialog.user?.displayName} บังคับเปลี่ยนรหัสผ่านครั้งถัดไป และยกเลิก session เดิมทั้งหมด` : dialog.type === "twoFactor" ? `TOTP secret และ Recovery Codes เดิมของ ${dialog.user?.displayName} จะใช้ไม่ได้ และต้องตั้งค่าใหม่เมื่อเข้าสู่ระบบ` : dialog.type === "trash" ? `${dialog.user?.displayName} จะออกจากระบบทันทีและเข้าสู่ระบบไม่ได้ บัญชีจะถูกลบถาวรเมื่อครบ 30 วัน และกู้คืนได้ก่อนหน้านั้น` : dialog.type === "restore" ? `บัญชี ${dialog.user?.displayName} จะกลับมาในสถานะปิดใช้งาน ต้องเปิดใช้งานอีกครั้งก่อนเข้าสู่ระบบ` : dialog.type === "purge" ? `ชื่อ ชื่อผู้ใช้ รหัสผ่าน และ 2FA ของ ${dialog.user?.displayName} จะถูกลบถาวร ประวัติ audit ยังคงอยู่แต่แสดงเป็นผู้ดูแลที่ถูกลบ การดำเนินการนี้ย้อนกลับไม่ได้` : `ยืนยันการเปลี่ยนสถานะบัญชี ${dialog.user?.displayName}`}</p>{dialog.type === "purge" && <div className="form-group" style={{ marginTop: 16 }}><label htmlFor="purge-confirmation">พิมพ์ชื่อผู้ใช้ “{dialog.user?.username}” เพื่อยืนยัน</label><input id="purge-confirmation" className="field" value={purgeConfirmation} onChange={event => setPurgeConfirmation(event.target.value)} autoComplete="off" /></div>}<div className="cluster" style={{ justifyContent: "end", marginTop: 24 }}><button className="btn btn-outline" onClick={() => setDialog(null)} disabled={submitting}>ยกเลิก</button><button className={`btn ${dialog.type === "purge" || dialog.type === "trash" ? "btn-danger" : "btn-dark"}`} onClick={confirmAction} disabled={submitting || (dialog.type === "purge" && purgeConfirmation !== dialog.user?.username)}>{submitting ? "กำลังดำเนินการ…" : "ยืนยัน"}</button></div></div>}
-    </section></div>}
+      <AccountDialogBody dialog={dialog} temporaryPassword={temporaryPassword} submitting={submitting} currentUserId={currentUserId} activeSuperAdmins={activeSuperAdmins} onSubmitUser={submitUser} onConfirm={confirmAction} onDone={() => { setTemporaryPassword(""); setDialog(null); }} onCancel={() => setDialog(null)} />
+    </dialog></div>}
   </>;
+}
+
+function UserRow({ user, isSelf, isLastSuperAdmin, onOpen }: Readonly<{ user: AdminUser; isSelf: boolean; isLastSuperAdmin: boolean; onOpen: (next: DialogState) => void }>) {
+  const locked = isLastSuperAdmin || isSelf;
+  const note = lockReason(isSelf, isLastSuperAdmin, false);
+  return <tr>
+    <td><div className="cluster"><span className="avatar" aria-hidden="true">{user.displayName[0]}</span><strong>{user.displayName}</strong></div></td>
+    <td>{user.username}</td>
+    <td><span className="tag">{roleLabels[user.role]}</span></td>
+    <td><span className={`status ${user.twoFactorEnabled ? "" : "draft"}`}>{user.twoFactorEnabled ? <ShieldCheck size={13} /> : <ShieldOff size={13} />} {user.twoFactorEnabled ? "เปิดใช้งาน" : "รอตั้งค่า"}</span></td>
+    <td><span className={`status ${user.isActive ? "" : "draft"}`}>{user.isActive ? "ใช้งานอยู่" : "ปิดใช้งาน"}</span></td>
+    <td>
+      <div className="row-actions">
+        <button type="button" className="icon-btn" onClick={() => onOpen({ type: "edit", user })} aria-label={`แก้ไข ${user.displayName}`}><Edit3 size={16} /></button>
+        <button type="button" className="icon-btn" onClick={() => onOpen({ type: "resetPassword", user })} aria-label={`รีเซ็ตรหัสผ่าน ${user.displayName}`}><KeyRound size={16} /></button>
+        <AccountActionsMenu userName={user.displayName} actions={[
+          { label: "รีเซ็ต 2FA", disabled: !user.twoFactorEnabled, onSelect: () => onOpen({ type: "twoFactor", user }) },
+          { label: user.isActive ? "ปิดใช้งานบัญชี" : "เปิดใช้งานบัญชี", disabled: locked, onSelect: () => onOpen({ type: "disable", user }) },
+          { label: "ย้ายลงถังขยะ", disabled: locked, onSelect: () => onOpen({ type: "trash", user }) },
+        ]} />
+      </div>
+      {note && <span className="muted" style={noteStyle}>{note}</span>}
+    </td>
+  </tr>;
+}
+
+type DialogBodyProps = Readonly<{
+  dialog: NonNullable<DialogState>;
+  temporaryPassword: string;
+  submitting: boolean;
+  currentUserId: string;
+  activeSuperAdmins: number;
+  onSubmitUser: (event: FormEvent<HTMLFormElement>) => void;
+  onConfirm: () => void;
+  onDone: () => void;
+  onCancel: () => void;
+}>;
+
+function AccountDialogBody({ dialog, temporaryPassword, submitting, currentUserId, activeSuperAdmins, onSubmitUser, onConfirm, onDone, onCancel }: DialogBodyProps) {
+  if (temporaryPassword) {
+    return <div className="card-body form-stack"><p>รหัสผ่านชั่วคราวจะแสดงเพียงครั้งเดียว ผู้ใช้จะถูกบังคับให้เปลี่ยนเมื่อเข้าสู่ระบบ</p><label htmlFor="temporary-password">รหัสผ่านชั่วคราว</label><input id="temporary-password" className="field" value={temporaryPassword} readOnly autoFocus /><button type="button" className="btn btn-dark" onClick={onDone}>รับทราบและปิด</button></div>;
+  }
+  if (dialog.type === "create" || dialog.type === "edit") {
+    const isSelf = dialog.user?.id === currentUserId;
+    const isLastSuperAdmin = dialog.user?.role === "SUPER_ADMIN" && activeSuperAdmins === 1;
+    const hint = lockReason(isSelf, isLastSuperAdmin, true);
+    return <form className="card-body form-stack" onSubmit={onSubmitUser}>
+      <div className="form-group"><label htmlFor="admin-name">ชื่อที่แสดง</label><input id="admin-name" name="displayName" className="field" defaultValue={dialog.user?.displayName} required autoFocus /></div>
+      <div className="form-group"><label htmlFor="admin-username">ชื่อผู้ใช้</label><input id="admin-username" name="username" className="field" defaultValue={dialog.user?.username} minLength={3} pattern="[a-zA-Z0-9._-]+" required disabled={dialog.type === "edit"} /></div>
+      <div className="form-group"><label htmlFor="admin-role">บทบาท</label><ThemeSelect id="admin-role" name="role" label="บทบาท" defaultValue={dialog.user?.role ?? "EDITOR"} disabled={Boolean(dialog.user && hint)} options={[{ value: "EDITOR", label: "Editor — จัดการเนื้อหา" }, { value: "SUPER_ADMIN", label: "Super Admin — จัดการเนื้อหาและผู้ดูแล" }]} />{hint && <span className="muted" style={hintStyle}>{hint}</span>}</div>
+      <button type="submit" className="btn btn-dark" disabled={submitting}>{submitting ? "กำลังบันทึก…" : "บันทึก"}</button>
+    </form>;
+  }
+  return <div className="card-body"><p>{confirmMessage(dialog)}</p><div className="cluster" style={{ justifyContent: "end", marginTop: 24 }}><button type="button" className="btn btn-outline" onClick={onCancel} disabled={submitting}>ยกเลิก</button><button type="button" className="btn btn-dark" onClick={onConfirm} disabled={submitting}>{submitting ? "กำลังดำเนินการ…" : "ยืนยัน"}</button></div></div>;
 }

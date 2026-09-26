@@ -1,3 +1,7 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชุดทดสอบ visual-accessibility.spec ยืนยันว่าพฤติกรรมสำคัญยังถูกต้องเมื่อมีการแก้โค้ด
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
@@ -43,4 +47,43 @@ test("mobile drawer trap focus, ปิดด้วย Escape และคืน 
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
+});
+
+test("dropdown ตัวกรองรองรับคีย์บอร์ดและส่งค่าที่เลือก", async ({ page }) => {
+  await page.goto("/products");
+  await expect(page.locator(".skeleton")).toHaveCount(0);
+  const typeSelect = page.getByRole("combobox", { name: "กรองตามประเภท" });
+
+  await typeSelect.focus();
+  await page.keyboard.press("Enter");
+  await expect(typeSelect).toHaveAttribute("aria-expanded", "true");
+  await expect(typeSelect).toHaveAttribute("aria-activedescendant", /option-/);
+
+  await page.keyboard.press("End");
+  await page.keyboard.press("Enter");
+  await expect(typeSelect).toBeFocused();
+  await expect(typeSelect).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator('input[name="type"]')).not.toHaveValue("");
+
+  await page.keyboard.press("ArrowUp");
+  await expect(typeSelect).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("Escape");
+  await expect(typeSelect).toBeFocused();
+  await expect(typeSelect).toHaveAttribute("aria-expanded", "false");
+
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Space");
+  await expect(page.locator('input[name="type"]')).toHaveValue("");
+
+  await page.keyboard.press("Enter");
+  await typeSelect.press("Tab");
+  await expect(typeSelect).toHaveAttribute("aria-expanded", "false");
+
+  const brandSelect = page.getByRole("combobox", { name: "กรองตามยี่ห้อ" });
+  await brandSelect.focus();
+  await page.keyboard.type("D");
+  await expect(brandSelect).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("Enter");
+  await expect(brandSelect).toContainText("Daikin");
+  await expect(page.locator('input[name="brand"]')).toHaveValue("daikin");
 });

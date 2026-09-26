@@ -1,10 +1,34 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชุดทดสอบ auth-security.test ยืนยันว่าพฤติกรรมสำคัญยังถูกต้องเมื่อมีการแก้โค้ด
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import { describe, expect, it } from "vitest";
-import { decryptSecret, encryptSecret, hashPassword, verifyPassword } from "@/server/security/crypto";
-import { generateRecoveryCodes, normalizeRecoveryCode } from "@/server/security/recovery";
-import { createTotpSecret } from "@/server/security/totp";
+import {
+  currentTotpKeyVersion,
+  decryptSecret,
+  encryptSecret,
+  hashPassword,
+  verifyPassword,
+} from "@/server/security/crypto";
+import {
+  generateRecoveryCodes,
+  normalizeRecoveryCode,
+} from "@/server/security/recovery";
+import { createTotpSecret, verifyTotpTimeStep } from "@/server/security/totp";
+import * as OTPAuth from "otpauth";
+import {
+  authThrottleBuckets,
+  authThrottleKey,
+  calculateLockout,
+  calculateProgressiveDelaySeconds,
+  retryAfterSeconds,
+} from "@/server/auth/throttle";
+import { resolveForwardedClientIp } from "@/server/security/client-ip";
+import { sessionCookieOptionsFor } from "@/server/auth/session";
 
 process.env.DATABASE_URL ??= "postgresql://test:test@localhost:5432/test";
-process.env.SESSION_SECRET ??= "test-session-secret-at-least-32-characters-long";
+process.env.SESSION_SECRET ??=
+  "test-session-secret-at-least-32-characters-long";
 process.env.TOTP_ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString("base64");
 process.env.APP_URL ??= "http://localhost:3000";
 
@@ -17,20 +41,86 @@ describe("authentication cryptography", () => {
   });
   it("encrypts TOTP secrets with a randomized authenticated payload", () => {
     const secret = createTotpSecret();
-    const first = encryptSecret(secret); const second = encryptSecret(secret);
+    const first = encryptSecret(secret);
+    const second = encryptSecret(secret);
     expect(first).not.toBe(second);
     expect(first.startsWith("v1.")).toBe(true);
-    expect(decryptSecret(first)).toBe(secret);
-    const [version, iv, tag, ciphertext] = first.split(".");
-    const tampered = `${ciphertext[0] === "A" ? "B" : "A"}${ciphertext.slice(1)}`;
-    expect(() => decryptSecret([version, iv, tag, tampered].join("."))).toThrow();
+    // encryptSecret uses the current key version, which is not 1 when a keyring is configured.
+    const keyVersion = currentTotpKeyVersion();
+    expect(decryptSecret(first, keyVersion)).toBe(secret);
+    // Flip a real ciphertext byte; swapping the last base64url character can touch only padding bits.
+    const [version, iv, tag, encrypted] = first.split(".");
+    const tampered = Buffer.from(encrypted, "base64url");
+    tampered[0] ^= 1;
+    expect(() => decryptSecret([version, iv, tag, tampered.toString("base64url")].join("."), keyVersion)).toThrow();
+  });
+  it("returns the exact accepted TOTP time-step", () => {
+    const secret = createTotpSecret();
+    const username = "replay-test";
+    const now = Date.UTC(2026, 7, 13, 12, 0, 0);
+    const generator = new OTPAuth.TOTP({ issuer: "อยู่เย็นเป็นสุข วิศวกรรม", label: username, algorithm: "SHA1", digits: 6, period: 30, secret: OTPAuth.Secret.fromBase32(secret) });
+    const token = generator.generate({ timestamp: now });
+    expect(verifyTotpTimeStep(secret, username, token, now)).toBe(Math.floor(now / 30_000));
   });
   it("generates ten unique one-time recovery codes and stores different hashes", () => {
     const codes = generateRecoveryCodes();
     expect(codes).toHaveLength(10);
-    expect(new Set(codes.map(item => item.plain)).size).toBe(10);
-    expect(new Set(codes.map(item => item.hash)).size).toBe(10);
-    expect(normalizeRecoveryCode(codes[0].plain.toLowerCase())).toHaveLength(12);
-    expect(codes.every(item => !item.hash.includes(item.plain))).toBe(true);
+    expect(new Set(codes.map((item) => item.plain)).size).toBe(10);
+    expect(new Set(codes.map((item) => item.hash)).size).toBe(10);
+    expect(normalizeRecoveryCode(codes[0].plain.toLowerCase())).toHaveLength(
+      12,
+    );
+    expect(codes.every((item) => !item.hash.includes(item.plain))).toBe(true);
+  });
+  it("separates throttle buckets by budget, account, and IP", () => {
+    const ipHash = "hashed-ip";
+    expect(authThrottleKey("totp", "account", "admin-1")).not.toBe(
+      authThrottleKey("totp", "account", "admin-2"),
+    );
+    const buckets = authThrottleBuckets("login", "owner", ipHash);
+    expect(buckets).toHaveLength(2);
+    expect(buckets.map((bucket) => bucket.thresholdMultiplier)).toEqual([1, 5]);
+    expect(new Set(buckets.map((bucket) => bucket.key)).size).toBe(2);
+    // รหัส 2FA ตอนตั้งค่า และรหัสกู้คืน ใช้โควตาร่วมกัน สลับวิธีแล้วไม่ได้โควตาเพิ่ม
+    expect(authThrottleKey("totp", "account", "admin-1")).toBe(authThrottleKey("recovery", "account", "admin-1"));
+    expect(authThrottleKey("totp-enrollment", "account", "admin-1")).toBe(authThrottleKey("totp", "account", "admin-1"));
+    expect(authThrottleKey("login", "account", "admin-1")).not.toBe(authThrottleKey("totp", "account", "admin-1"));
+  });
+  it("applies an exponential delay before the full lockout", () => {
+    expect(calculateProgressiveDelaySeconds(1, 5)).toBe(0);
+    expect(calculateProgressiveDelaySeconds(2, 5)).toBe(1);
+    expect(calculateProgressiveDelaySeconds(3, 5)).toBe(2);
+    expect(calculateProgressiveDelaySeconds(4, 5)).toBe(4);
+    expect(calculateProgressiveDelaySeconds(5, 5)).toBe(0);
+    expect(calculateProgressiveDelaySeconds(21, 25)).toBe(0);
+    expect(calculateProgressiveDelaySeconds(22, 25)).toBe(1);
+  });
+  it("returns a positive Retry-After value for an active lock", () => {
+    const now = Date.now();
+    const lockedUntil = calculateLockout(5, 5, 15, now);
+    expect(lockedUntil).not.toBeNull();
+    expect(retryAfterSeconds(lockedUntil!, now)).toBe(900);
+  });
+  it("ignores forwarding headers unless trusted proxy hops are configured", () => {
+    expect(resolveForwardedClientIp("198.51.100.10", 0)).toBeNull();
+    expect(resolveForwardedClientIp("198.51.100.10", 1)).toBe("198.51.100.10");
+  });
+  it("selects from the trusted right side of a forwarded chain", () => {
+    expect(
+      resolveForwardedClientIp("203.0.113.99, 198.51.100.10", 1),
+    ).toBe("198.51.100.10");
+    expect(
+      resolveForwardedClientIp("203.0.113.99, 198.51.100.10", 2),
+    ).toBe("203.0.113.99");
+    expect(resolveForwardedClientIp("spoofed, 198.51.100.10", 1)).toBeNull();
+  });
+  it("always hardens the production session cookie", () => {
+    expect(sessionCookieOptionsFor("production")).toEqual({
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+    });
+    expect(sessionCookieOptionsFor("development").secure).toBe(false);
   });
 });

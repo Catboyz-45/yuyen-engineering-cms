@@ -5,7 +5,7 @@ export function anonymizedAdminData(adminId: string, unusablePasswordHash: strin
   const username = `deleted-${adminId}`;
   return {
     username, usernameNormalized: username, displayName: "ผู้ดูแลที่ถูกลบ", role: "EDITOR" as const, passwordHash: unusablePasswordHash,
-    mustChangePassword: true, totpSecretEncrypted: null, totpKeyVersion: null, twoFactorEnabled: false, failedLoginAttempts: 0,
-    lockedUntil: null, isActive: false, lastLoginAt: null, purgeAt: null,
+    mustChangePassword: true, totpSecretEncrypted: null, totpKeyVersion: null, lastTotpTimeStep: null, twoFactorEnabled: false,
+    isActive: false, lastLoginAt: null, purgeAt: null,
   };
 }

@@ -1,6 +1,10 @@
+/**
+ * หน้าที่ของไฟล์นี้: ไฟล์ตั้งค่า next.config.ts อธิบายให้เครื่องมือ build, test หรือ lint ทำงานสอดคล้องกัน
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import type { NextConfig } from "next";
 
-// Content-Security-Policy is set per request in src/proxy.ts because it depends on runtime storage settings.
+// Content-Security-Policy ตั้งใน src/proxy.ts เพราะต้องใช้ storage origin ตอนรัน ไม่ใช่ตอน build
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },

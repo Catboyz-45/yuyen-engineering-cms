@@ -1,3 +1,5 @@
+// หน้าที่ของไฟล์นี้: แผนผังฐานข้อมูลหลัก ระบุตาราง ช่องข้อมูล ความสัมพันธ์ กฎห้ามซ้ำ และดัชนีค้นหา
+// ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,22 +9,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// บทบาทผู้ดูแล: Editor จัดการเนื้อหา ส่วน Super Admin จัดการบัญชีและดู audit ได้
 enum AdminRole {
   EDITOR
   SUPER_ADMIN
 }
 
+/// วงจรชีวิตเนื้อหา: ฉบับร่าง เผยแพร่ หรือเก็บถาวร
 enum ContentStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
 }
 
+/// ประเภทไฟล์ที่รับในรุ่นแรก: รูปภาพหรือ PDF
 enum MediaKind {
   IMAGE
   PDF
 }
 
+/// ขั้นตอนของไฟล์ตั้งแต่กำลังอัปโหลดจนพร้อมใช้หรือไม่สำเร็จ
 enum MediaStatus {
   UPLOADING
   PROCESSING
@@ -30,10 +36,26 @@ enum MediaStatus {
   FAILED
 }
 
+/// รูปแบบไฟล์ต้นฉบับและรูปที่ระบบแปลงเพื่อแสดงผล
 enum MediaFormat {
   WEBP
   AVIF
   ORIGINAL
+}
+
+/// ผลของเหตุการณ์ที่บันทึกเพื่อตรวจสอบย้อนหลัง
+/// ไอคอนที่เลือกได้สำหรับการ์ดบริการ (ชื่อตรงกับ src/lib/service-icons.ts)
+enum ServiceIcon {
+  AIR_VENT
+  SNOWFLAKE
+  DROPLETS
+  WRENCH
+  CLIPBOARD_CHECK
+  BUILDING
+  ZAP
+  FAN
+  THERMOMETER
+  HARD_HAT
 }
 
 enum AuditResult {
@@ -41,35 +63,71 @@ enum AuditResult {
   FAILURE
 }
 
+/// ข้อมูลบริษัทชุดหลัก เช่น ชื่อ ประวัติ ที่อยู่ ช่องทางติดต่อ SEO และโลโก้
 model Company {
-  id               String   @id @default(cuid()) @db.VarChar(30)
-  singletonKey     String   @unique @default("PRIMARY") @db.VarChar(20)
-  legalName        String   @db.VarChar(200)
-  displayName      String   @db.VarChar(160)
-  shortDescription String?  @db.VarChar(500)
-  history          String?  @db.Text
-  vision           String?  @db.Text
-  mission          String?  @db.Text
-  address          String?  @db.Text
-  phoneDisplay     String?  @db.VarChar(50)
-  phoneHref        String?  @db.VarChar(30)
-  email            String?  @db.VarChar(254)
-  lineLabel        String?  @db.VarChar(100)
-  lineUrl          String?  @db.VarChar(500)
-  facebookUrl      String?  @db.VarChar(500)
-  mapsUrl          String?  @db.VarChar(1000)
-  mapsEmbedUrl     String?  @db.VarChar(2000)
-  businessHours    String?  @db.VarChar(200)
-  seoTitle         String?  @db.VarChar(60)
-  seoDescription   String?  @db.VarChar(160)
-  logoMediaId      String?  @db.VarChar(30)
-  logoMedia        Media?   @relation("CompanyLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
-  createdAt        DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+  id                 String         @id @default(cuid()) @db.VarChar(30)
+  singletonKey       String         @unique @default("PRIMARY") @db.VarChar(20)
+  legalName          String         @db.VarChar(200)
+  /// เลขทะเบียนนิติบุคคล 13 หลักตามหนังสือรับรองบริษัท
+  registrationNumber String?        @db.VarChar(13)
+  displayName        String         @db.VarChar(160)
+  shortDescription   String?        @db.VarChar(500)
+  history            String?        @db.Text
+  vision             String?        @db.Text
+  mission            String?        @db.Text
+  values             String?        @db.Text
+  address            String?        @db.Text
+  phoneDisplay       String?        @db.VarChar(50)
+  phoneHref          String?        @db.VarChar(30)
+  email              String?        @db.VarChar(254)
+  lineLabel          String?        @db.VarChar(100)
+  lineUrl            String?        @db.VarChar(500)
+  facebookUrl        String?        @db.VarChar(500)
+  mapsUrl            String?        @db.VarChar(1000)
+  mapsEmbedUrl       String?        @db.VarChar(2000)
+  businessHours      String?        @db.VarChar(200)
+  seoTitle           String?        @db.VarChar(60)
+  seoDescription     String?        @db.VarChar(160)
+  siteCopy           Json?
+  logoMediaId        String?        @db.VarChar(30)
+  logoMedia          Media?         @relation("CompanyLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  gallery            CompanyMedia[]
+  createdAt          DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime       @updatedAt @db.Timestamptz(3)
 
   @@index([logoMediaId])
 }
 
+model CompanyMedia {
+  companyId String  @db.VarChar(30)
+  mediaId   String  @db.VarChar(30)
+  sortOrder Int     @default(0)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([companyId, mediaId])
+  @@unique([companyId, sortOrder])
+  @@index([mediaId])
+}
+
+/// ข้อมูลที่บริษัทต้องยืนยันในหน้านโยบาย และการรับรองประกาศใช้โดย Super Admin (มีแถวเดียว)
+model LegalNotice {
+  id               String    @id @default(cuid()) @db.VarChar(30)
+  singletonKey     String    @unique @default("PRIMARY") @db.VarChar(20)
+  privacyEmail     String?   @db.VarChar(254)
+  serviceProviders String?   @db.Text
+  retention        String?   @db.Text
+  approvedAt       DateTime? @db.Timestamptz(3)
+  approvedRevision String?   @db.VarChar(40)
+  approvedById     String?   @db.VarChar(30)
+  approvedBy       Admin?    @relation(fields: [approvedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+
+  @@index([approvedById])
+}
+
+/// แบนเนอร์หน้าแรก พร้อมรูป ปุ่ม ลำดับ และสถานะเผยแพร่
 model Banner {
   id          String        @id @default(cuid()) @db.VarChar(30)
   title       String        @db.VarChar(180)
@@ -91,11 +149,14 @@ model Banner {
   @@index([imageId])
 }
 
+/// บริการของบริษัท ใช้แสดงหน้ารวม/รายละเอียดและเชื่อมกับผลงาน
 model Service {
   id             String           @id @default(cuid()) @db.VarChar(30)
   slug           String           @unique @db.VarChar(180)
   title          String           @db.VarChar(180)
   eyebrow        String?          @db.VarChar(80)
+  /// ไอคอนบนการ์ดบริการ ว่างไว้ให้ระบบเลือกจากชื่อบริการ
+  icon           ServiceIcon?
   summary        String           @db.VarChar(500)
   content        String?          @db.Text
   sortOrder      Int              @default(0)
@@ -111,6 +172,7 @@ model Service {
   purgeAt        DateTime?        @db.Timestamptz(3)
   createdAt      DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+  gallery        ServiceMedia[]
   projects       ProjectService[]
 
   @@index([status, sortOrder])
@@ -119,22 +181,28 @@ model Service {
   @@index([coverMediaId])
 }
 
+/// ยี่ห้อสินค้า ใช้กรองสินค้าและป้องกันการพิมพ์ชื่อยี่ห้อหลายแบบ
 model Brand {
-  id        String    @id @default(cuid()) @db.VarChar(30)
-  slug      String    @unique @db.VarChar(120)
-  name      String    @unique @db.VarChar(120)
-  sortOrder Int       @default(0)
-  isActive  Boolean   @default(true)
-  deletedAt DateTime? @db.Timestamptz(3)
-  purgeAt   DateTime? @db.Timestamptz(3)
-  createdAt DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt DateTime  @updatedAt @db.Timestamptz(3)
-  products  Product[]
+  id          String    @id @default(cuid()) @db.VarChar(30)
+  slug        String    @unique @db.VarChar(120)
+  name        String    @unique @db.VarChar(120)
+  /// โลโก้ในแถบแบรนด์หน้าแรก ไม่มีโลโก้แสดงเป็นชื่อแบรนด์แทน
+  logoMediaId String?   @db.VarChar(30)
+  logoMedia   Media?    @relation("BrandLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime? @db.Timestamptz(3)
+  purgeAt     DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  products    Product[]
 
   @@index([isActive, sortOrder])
+  @@index([logoMediaId])
   @@index([deletedAt, purgeAt])
 }
 
+/// ประเภทสินค้า ใช้จัดกลุ่มและกรองรายการสินค้า
 model ProductType {
   id        String    @id @default(cuid()) @db.VarChar(30)
   slug      String    @unique @db.VarChar(120)
@@ -151,6 +219,7 @@ model ProductType {
   @@index([deletedAt, purgeAt])
 }
 
+/// ข้อมูลสินค้า รุ่น BTU สเปก รูป แคตตาล็อก SEO และสถานะเผยแพร่
 model Product {
   id             String         @id @default(cuid()) @db.VarChar(30)
   slug           String         @unique @db.VarChar(180)
@@ -196,6 +265,7 @@ model Product {
   @@index([catalogMediaId])
 }
 
+/// ตารางเชื่อมสินค้ากับรูป gallery หลายรูป พร้อมลำดับ
 model ProductMedia {
   productId String  @db.VarChar(30)
   mediaId   String  @db.VarChar(30)
@@ -208,6 +278,7 @@ model ProductMedia {
   @@index([mediaId])
 }
 
+/// ข้อมูลผลงาน พื้นที่ วันที่ บริการที่เกี่ยวข้อง และรูป gallery
 model Project {
   id               String           @id @default(cuid()) @db.VarChar(30)
   slug             String           @unique @db.VarChar(180)
@@ -241,6 +312,7 @@ model Project {
   @@index([coverMediaId])
 }
 
+/// ตารางเชื่อมผลงานกับรูป gallery หลายรูป พร้อมลำดับ
 model ProjectMedia {
   projectId String  @db.VarChar(30)
   mediaId   String  @db.VarChar(30)
@@ -253,6 +325,7 @@ model ProjectMedia {
   @@index([mediaId])
 }
 
+/// ตารางเชื่อมผลงานหนึ่งงานกับบริการได้หลายประเภท
 model ProjectService {
   projectId String  @db.VarChar(30)
   serviceId String  @db.VarChar(30)
@@ -263,6 +336,20 @@ model ProjectService {
   @@index([serviceId])
 }
 
+/// ตารางเชื่อมบริการกับรูป gallery หลายรูป พร้อมลำดับ
+model ServiceMedia {
+  serviceId String  @db.VarChar(30)
+  mediaId   String  @db.VarChar(30)
+  sortOrder Int     @default(0)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([serviceId, mediaId])
+  @@unique([serviceId, sortOrder])
+  @@index([mediaId])
+}
+
+/// หมวดข่าว เช่น ข่าวบริษัท บทความ หรือโปรโมชัน
 model NewsCategory {
   id        String    @id @default(cuid()) @db.VarChar(30)
   slug      String    @unique @db.VarChar(120)
@@ -279,6 +366,7 @@ model NewsCategory {
   @@index([deletedAt, purgeAt])
 }
 
+/// ข่าวและบทความ พร้อมหมวด รูป SEO และกำหนดเวลาเผยแพร่
 model News {
   id             String        @id @default(cuid()) @db.VarChar(30)
   slug           String        @unique @db.VarChar(180)
@@ -307,6 +395,7 @@ model News {
   @@index([coverMediaId])
 }
 
+/// metadata ของไฟล์ใน S3; ตัวไฟล์จริงไม่ได้เก็บใน PostgreSQL
 model Media {
   id              String         @id @default(cuid()) @db.VarChar(30)
   kind            MediaKind
@@ -321,6 +410,7 @@ model Media {
   isPrivate       Boolean        @default(true)
   status          MediaStatus    @default(UPLOADING)
   uploadExpiresAt DateTime?      @db.Timestamptz(3)
+  orphanExpiresAt DateTime?      @db.Timestamptz(3)
   failureReason   String?        @db.VarChar(200)
   uploadedById    String?        @db.VarChar(30)
   uploadedBy      Admin?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
@@ -329,8 +419,11 @@ model Media {
   createdAt       DateTime       @default(now()) @db.Timestamptz(3)
   updatedAt       DateTime       @updatedAt @db.Timestamptz(3)
   companyLogos    Company[]      @relation("CompanyLogo")
+  brandLogos      Brand[]        @relation("BrandLogo")
+  companyGallery  CompanyMedia[]
   bannerImages    Banner[]       @relation("BannerImage")
   serviceCovers   Service[]      @relation("ServiceCover")
+  serviceGallery  ServiceMedia[]
   productCovers   Product[]      @relation("ProductCover")
   productCatalogs Product[]      @relation("ProductCatalog")
   productGallery  ProductMedia[]
@@ -340,27 +433,30 @@ model Media {
   variants        MediaVariant[]
 
   @@index([status, uploadExpiresAt])
+  @@index([status, orphanExpiresAt])
   @@index([kind, createdAt])
   @@index([uploadedById])
   @@index([deletedAt, purgeAt])
 }
 
+/// รูปย่อหรือรูปแปลง WebP/AVIF ที่สร้างจาก Media ต้นฉบับ
 model MediaVariant {
-  id         String      @id @default(cuid()) @db.VarChar(30)
-  mediaId    String      @db.VarChar(30)
-  media      Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  format     MediaFormat
-  width      Int?
-  height     Int?
-  objectKey  String      @unique @db.VarChar(1000)
-  mimeType   String      @db.VarChar(120)
-  sizeBytes  BigInt
-  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+  id        String      @id @default(cuid()) @db.VarChar(30)
+  mediaId   String      @db.VarChar(30)
+  media     Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  format    MediaFormat
+  width     Int?
+  height    Int?
+  objectKey String      @unique @db.VarChar(1000)
+  mimeType  String      @db.VarChar(120)
+  sizeBytes BigInt
+  createdAt DateTime    @default(now()) @db.Timestamptz(3)
 
   @@unique([mediaId, format, width])
   @@index([mediaId])
 }
 
+/// คิวลบไฟล์จาก S3 แบบลองซ้ำได้ เพื่อไม่ทิ้งไฟล์กำพร้า
 model StorageCleanupJob {
   id          String    @id @default(cuid()) @db.VarChar(30)
   mediaId     String?   @db.VarChar(30)
@@ -374,35 +470,36 @@ model StorageCleanupJob {
   @@index([completedAt, nextRunAt])
 }
 
+/// บัญชีผู้ดูแล เก็บ password hash และ TOTP ที่เข้ารหัส ไม่เก็บความลับแบบ plaintext
 model Admin {
-  id                  String         @id @default(cuid()) @db.VarChar(30)
-  username            String         @unique @db.VarChar(80)
-  usernameNormalized  String         @unique @db.VarChar(80)
-  displayName         String         @db.VarChar(160)
-  role                AdminRole      @default(EDITOR)
-  passwordHash        String         @db.VarChar(255)
-  mustChangePassword  Boolean        @default(true)
-  totpSecretEncrypted String?        @db.Text
-  totpKeyVersion      Int?
-  twoFactorEnabled    Boolean        @default(false)
-  failedLoginAttempts Int            @default(0)
-  lockedUntil         DateTime?      @db.Timestamptz(3)
-  isActive            Boolean        @default(true)
-  lastLoginAt         DateTime?      @db.Timestamptz(3)
-  deletedAt           DateTime?      @db.Timestamptz(3)
-  purgeAt             DateTime?      @db.Timestamptz(3)
-  createdAt           DateTime       @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime       @updatedAt @db.Timestamptz(3)
-  sessions            Session[]
-  recoveryCodes       RecoveryCode[]
-  auditLogs           AuditLog[]
-  uploadedMedia       Media[]
+  id                   String         @id @default(cuid()) @db.VarChar(30)
+  username             String         @unique @db.VarChar(80)
+  usernameNormalized   String         @unique @db.VarChar(80)
+  displayName          String         @db.VarChar(160)
+  role                 AdminRole      @default(EDITOR)
+  passwordHash         String         @db.VarChar(255)
+  mustChangePassword   Boolean        @default(true)
+  totpSecretEncrypted  String?        @db.Text
+  totpKeyVersion       Int?
+  lastTotpTimeStep     Int?
+  twoFactorEnabled     Boolean        @default(false)
+  isActive             Boolean        @default(true)
+  lastLoginAt          DateTime?      @db.Timestamptz(3)
+  deletedAt            DateTime?      @db.Timestamptz(3)
+  purgeAt              DateTime?      @db.Timestamptz(3)
+  createdAt            DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime       @updatedAt @db.Timestamptz(3)
+  sessions             Session[]
+  recoveryCodes        RecoveryCode[]
+  auditLogs            AuditLog[]
+  uploadedMedia        Media[]
+  approvedLegalNotices LegalNotice[]
 
   @@index([role, isActive])
   @@index([deletedAt, purgeAt])
-  @@index([lockedUntil])
 }
 
+/// บัตรผ่านหลังล็อกอิน เก็บเฉพาะ hash ของ token และสามารถ revoke ได้
 model Session {
   id            String    @id @default(cuid()) @db.VarChar(30)
   tokenHash     String    @unique @db.Char(64)
@@ -421,6 +518,7 @@ model Session {
   @@index([expiresAt])
 }
 
+/// รหัสสำรอง 2FA แบบใช้ครั้งเดียว โดยเก็บเฉพาะ hash
 model RecoveryCode {
   id        String    @id @default(cuid()) @db.VarChar(30)
   adminId   String    @db.VarChar(30)
@@ -433,6 +531,7 @@ model RecoveryCode {
   @@index([adminId, usedAt])
 }
 
+/// ประวัติเหตุการณ์สำคัญสำหรับตรวจสอบย้อนหลังโดยไม่เก็บ secret
 model AuditLog {
   id         BigInt      @id @default(autoincrement())
   actorId    String?     @db.VarChar(30)
@@ -455,6 +554,7 @@ model AuditLog {
   @@index([requestId])
 }
 
+/// ส่ง URL เก่าไป URL ใหม่เมื่อ slug ที่เผยแพร่เปลี่ยน
 model Redirect {
   id         String    @id @default(cuid()) @db.VarChar(30)
   fromPath   String    @unique @db.VarChar(1000)
@@ -469,6 +569,7 @@ model Redirect {
   @@index([isActive, fromPath])
 }
 
+/// จำนวนครั้งที่ยืนยันตัวตนผิดและเวลาล็อกชั่วคราวเพื่อชะลอ brute force
 model AuthThrottle {
   key         String    @id @db.Char(64)
   failures    Int       @default(0)

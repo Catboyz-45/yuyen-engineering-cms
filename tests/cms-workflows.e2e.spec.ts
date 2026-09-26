@@ -11,13 +11,22 @@ const runId = Date.now().toString(36);
 let ownerSecret = "";
 
 // A retry would replay the one-time first sign-in, so failures must be investigated rather than retried.
-test.describe.configure({ mode: "serial", retries: 0 });
+test.describe.configure({ mode: "serial", retries: 0, timeout: 120_000 });
+// ต้องมีบัญชี Super Admin ที่ CI สร้างด้วย auth:bootstrap; เครื่องที่ไม่ได้ตั้งค่าจะข้ามชุดนี้
 test.skip(!ownerUsername || !ownerTemporaryPassword, "E2E bootstrap credentials are not configured");
 
 const code = (secret: string) => new OTPAuth.TOTP({ secret: OTPAuth.Secret.fromBase32(secret) }).generate();
+// ระบบปฏิเสธรหัสของช่วง 30 วินาทีที่บัญชีเพิ่งใช้ไป (กันนำรหัสกลับมาใช้ซ้ำ) จึงรอช่วงถัดไปเมื่อจำเป็น
+const usedSteps = new Map<string, number>();
+async function freshCode(secret: string) {
+  let step = Math.floor(Date.now() / 30_000);
+  if (usedSteps.get(secret) === step) { await new Promise(resolve => setTimeout(resolve, (step + 1) * 30_000 - Date.now() + 250)); step += 1; }
+  usedSteps.set(secret, step);
+  return code(secret);
+}
 
 async function enterOtp(page: Page, secret: string) {
-  const value = code(secret);
+  const value = await freshCode(secret);
   for (let index = 0; index < 6; index += 1) await page.getByLabel(`หลักที่ ${index + 1}`).fill(value[index]);
   await page.locator("form button.btn-dark").click();
 }
@@ -42,10 +51,10 @@ async function completeFirstSignIn(page: Page, username: string, temporaryPasswo
   await page.getByRole("link", { name: /สแกนแล้ว ดำเนินการต่อ/ }).click();
   await expect(page).toHaveURL(/\/setup-2fa\/verify$/);
   await enterOtp(page, secret);
-  await expect(page).toHaveURL(/\/recovery-codes$/);
+  // รหัสกู้คืนแสดงในหน้าเดิมทันทีหลังยืนยัน (ไม่ส่งผ่าน URL เพื่อไม่ให้ค้างในประวัติเบราว์เซอร์)
   await expect(page.locator(".recovery-code")).toHaveCount(10);
   await page.getByLabel("ฉันบันทึกรหัสเหล่านี้ไว้ในที่ปลอดภัยแล้ว").check();
-  await page.getByRole("link", { name: /เสร็จสิ้นและเข้าสู่ระบบ/ }).click();
+  await page.getByRole("button", { name: /เสร็จสิ้นและเข้าสู่ระบบ/ }).click();
   await expect(page).toHaveURL(/\/admin$/);
   return secret;
 }
@@ -137,7 +146,8 @@ test("a new administrator must change the temporary password, and a reset forces
   await owner.getByRole("button", { name: /เพิ่มผู้ดูแล/ }).click();
   await owner.locator("#admin-name").fill(displayName);
   await owner.locator("#admin-username").fill(username);
-  await owner.locator("#admin-role").selectOption("EDITOR");
+  // บทบาทเริ่มต้นของบัญชีใหม่คือ Editor อยู่แล้ว
+  await expect(owner.locator("#admin-role")).toContainText("Editor");
   await owner.getByRole("dialog").getByRole("button", { name: "บันทึก" }).click();
   const temporaryPassword = await owner.locator("#temporary-password").inputValue();
   expect(temporaryPassword.length).toBeGreaterThan(12);
@@ -179,16 +189,17 @@ test("visitors find published products by name, brand and BTU", async ({ browser
   const visitor = await (await browser.newContext()).newPage();
   await visitor.goto("/products");
   await visitor.getByPlaceholder("ค้นหาชื่อหรือรุ่น").fill(model);
-  await visitor.getByLabel("กรองตามยี่ห้อ").selectOption(`e2e-brand-${runId}`);
+  await visitor.getByRole("combobox", { name: "กรองตามยี่ห้อ" }).click();
+  await visitor.getByRole("option", { name: `E2E Brand ${runId}` }).click();
   await visitor.getByLabel("กรองตาม BTU").fill("10000");
-  await visitor.getByRole("button", { name: "ค้นหา" }).click();
+  await visitor.getByRole("button", { name: "ค้นหา", exact: true }).click();
   await expect(visitor).toHaveURL(new RegExp(`q=${model}`));
   await expect(visitor.getByText("พบสินค้า 1 รายการ")).toBeVisible();
   await expect(visitor.getByText(`แอร์ทดสอบ ${runId}`)).toBeVisible();
   await expect(visitor.getByText(`แอร์ฉบับร่าง ${runId}`)).toHaveCount(0);
 
   await visitor.getByLabel("กรองตาม BTU").fill("24000");
-  await visitor.getByRole("button", { name: "ค้นหา" }).click();
+  await visitor.getByRole("button", { name: "ค้นหา", exact: true }).click();
   await expect(visitor.getByText("พบสินค้า 0 รายการ")).toBeVisible();
   await expectHiddenFromPublic(visitor.request, `/products/e2e-draft-${runId}`, `แอร์ฉบับร่าง ${runId}`);
 });
