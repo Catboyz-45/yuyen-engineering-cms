@@ -1,16 +1,16 @@
 /**
  * หน้าที่ของไฟล์นี้: ส่วนบนสุดของหน้ารายละเอียด ปุ่มย้อนกลับอยู่มุมซ้ายบน แล้วตามด้วยเส้นทางของหน้านี้ในบรรทัดถัดไป
  */
-import Link from "next/link";
+import { PublicLink } from "./public-link";
 import { ArrowLeft } from "lucide-react";
 
 /** rootLabel คือชื่อหน้ารวม เช่น "สินค้า" ใช้ทั้งในปุ่ม "กลับไปหน้าสินค้า" และลำดับแรกของเส้นทาง */
 export function DetailNav({ href, rootLabel, trail }: Readonly<{ href: string; rootLabel: string; trail: string[] }>) {
   return (
     <div className="detail-nav">
-      <Link className="back-link" href={href}><ArrowLeft size={16} aria-hidden="true" /> กลับไปหน้า{rootLabel}</Link>
+      <PublicLink className="back-link" href={href}><ArrowLeft size={16} aria-hidden="true" /> กลับไปหน้า{rootLabel}</PublicLink>
       <nav className="breadcrumbs" aria-label="เส้นทางหน้า">
-        <Link href={href}>{rootLabel}</Link>
+        <PublicLink href={href}>{rootLabel}</PublicLink>
         {trail.map((item, position) => (
           <span key={item} className="cluster">
             <span aria-hidden="true">/</span>

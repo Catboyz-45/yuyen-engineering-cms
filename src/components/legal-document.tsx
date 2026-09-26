@@ -1,5 +1,5 @@
 /** หน้าที่ของไฟล์นี้: จัดหน้านโยบายภาษาไทย มีสารบัญ สถานะเอกสาร และช่องทางใช้สิทธิ์ */
-import Link from "next/link";
+import { PublicLink } from "./public-link";
 import type { ReactNode } from "react";
 import { legalRevision } from "@/lib/legal";
 import type { PublicLegalNotice } from "@/server/services/legal-notice.service";
@@ -37,7 +37,7 @@ export function LegalDocument({ title, summary, sections, notice }: Readonly<{ t
           {section.content}
         </section>
       ))}
-      <p><Link href="/contact">ดูช่องทางติดต่อบริษัท</Link></p>
+      <p><PublicLink href="/contact">ดูช่องทางติดต่อบริษัท</PublicLink></p>
     </article>
   );
 }

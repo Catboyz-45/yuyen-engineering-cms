@@ -3,7 +3,7 @@
  *
  * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
  */
-import Link from "next/link";
+import { PublicLink } from "./public-link";
 
 /** สร้างส่วนหน้าจอ PublicPagination; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function PublicPagination({
@@ -30,9 +30,9 @@ export function PublicPagination({
   return (
     <nav className="public-pagination" aria-label="เปลี่ยนหน้าผลลัพธ์">
       {page > 1 ? (
-        <Link className="btn btn-outline" href={href(page - 1)}>
+        <PublicLink className="btn btn-outline" href={href(page - 1)}>
           ก่อนหน้า
-        </Link>
+        </PublicLink>
       ) : (
         <span className="btn btn-outline" aria-disabled="true">
           ก่อนหน้า
@@ -42,9 +42,9 @@ export function PublicPagination({
         หน้า {page} จาก {pageCount}
       </span>
       {page < pageCount ? (
-        <Link className="btn btn-outline" href={href(page + 1)}>
+        <PublicLink className="btn btn-outline" href={href(page + 1)}>
           ถัดไป
-        </Link>
+        </PublicLink>
       ) : (
         <span className="btn btn-outline" aria-disabled="true">
           ถัดไป
@@ -60,9 +60,9 @@ export function EmptyPublicResults({ resetHref }: Readonly<{ resetHref: string }
     <div className="empty-state">
       <h2 className="subheading">ไม่พบข้อมูลที่ตรงกับการค้นหา</h2>
       <p className="muted">ลองเปลี่ยนคำค้นหาหรือล้างตัวกรองเพื่อดูรายการทั้งหมด</p>
-      <Link className="btn btn-outline" href={resetHref}>
+      <PublicLink className="btn btn-outline" href={resetHref}>
         ล้างตัวกรอง
-      </Link>
+      </PublicLink>
     </div>
   );
 }

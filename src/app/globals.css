@@ -1175,6 +1175,45 @@ select.filter-select {
   );
   animation: shimmer 1.35s infinite;
 }
+/* สถานะกำลังเปิดหน้าใหม่ระหว่างการนำทางฝั่งเบราว์เซอร์ (ดู components/public-link.tsx)
+   หน่วง 150ms ก่อนแสดง เพื่อไม่ให้กะพริบเมื่อหน้าใหม่โหลดเร็ว */
+.route-progress {
+  position: fixed;
+  z-index: 190;
+  inset: 0 0 auto;
+  height: 3px;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--mint-100);
+  opacity: 0;
+  animation: route-progress-in 0.2s ease-out 0.15s forwards;
+}
+.route-progress::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, var(--green-600), var(--lime-400));
+  animation: route-progress-slide 1.1s ease-in-out infinite;
+}
+main[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.6;
+  transition: opacity 0.2s ease 0.15s;
+}
+@keyframes route-progress-in {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes route-progress-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
 .toast-region {
   position: fixed;
   z-index: 150;
@@ -3109,6 +3148,10 @@ fieldset.form-group {
   .btn:hover,
   .card-hover:hover {
     transform: none;
+  }
+  .route-progress::before {
+    width: 100%;
+    animation: none;
   }
 }
 

@@ -3,7 +3,7 @@
  *
  * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
  */
-import Link from "next/link";
+import { PublicLink } from "@/components/public-link";
 import { ArrowRight, BadgeCheck, Clock3, Headphones, MapPin, Phone, ShieldCheck } from "lucide-react";
 import { ProductCard, ServiceCard, StoryCard } from "@/components/content-cards";
 import { SectionLink } from "@/components/site-shell";
@@ -49,7 +49,7 @@ export default async function HomePage() {
           {copy.heroBadge && <span className="hero-badge"><BadgeCheck size={16} /> {copy.heroBadge}</span>}
           <TypingHeadline className="display pre-line" text={banner?.title ?? copy.heroTitle} />
           {(banner?.description ?? copy.heroText) && <p className="lead">{banner?.description ?? copy.heroText}</p>}
-          <div className="cluster" style={{ marginTop: 32 }}><HeroButton label={banner?.buttonLabel} href={banner?.buttonUrl} /><Link className="btn btn-outline" style={{ borderColor: "rgba(255,255,255,.4)", color: "white" }} href="/contact"><Phone size={17} /> ติดต่อสอบถาม</Link></div>
+          <div className="cluster" style={{ marginTop: 32 }}><HeroButton label={banner?.buttonLabel} href={banner?.buttonUrl} /><PublicLink className="btn btn-outline" style={{ borderColor: "rgba(255,255,255,.4)", color: "white" }} href="/contact"><Phone size={17} /> ติดต่อสอบถาม</PublicLink></div>
         </div></div>
       </section>
 
@@ -77,7 +77,7 @@ export default async function HomePage() {
 
       <section className="section" style={{ background: "var(--cream-100)" }}><div className="container"><div className="section-head"><div><p className="eyebrow">NEWS & KNOWLEDGE</p><h2 className="heading pre-line">{copy.newsHeading}</h2></div><SectionLink href="/news">ดูทั้งหมด</SectionLink></div><div className="grid-3">{news.map(item => <StoryCard key={item.slug} item={item} type="news" />)}</div></div></section>
 
-      <section className="section"><div className="container"><div className="cta"><div><p className="eyebrow" style={{ color: "var(--lime-400)" }}>LET&apos;S TALK</p><h2 className="heading pre-line">{copy.ctaTitle}</h2>{copy.ctaText && <p style={{ color: "rgba(255,255,255,.7)" }}>{copy.ctaText}</p>}</div><div className="cluster cta-actions">{company.phoneHref && <a className="btn btn-white" href={`tel:${company.phoneHref}`}><Phone size={18} /> โทรหาเรา</a>}<Link className="btn btn-primary" href="/contact"><MapPin size={18} /> ช่องทางติดต่อ</Link></div></div></div></section>
+      <section className="section"><div className="container"><div className="cta"><div><p className="eyebrow" style={{ color: "var(--lime-400)" }}>LET&apos;S TALK</p><h2 className="heading pre-line">{copy.ctaTitle}</h2>{copy.ctaText && <p style={{ color: "rgba(255,255,255,.7)" }}>{copy.ctaText}</p>}</div><div className="cluster cta-actions">{company.phoneHref && <a className="btn btn-white" href={`tel:${company.phoneHref}`}><Phone size={18} /> โทรหาเรา</a>}<PublicLink className="btn btn-primary" href="/contact"><MapPin size={18} /> ช่องทางติดต่อ</PublicLink></div></div></div></section>
     </>
   );
 }
@@ -86,7 +86,7 @@ export default async function HomePage() {
 function HeroButton({ label, href }: Readonly<{ label?: string | null; href?: string | null }>) {
   const text = label?.trim();
   const target = href?.trim();
-  if (!text || !target) return <Link className="btn btn-primary" href="/services">ดูบริการของเรา <ArrowRight size={18} /></Link>;
-  if (target.startsWith("/")) return <Link className="btn btn-primary" href={target}>{text} <ArrowRight size={18} /></Link>;
+  if (!text || !target) return <PublicLink className="btn btn-primary" href="/services">ดูบริการของเรา <ArrowRight size={18} /></PublicLink>;
+  if (target.startsWith("/")) return <PublicLink className="btn btn-primary" href={target}>{text} <ArrowRight size={18} /></PublicLink>;
   return <a className="btn btn-primary" href={target} rel="noopener">{text} <ArrowRight size={18} /></a>;
 }

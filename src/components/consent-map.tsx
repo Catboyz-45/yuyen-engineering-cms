@@ -1,7 +1,7 @@
 /** หน้าที่ของไฟล์นี้: รอผู้ใช้เลือกก่อนติดต่อ Google Maps และยกเลิกการโหลดได้จากหน้าเดิม */
 "use client";
 
-import Link from "next/link";
+import { PublicLink } from "./public-link";
 import { useRef, useState } from "react";
 import { safeMapEmbedUrl } from "@/lib/map-embed";
 import { focusNextFrame } from "@/lib/focus";
@@ -34,7 +34,7 @@ export function ConsentMap({ embedUrl }: Readonly<{ embedUrl: string }>) {
       <div className="card-body stack">
         <h2 className="subheading">แผนที่ Google Maps</h2>
         <p>เมื่อเลือกโหลดแผนที่ Google จะได้รับข้อมูลการเชื่อมต่อ เช่น IP และข้อมูลเบราว์เซอร์ และอาจใช้คุกกี้ตามการตั้งค่าของคุณ คุณอ่านข้อมูลติดต่อได้โดยไม่ต้องเปิดแผนที่</p>
-        <p><Link href="/cookies#optional">อ่านเรื่องแผนที่และคุกกี้</Link></p>
+        <p><PublicLink href="/cookies#optional">อ่านเรื่องแผนที่และคุกกี้</PublicLink></p>
         {shown ? (
           <button className="btn btn-outline" type="button" onClick={closeMap}>ปิดแผนที่และยกเลิกการโหลด</button>
         ) : (

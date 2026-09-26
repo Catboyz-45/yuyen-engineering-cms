@@ -5,7 +5,7 @@
  */
 "use client";
 
-import Link from "next/link";
+import { PublicLink } from "./public-link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronRight, Menu, Phone, X } from "lucide-react";
@@ -24,7 +24,11 @@ const links = [
 /** สร้างส่วนหน้าจอ SiteHeader; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function SiteHeader({ logo }: Readonly<{ logo?: PublicCompany["logo"] }>) {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
+  // เมนูมือถือเปิดค้างไว้จนเปลี่ยนหน้าเสร็จ ลิงก์ที่แตะจึงแสดงสถานะกำลังโหลดได้ แล้วปิดเองเมื่อ pathname เปลี่ยน
+  const [openedAt, setOpenedAt] = useState<string | null>(null);
+  const isOpen = openedAt === pathname;
+  const setIsOpen = (open: boolean) => setOpenedAt(open ? pathname : null);
+  const closeIfCurrent = (href: string) => { if (href === pathname) setIsOpen(false); };
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDialogElement>(null);
@@ -33,7 +37,7 @@ export function SiteHeader({ logo }: Readonly<{ logo?: PublicCompany["logo"] }>)
     const trigger = triggerRef.current;
     closeButtonRef.current?.focus();
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { setIsOpen(false); return; }
+      if (event.key === "Escape") { setOpenedAt(null); return; }
       if (event.key !== "Tab") return;
       const focusable = drawerRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled])');
       if (!focusable?.length) return;
@@ -48,14 +52,14 @@ export function SiteHeader({ logo }: Readonly<{ logo?: PublicCompany["logo"] }>)
   return (
     <><header className="site-header">
       <nav className="container nav" aria-label="เมนูหลัก">
-        <Link href="/" aria-label="อยู่เย็นเป็นสุข วิศวกรรม หน้าแรก"><Logo media={logo} /></Link>
+        <PublicLink href="/" aria-label="อยู่เย็นเป็นสุข วิศวกรรม หน้าแรก"><Logo media={logo} /></PublicLink>
         <div className="nav-links">
-          {links.map(([href, label]) => <Link key={href} href={href} style={{ color: pathname === href ? "var(--green-700)" : undefined }}>{label}</Link>)}
+          {links.map(([href, label]) => <PublicLink key={href} href={href} style={{ color: pathname === href ? "var(--green-700)" : undefined }}>{label}</PublicLink>)}
         </div>
-        <Link className="btn btn-primary" href="/contact"><Phone size={16} /> ติดต่อเรา</Link>
+        <PublicLink className="btn btn-primary" href="/contact"><Phone size={16} /> ติดต่อเรา</PublicLink>
         <button ref={triggerRef} className="btn btn-outline mobile-nav" type="button" aria-expanded={isOpen} aria-controls="mobile-menu" onClick={() => setIsOpen(true)} aria-label="เปิดเมนู"><Menu size={20} /></button>
       </nav>
-    </header>{isOpen && <><button type="button" className="drawer-backdrop" aria-label="ปิดเมนู" onClick={() => setIsOpen(false)} /><dialog open ref={drawerRef} className="drawer" id="mobile-menu" aria-modal="true" aria-label="เมนูหลักบนมือถือ"><div className="drawer-header"><Logo /><button type="button" ref={closeButtonRef} className="icon-btn" onClick={() => setIsOpen(false)} aria-label="ปิดเมนู"><X size={22} /></button></div><nav className="drawer-nav">{links.map(([href, label]) => <Link onClick={() => setIsOpen(false)} aria-current={pathname === href ? "page" : undefined} className={`drawer-link ${pathname === href ? "active" : ""}`} key={href} href={href}>{label}<ChevronRight size={17} /></Link>)}</nav><div className="drawer-footer"><Link onClick={() => setIsOpen(false)} className="btn btn-primary" style={{ width: "100%" }} href="/contact"><Phone size={17} /> ติดต่อเรา</Link></div></dialog></>}</>
+    </header>{isOpen && <><button type="button" className="drawer-backdrop" aria-label="ปิดเมนู" onClick={() => setIsOpen(false)} /><dialog open ref={drawerRef} className="drawer" id="mobile-menu" aria-modal="true" aria-label="เมนูหลักบนมือถือ"><div className="drawer-header"><Logo /><button type="button" ref={closeButtonRef} className="icon-btn" onClick={() => setIsOpen(false)} aria-label="ปิดเมนู"><X size={22} /></button></div><nav className="drawer-nav">{links.map(([href, label]) => <PublicLink onClick={() => closeIfCurrent(href)} aria-current={pathname === href ? "page" : undefined} className={`drawer-link ${pathname === href ? "active" : ""}`} key={href} href={href}>{label}<ChevronRight size={17} /></PublicLink>)}</nav><div className="drawer-footer"><PublicLink onClick={() => closeIfCurrent("/contact")} className="btn btn-primary" style={{ width: "100%" }} href="/contact"><Phone size={17} /> ติดต่อเรา</PublicLink></div></dialog></>}</>
   );
 }
 
@@ -74,11 +78,11 @@ export function SiteFooter({ company, services = [], tagline = DEFAULT_SITE_COPY
       <div className="container">
         <div className="footer-grid">
           <div className="stack"><Logo inverse media={company.logo} />{tagline && <p style={{ maxWidth: 340 }}>{tagline}</p>}</div>
-          <div><h3>บริษัท</h3><div className="footer-links"><Link href="/about">เกี่ยวกับเรา</Link><Link href="/projects">ผลงานของเรา</Link><Link href="/news">ข่าวสาร</Link></div></div>
-          <div><h3>บริการ</h3><div className="footer-links">{services.slice(0, 3).map(service => <Link key={service.slug} href={`/services/${service.slug}`}>{service.title}</Link>)}<Link href="/services">บริการทั้งหมด</Link></div></div>
-          <div><h3>ติดต่อ</h3><div className="footer-links">{company.phoneHref && company.phoneDisplay && <a href={`tel:${company.phoneHref}`}>โทร {company.phoneDisplay}</a>}<FooterLine company={company} text={lineText} />{company.businessHours && <span>{company.businessHours}</span>}<Link href="/contact">ช่องทางติดต่อทั้งหมด</Link></div></div>
+          <div><h3>บริษัท</h3><div className="footer-links"><PublicLink href="/about">เกี่ยวกับเรา</PublicLink><PublicLink href="/projects">ผลงานของเรา</PublicLink><PublicLink href="/news">ข่าวสาร</PublicLink></div></div>
+          <div><h3>บริการ</h3><div className="footer-links">{services.slice(0, 3).map(service => <PublicLink key={service.slug} href={`/services/${service.slug}`}>{service.title}</PublicLink>)}<PublicLink href="/services">บริการทั้งหมด</PublicLink></div></div>
+          <div><h3>ติดต่อ</h3><div className="footer-links">{company.phoneHref && company.phoneDisplay && <a href={`tel:${company.phoneHref}`}>โทร {company.phoneDisplay}</a>}<FooterLine company={company} text={lineText} />{company.businessHours && <span>{company.businessHours}</span>}<PublicLink href="/contact">ช่องทางติดต่อทั้งหมด</PublicLink></div></div>
         </div>
-        <nav className="legal-links" aria-label="นโยบายและเงื่อนไข">{legalLinks.map(link => <Link key={link.href} href={link.href}>{link.label}</Link>)}</nav>
+        <nav className="legal-links" aria-label="นโยบายและเงื่อนไข">{legalLinks.map(link => <PublicLink key={link.href} href={link.href}>{link.label}</PublicLink>)}</nav>
         <div className="footer-bottom"><span>© {new Date().getFullYear()} {company.legalName}{company.registrationNumber && <> · เลขทะเบียนนิติบุคคล {company.registrationNumber}</>}</span>{company.isPlaceholder && <span>ข้อมูลตัวอย่างสำหรับการพัฒนาระบบ</span>}</div>
       </div>
     </footer>
@@ -93,5 +97,5 @@ export function PublicShell({ children, company = resolvePublicCompany(null), se
 
 /** สร้างส่วนหน้าจอ SectionLink; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function SectionLink({ href, children }: Readonly<{ href: string; children: React.ReactNode }>) {
-  return <Link className="btn btn-outline" href={href}>{children}<ArrowRight size={17} /></Link>;
+  return <PublicLink className="btn btn-outline" href={href}>{children}<ArrowRight size={17} /></PublicLink>;
 }

@@ -5,7 +5,7 @@
  */
 "use client";
 
-import Link from "next/link";
+import { PublicLink } from "./public-link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoaderCircle, Search, X } from "lucide-react";
 import {
@@ -85,14 +85,14 @@ export function PublicFilterSubmit() {
 /** สร้างส่วนหน้าจอ ClearPublicFilters; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function ClearPublicFilters({ href }: Readonly<{ href: string }>) {
   return (
-    <Link
+    <PublicLink
       className="btn btn-ghost clear-filters"
       href={href}
       scroll={false}
       aria-label="ล้างคำค้นหาและตัวกรองทั้งหมด"
     >
       <X size={16} aria-hidden="true" /> ล้างตัวกรอง
-    </Link>
+    </PublicLink>
   );
 }
 
