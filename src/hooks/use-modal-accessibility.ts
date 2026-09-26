@@ -41,7 +41,11 @@ export function useModalAccessibility({ active = true, containerRef, initialFocu
       document.addEventListener("focusin", rememberFocus);
       return () => document.removeEventListener("focusin", rememberFocus);
     }
-    const previousFocus = restoreFocusRef?.current ?? returnFocusRef.current;
+    // Modal ที่ mount ในสถานะเปิดทันทีจะไม่ผ่านช่วง inactive จึงใช้ element ที่ focus อยู่ก่อนย้าย focus เข้า modal แทน
+    const openerFocus = document.activeElement instanceof HTMLElement && !containerRef.current?.contains(document.activeElement)
+      ? document.activeElement
+      : null;
+    const previousFocus = restoreFocusRef?.current ?? returnFocusRef.current ?? openerFocus;
     const bodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
