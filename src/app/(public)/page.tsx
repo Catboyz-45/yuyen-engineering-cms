@@ -13,6 +13,7 @@ import { ResponsiveMedia } from "@/components/responsive-media";
 import { formatThaiDate } from "@/lib/date";
 import { resolvePublicCompany } from "@/lib/company-display";
 import { resolveSiteCopy } from "@/server/services/site-copy";
+import { TypingHeadline } from "@/components/type-text";
 
 /** SEO ของหน้าแรกมาจากช่อง SEO ในข้อมูลบริษัท ถ้าเว้นว่างใช้ค่าเริ่มต้น */
 export async function generateMetadata() {
@@ -39,7 +40,7 @@ export default async function HomePage() {
         {banner?.image && <ResponsiveMedia media={banner.image} className="hero-media" priority />}
         <div className="container"><div className="hero-content">
           {copy.heroBadge && <span className="hero-badge"><BadgeCheck size={16} /> {copy.heroBadge}</span>}
-          <h1 className="display pre-line">{banner?.title ?? copy.heroTitle}</h1>
+          <TypingHeadline className="display pre-line" text={banner?.title ?? copy.heroTitle} />
           {(banner?.description ?? copy.heroText) && <p className="lead">{banner?.description ?? copy.heroText}</p>}
           <div className="cluster" style={{ marginTop: 32 }}><HeroButton label={banner?.buttonLabel} href={banner?.buttonUrl} /><Link className="btn btn-outline" style={{ borderColor: "rgba(255,255,255,.4)", color: "white" }} href="/contact"><Phone size={17} /> ติดต่อสอบถาม</Link></div>
         </div></div>

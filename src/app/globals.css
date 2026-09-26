@@ -541,8 +541,75 @@ output {
   max-width: 740px;
   padding: 100px 0;
 }
+/* ปุ่มหยุดข้อความเคลื่อนไหว มุมขวาล่างของส่วนหัว ชิดขอบขวาของเนื้อหาเว็บ แบบเดียวกับปุ่มหยุดวิดีโอพื้นหลัง */
+.type-toggle {
+  position: absolute;
+  bottom: 40px;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(7, 45, 30, 0.6);
+  color: white;
+  cursor: pointer;
+}
+.type-toggle:hover {
+  background: rgba(7, 45, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.5);
+}
 .hero .display {
   color: white;
+}
+/* ข้อความพิมพ์ทีละตัว: ส่วนที่ยังไม่พิมพ์ล่องหนแต่ยังกินที่ จุดตัดบรรทัดจึงเหมือนประโยคเต็มตลอด */
+.type-text,
+.type-text-live {
+  display: block;
+}
+.type-text-live {
+  position: relative;
+}
+.type-text-rest {
+  visibility: hidden;
+}
+/* ประโยคเต็มแบบข้อความล้วน ใช้วัดจุดตัดบรรทัดเท่านั้น (กว้างเท่ากล่องจริง มองไม่เห็น) */
+.type-text-measure {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* แต่ละบรรทัดตามที่วัดได้ ห้ามตัดบรรทัดข้างใน จุดแบ่งส่วนที่พิมพ์แล้วจึงไม่เปลี่ยนการตัดบรรทัด */
+.type-text-line {
+  display: block;
+  white-space: nowrap;
+}
+/* เคอร์เซอร์ขีดล่าง วางทับด้วย JavaScript ไม่อยู่ในบรรทัดข้อความ (ซ่อนจนกว่าจะวัดตำแหน่งได้) */
+.type-text-caret {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0.42em;
+  height: 0.07em;
+  margin-left: 0.08em;
+  background: var(--lime-400);
+  visibility: hidden;
+  pointer-events: none;
+  animation: type-cursor-blink 1s steps(1) infinite;
+}
+@keyframes type-cursor-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .type-text-caret {
+    animation: none;
+  }
 }
 .hero .lead {
   max-width: 640px;
@@ -1247,6 +1314,9 @@ select.filter-select {
   }
   .hero-content {
     padding: 80px 0 120px;
+  }
+  .type-toggle {
+    bottom: 64px;
   }
   .hero-stats {
     margin-top: -74px;
