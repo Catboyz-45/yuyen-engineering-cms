@@ -5,7 +5,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { PrismaClient } from "@prisma/client";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { addCmsSession as addSession, createCmsTestAdmin, deleteCmsTestAdmin } from "./support/cms-session";
 
 const publicRoutes = [
   "/",
@@ -42,8 +42,6 @@ const cmsRoutes = [
 ] as const;
 
 const database = new PrismaClient();
-const runId = randomUUID().slice(0, 8);
-const username = `a11y-${runId}`;
 let adminId = "";
 
 async function waitForPage(page: Page) {
@@ -63,38 +61,15 @@ async function assertAxeAndSemantics(page: Page) {
 }
 
 async function addCmsSession(page: Page) {
-  const token = randomBytes(32).toString("base64url");
-  await database.session.create({
-    data: {
-      tokenHash: createHash("sha256").update(token).digest("hex"),
-      adminId,
-      twoFactorAt: new Date(),
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-    },
-  });
-  await page.context().addCookies([{ name: "yuyen_session", value: token, url: process.env.TEST_BASE_URL ?? "http://localhost:3200", httpOnly: true, sameSite: "Lax" }]);
+  await addSession(page, database, adminId);
 }
 
 test.beforeAll(async () => {
-  const admin = await database.admin.create({
-    data: {
-      username,
-      usernameNormalized: username,
-      displayName: "ผู้ตรวจสอบ Accessibility",
-      role: "SUPER_ADMIN",
-      passwordHash: "accessibility-test-session-only",
-      mustChangePassword: false,
-      twoFactorEnabled: true,
-    },
-  });
-  adminId = admin.id;
+  adminId = await createCmsTestAdmin(database, "a11y", "ผู้ตรวจสอบ Accessibility");
 });
 
 test.afterAll(async () => {
-  if (adminId) {
-    await database.auditLog.deleteMany({ where: { actorId: adminId } });
-    await database.admin.deleteMany({ where: { id: adminId } });
-  }
+  await deleteCmsTestAdmin(database, adminId);
   await database.$disconnect();
 });
 

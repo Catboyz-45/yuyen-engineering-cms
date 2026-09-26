@@ -4,6 +4,9 @@
  */
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { PrismaClient } from "@prisma/client";
+import { randomUUID } from "node:crypto";
+import { addCmsSession, createCmsTestAdmin, deleteCmsTestAdmin } from "./support/cms-session";
 
 const viewports = [
   { name: "mobile-390", width: 390, height: 844 },
@@ -11,13 +14,49 @@ const viewports = [
   { name: "desktop-1280", width: 1280, height: 900 },
 ] as const;
 
+const database = new PrismaClient();
+const runId = randomUUID().slice(0, 8);
+// ข้อมูลทดสอบชั่วคราว: สินค้าแบบร่างภายใต้ยี่ห้อ/ประเภทที่ปิดใช้งาน จึงไม่ปรากฏบนหน้า public และถูกลบใน afterAll
+const fixture = { adminId: "", brandId: "", productTypeId: "", productId: "", productName: `สินค้าทดสอบ Playwright ${runId}` };
+
+test.beforeAll(async () => {
+  fixture.adminId = await createCmsTestAdmin(database, "visual", "ผู้ตรวจสอบ Visual Accessibility");
+  const brand = await database.brand.create({ data: { slug: `playwright-brand-${runId}`, name: `ยี่ห้อทดสอบ Playwright ${runId}`, isActive: false }, select: { id: true } });
+  fixture.brandId = brand.id;
+  const productType = await database.productType.create({ data: { slug: `playwright-type-${runId}`, name: `ประเภททดสอบ Playwright ${runId}`, isActive: false }, select: { id: true } });
+  fixture.productTypeId = productType.id;
+  const product = await database.product.create({
+    data: {
+      slug: `playwright-product-${runId}`,
+      name: fixture.productName,
+      model: `PW-${runId}`,
+      summary: "ข้อมูลทดสอบอัตโนมัติ ไม่ใช่สินค้าจริง",
+      isSearchable: false,
+      brandId: fixture.brandId,
+      productTypeId: fixture.productTypeId,
+    },
+    select: { id: true },
+  });
+  fixture.productId = product.id;
+});
+
+test.afterAll(async () => {
+  if (fixture.productId) await database.product.deleteMany({ where: { id: fixture.productId } });
+  if (fixture.productTypeId) await database.productType.deleteMany({ where: { id: fixture.productTypeId } });
+  if (fixture.brandId) await database.brand.deleteMany({ where: { id: fixture.brandId } });
+  await deleteCmsTestAdmin(database, fixture.adminId);
+  await database.$disconnect();
+});
+
 for (const viewport of viewports) {
   test.describe(viewport.name, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
     for (const route of ["/", "/products", "/admin", "/admin/products/daikin-smash-ii/edit"] as const) {
       test(`${route} ไม่มี horizontal overflow`, async ({ page }) => {
+        if (route.startsWith("/admin")) await addCmsSession(page, database, fixture.adminId);
         await page.goto(route);
+        await expect(page).toHaveURL(new RegExp(`${route}$`));
         await expect(page.locator(".skeleton")).toHaveCount(0);
         await expect(page.locator("body")).toBeVisible();
         const overflows = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
@@ -45,6 +84,26 @@ test("mobile drawer trap focus, ปิดด้วย Escape และคืน 
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: "เมนูหลักบนมือถือ" });
   await expect(dialog).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
+
+test("confirmation dialog trap focus, ปิดด้วย Escape และคืน focus", async ({ page }) => {
+  await addCmsSession(page, database, fixture.adminId);
+  await page.goto("/admin/products", { waitUntil: "networkidle" });
+  const trigger = page.getByRole("button", { name: `ย้าย ${fixture.productName} ไปถังขยะ` });
+  await trigger.focus();
+  await trigger.click();
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toBeVisible();
+  const cancel = dialog.getByRole("button", { name: "ยกเลิก", exact: true });
+  const confirm = dialog.getByRole("button", { name: "ย้ายไปถังขยะ", exact: true });
+  await expect(cancel).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(confirm).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(cancel).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(trigger).toBeFocused();
