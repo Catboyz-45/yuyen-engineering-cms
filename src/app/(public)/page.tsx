@@ -3,7 +3,7 @@
  *
  * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
  */
-import Link from "next/link";
+import { PublicLink } from "@/components/public-link";
 import { ArrowRight, BadgeCheck, Clock3, Headphones, MapPin, Phone, ShieldCheck } from "lucide-react";
 import { ProductCard, ServiceCard, StoryCard } from "@/components/content-cards";
 import { SectionLink } from "@/components/site-shell";
@@ -33,7 +33,7 @@ export default async function HomePage() {
           <span className="hero-badge"><BadgeCheck size={16} /> ดูแลโดยทีมช่างผู้มีประสบการณ์</span>
           <h1 className="display">{banner?.title ?? "เย็นสบาย มั่นใจได้ในทุกพื้นที่ของคุณ"}</h1>
           <p className="lead">{banner?.description ?? "ครบทุกเรื่องระบบปรับอากาศ ตั้งแต่จำหน่าย ติดตั้ง ล้าง ซ่อมบำรุง ไปจนถึงงานระบบ M&E"}</p>
-          <div className="cluster" style={{ marginTop: 32 }}><Link className="btn btn-primary" href="/services">ดูบริการของเรา <ArrowRight size={18} /></Link><Link className="btn btn-outline" style={{ borderColor: "rgba(255,255,255,.4)", color: "white" }} href="/contact"><Phone size={17} /> ติดต่อสอบถาม</Link></div>
+          <div className="cluster" style={{ marginTop: 32 }}><PublicLink className="btn btn-primary" href="/services">ดูบริการของเรา <ArrowRight size={18} /></PublicLink><PublicLink className="btn btn-outline" style={{ borderColor: "rgba(255,255,255,.4)", color: "white" }} href="/contact"><Phone size={17} /> ติดต่อสอบถาม</PublicLink></div>
         </div>
       </section>
 
@@ -55,7 +55,7 @@ export default async function HomePage() {
 
       <section className="section" style={{ background: "var(--cream-100)" }}><div className="container"><div className="section-head"><div><p className="eyebrow">NEWS & KNOWLEDGE</p><h2 className="heading">ข่าวสารและสาระน่ารู้</h2></div><SectionLink href="/news">ดูทั้งหมด</SectionLink></div><div className="grid-3">{news.map(item => <StoryCard key={item.slug} item={item} type="news" />)}</div></div></section>
 
-      <section className="section"><div className="container"><div className="cta"><div><p className="eyebrow" style={{ color: "var(--lime-400)" }}>LET&apos;S TALK</p><h2 className="heading">กำลังมองหาทีมดูแลระบบปรับอากาศ?</h2><p style={{ color: "rgba(255,255,255,.7)" }}>พูดคุยกับเราเพื่อรับคำแนะนำเบื้องต้นโดยไม่มีค่าใช้จ่าย</p></div><div className="cluster cta-actions"><a className="btn btn-white" href={`tel:${company.phoneHref}`}><Phone size={18} /> โทรหาเรา</a><Link className="btn btn-primary" href="/contact"><MapPin size={18} /> ช่องทางติดต่อ</Link></div></div></div></section>
+      <section className="section"><div className="container"><div className="cta"><div><p className="eyebrow" style={{ color: "var(--lime-400)" }}>LET&apos;S TALK</p><h2 className="heading">กำลังมองหาทีมดูแลระบบปรับอากาศ?</h2><p style={{ color: "rgba(255,255,255,.7)" }}>พูดคุยกับเราเพื่อรับคำแนะนำเบื้องต้นโดยไม่มีค่าใช้จ่าย</p></div><div className="cluster cta-actions"><a className="btn btn-white" href={`tel:${company.phoneHref}`}><Phone size={18} /> โทรหาเรา</a><PublicLink className="btn btn-primary" href="/contact"><MapPin size={18} /> ช่องทางติดต่อ</PublicLink></div></div></div></section>
     </>
   );
 }

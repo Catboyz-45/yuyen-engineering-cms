@@ -22,6 +22,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   typedRoutes: false,
+  // ปิด streaming metadata: ให้ title, description, canonical และ Open Graph จาก generateMetadata อยู่ใน <head>
+  // ของ HTML ครั้งแรกเสมอ แม้ผู้เข้าชมหรือ crawler ไม่รัน JavaScript (หน้าสาธารณะรอข้อมูลก่อนส่งอยู่แล้ว)
+  htmlLimitedBots: /.*/,
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
