@@ -7,6 +7,8 @@ import { companyPublicConfig } from "./public-config";
 
 type CompanyRecord = {
   displayName?: string | null;
+  legalName?: string | null;
+  registrationNumber?: string | null;
   shortDescription?: string | null;
   phoneDisplay?: string | null;
   phoneHref?: string | null;
@@ -23,6 +25,8 @@ type CompanyRecord = {
 
 export type PublicCompany = {
   name: string;
+  legalName: string;
+  registrationNumber: string | null;
   shortDescription: string | null;
   phoneDisplay: string | null;
   phoneHref: string | null;
@@ -48,10 +52,12 @@ function text(value: string | null | undefined) {
 export function resolvePublicCompany(record: CompanyRecord | null | undefined): PublicCompany {
   if (!record) {
     const fallback = companyPublicConfig;
-    return { name: fallback.name, shortDescription: null, phoneDisplay: fallback.phoneDisplay, phoneHref: fallback.phoneHref, email: fallback.email, lineLabel: fallback.lineLabel, lineUrl: fallback.lineUrl, facebookUrl: fallback.facebookUrl, address: fallback.address, mapsUrl: fallback.mapsUrl, mapsEmbedUrl: fallback.mapsEmbedUrl, businessHours: fallback.businessHours, logo: null, isPlaceholder: true };
+    return { name: fallback.name, legalName: fallback.name, registrationNumber: null, shortDescription: null, phoneDisplay: fallback.phoneDisplay, phoneHref: fallback.phoneHref, email: fallback.email, lineLabel: fallback.lineLabel, lineUrl: fallback.lineUrl, facebookUrl: fallback.facebookUrl, address: fallback.address, mapsUrl: fallback.mapsUrl, mapsEmbedUrl: fallback.mapsEmbedUrl, businessHours: fallback.businessHours, logo: null, isPlaceholder: true };
   }
   return {
     name: text(record.displayName) ?? companyPublicConfig.name,
+    legalName: text(record.legalName) ?? companyPublicConfig.name,
+    registrationNumber: text(record.registrationNumber),
     shortDescription: text(record.shortDescription),
     phoneDisplay: text(record.phoneDisplay),
     phoneHref: text(record.phoneHref),

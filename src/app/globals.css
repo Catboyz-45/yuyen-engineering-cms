@@ -368,16 +368,6 @@ output {
   gap: 10px;
   min-width: max-content;
 }
-.brand-mark {
-  width: 34px;
-  height: 34px;
-  border-radius: 11px 11px 11px 3px;
-  display: grid;
-  place-items: center;
-  background: var(--green-800);
-  color: var(--lime-400);
-  font-weight: 900;
-}
 /* ข้อความจาก CMS: เคารพการขึ้นบรรทัดใหม่ที่ผู้ดูแลกรอก */
 .pre-line {
   white-space: pre-line;
@@ -387,6 +377,13 @@ output {
   height: 40px;
   object-fit: contain;
   border-radius: 8px;
+}
+/* โลโก้บริษัทสีอ่อน วางบนแผ่นสีขาวให้เห็นชัดทั้งบนพื้นสว่างและพื้นเขียวเข้ม */
+.brand-logo-default {
+  padding: 3px;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(7, 45, 30, 0.08);
 }
 .brand-copy {
   display: grid;
@@ -1222,10 +1219,14 @@ select.filter-select {
   background: var(--green-950);
   color: rgba(255, 255, 255, 0.68);
 }
+/* จอเตี้ย (เช่นแล็ปท็อป 720px) ให้เมนูเลื่อนภายในแถบ บัญชีผู้ใช้ด้านล่างจึงอยู่บนพื้นเขียวเสมอ */
 .sidebar-nav {
   display: grid;
+  align-content: start;
   gap: 5px;
   margin-top: 32px;
+  min-height: 0;
+  overflow-y: auto;
 }
 .sidebar-link {
   min-height: 44px;
@@ -2600,6 +2601,8 @@ fieldset.form-group {
 .legal-links a { text-decoration: underline; text-underline-offset: 4px; }
 .login-privacy { margin-top: 24px; color: var(--muted); font-size: .8125rem; line-height: 1.8; }
 .login-privacy a { white-space: nowrap; }
+/* อีเมลยาวไม่มีช่องว่าง ให้ตัดขึ้นบรรทัดใหม่แทนการล้นกรอบการ์ด */
+.contact-value { overflow-wrap: anywhere; }
 .consent-map { width: 100%; }
 .consent-map .btn { white-space: normal; }
 .pending-contact {

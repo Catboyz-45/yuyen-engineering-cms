@@ -79,7 +79,7 @@ export function SiteFooter({ company, services = [], tagline = DEFAULT_SITE_COPY
           <div><h3>ติดต่อ</h3><div className="footer-links">{company.phoneHref && company.phoneDisplay && <a href={`tel:${company.phoneHref}`}>โทร {company.phoneDisplay}</a>}<FooterLine company={company} text={lineText} />{company.businessHours && <span>{company.businessHours}</span>}<Link href="/contact">ช่องทางติดต่อทั้งหมด</Link></div></div>
         </div>
         <nav className="legal-links" aria-label="นโยบายและเงื่อนไข">{legalLinks.map(link => <Link key={link.href} href={link.href}>{link.label}</Link>)}</nav>
-        <div className="footer-bottom"><span>© {new Date().getFullYear()} {company.name}</span>{company.isPlaceholder && <span>ข้อมูลตัวอย่างสำหรับการพัฒนาระบบ</span>}</div>
+        <div className="footer-bottom"><span>© {new Date().getFullYear()} {company.legalName}{company.registrationNumber && <> · เลขทะเบียนนิติบุคคล {company.registrationNumber}</>}</span>{company.isPlaceholder && <span>ข้อมูลตัวอย่างสำหรับการพัฒนาระบบ</span>}</div>
       </div>
     </footer>
   );

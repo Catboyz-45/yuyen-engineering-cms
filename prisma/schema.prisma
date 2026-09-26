@@ -51,33 +51,35 @@ enum AuditResult {
 
 /// ข้อมูลบริษัทชุดหลัก เช่น ชื่อ ประวัติ ที่อยู่ ช่องทางติดต่อ SEO และโลโก้
 model Company {
-  id               String   @id @default(cuid()) @db.VarChar(30)
-  singletonKey     String   @unique @default("PRIMARY") @db.VarChar(20)
-  legalName        String   @db.VarChar(200)
-  displayName      String   @db.VarChar(160)
-  shortDescription String?  @db.VarChar(500)
-  history          String?  @db.Text
-  vision           String?  @db.Text
-  mission          String?  @db.Text
-  values           String?  @db.Text
-  address          String?  @db.Text
-  phoneDisplay     String?  @db.VarChar(50)
-  phoneHref        String?  @db.VarChar(30)
-  email            String?  @db.VarChar(254)
-  lineLabel        String?  @db.VarChar(100)
-  lineUrl          String?  @db.VarChar(500)
-  facebookUrl      String?  @db.VarChar(500)
-  mapsUrl          String?  @db.VarChar(1000)
-  mapsEmbedUrl     String?  @db.VarChar(2000)
-  businessHours    String?  @db.VarChar(200)
-  seoTitle         String?  @db.VarChar(60)
-  seoDescription   String?  @db.VarChar(160)
-  siteCopy         Json?
-  logoMediaId      String?  @db.VarChar(30)
-  logoMedia        Media?   @relation("CompanyLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
-  gallery          CompanyMedia[]
-  createdAt        DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt        DateTime @updatedAt @db.Timestamptz(3)
+  id                 String         @id @default(cuid()) @db.VarChar(30)
+  singletonKey       String         @unique @default("PRIMARY") @db.VarChar(20)
+  legalName          String         @db.VarChar(200)
+  /// เลขทะเบียนนิติบุคคล 13 หลักตามหนังสือรับรองบริษัท
+  registrationNumber String?        @db.VarChar(13)
+  displayName        String         @db.VarChar(160)
+  shortDescription   String?        @db.VarChar(500)
+  history            String?        @db.Text
+  vision             String?        @db.Text
+  mission            String?        @db.Text
+  values             String?        @db.Text
+  address            String?        @db.Text
+  phoneDisplay       String?        @db.VarChar(50)
+  phoneHref          String?        @db.VarChar(30)
+  email              String?        @db.VarChar(254)
+  lineLabel          String?        @db.VarChar(100)
+  lineUrl            String?        @db.VarChar(500)
+  facebookUrl        String?        @db.VarChar(500)
+  mapsUrl            String?        @db.VarChar(1000)
+  mapsEmbedUrl       String?        @db.VarChar(2000)
+  businessHours      String?        @db.VarChar(200)
+  seoTitle           String?        @db.VarChar(60)
+  seoDescription     String?        @db.VarChar(160)
+  siteCopy           Json?
+  logoMediaId        String?        @db.VarChar(30)
+  logoMedia          Media?         @relation("CompanyLogo", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  gallery            CompanyMedia[]
+  createdAt          DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime       @updatedAt @db.Timestamptz(3)
 
   @@index([logoMediaId])
 }
@@ -403,16 +405,16 @@ model Media {
 
 /// รูปย่อหรือรูปแปลง WebP/AVIF ที่สร้างจาก Media ต้นฉบับ
 model MediaVariant {
-  id         String      @id @default(cuid()) @db.VarChar(30)
-  mediaId    String      @db.VarChar(30)
-  media      Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  format     MediaFormat
-  width      Int?
-  height     Int?
-  objectKey  String      @unique @db.VarChar(1000)
-  mimeType   String      @db.VarChar(120)
-  sizeBytes  BigInt
-  createdAt  DateTime    @default(now()) @db.Timestamptz(3)
+  id        String      @id @default(cuid()) @db.VarChar(30)
+  mediaId   String      @db.VarChar(30)
+  media     Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  format    MediaFormat
+  width     Int?
+  height    Int?
+  objectKey String      @unique @db.VarChar(1000)
+  mimeType  String      @db.VarChar(120)
+  sizeBytes BigInt
+  createdAt DateTime    @default(now()) @db.Timestamptz(3)
 
   @@unique([mediaId, format, width])
   @@index([mediaId])
@@ -434,27 +436,27 @@ model StorageCleanupJob {
 
 /// บัญชีผู้ดูแล เก็บ password hash และ TOTP ที่เข้ารหัส ไม่เก็บความลับแบบ plaintext
 model Admin {
-  id                  String         @id @default(cuid()) @db.VarChar(30)
-  username            String         @unique @db.VarChar(80)
-  usernameNormalized  String         @unique @db.VarChar(80)
-  displayName         String         @db.VarChar(160)
-  role                AdminRole      @default(EDITOR)
-  passwordHash        String         @db.VarChar(255)
-  mustChangePassword  Boolean        @default(true)
-  totpSecretEncrypted String?        @db.Text
-  totpKeyVersion      Int?
-  lastTotpTimeStep    Int?
-  twoFactorEnabled    Boolean        @default(false)
-  isActive            Boolean        @default(true)
-  lastLoginAt         DateTime?      @db.Timestamptz(3)
-  deletedAt           DateTime?      @db.Timestamptz(3)
-  purgeAt             DateTime?      @db.Timestamptz(3)
-  createdAt           DateTime       @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime       @updatedAt @db.Timestamptz(3)
-  sessions            Session[]
-  recoveryCodes       RecoveryCode[]
-  auditLogs           AuditLog[]
-  uploadedMedia       Media[]
+  id                   String         @id @default(cuid()) @db.VarChar(30)
+  username             String         @unique @db.VarChar(80)
+  usernameNormalized   String         @unique @db.VarChar(80)
+  displayName          String         @db.VarChar(160)
+  role                 AdminRole      @default(EDITOR)
+  passwordHash         String         @db.VarChar(255)
+  mustChangePassword   Boolean        @default(true)
+  totpSecretEncrypted  String?        @db.Text
+  totpKeyVersion       Int?
+  lastTotpTimeStep     Int?
+  twoFactorEnabled     Boolean        @default(false)
+  isActive             Boolean        @default(true)
+  lastLoginAt          DateTime?      @db.Timestamptz(3)
+  deletedAt            DateTime?      @db.Timestamptz(3)
+  purgeAt              DateTime?      @db.Timestamptz(3)
+  createdAt            DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime       @updatedAt @db.Timestamptz(3)
+  sessions             Session[]
+  recoveryCodes        RecoveryCode[]
+  auditLogs            AuditLog[]
+  uploadedMedia        Media[]
   approvedLegalNotices LegalNotice[]
 
   @@index([role, isActive])

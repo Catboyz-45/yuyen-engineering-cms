@@ -3,6 +3,7 @@
  *
  * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
  */
+import brandLogo from "@/assets/yuyen-logo.png";
 import type { PublicCompany } from "@/lib/company-display";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yuyenengineering.co.th";
@@ -18,8 +19,11 @@ export function LocalBusinessStructuredData({ company }: Readonly<{ company: Pub
     "@type": ["LocalBusiness", "HVACBusiness"],
     "@id": `${siteUrl}/#business`,
     name: company.name,
+    legalName: company.legalName,
+    ...(company.registrationNumber ? { taxID: company.registrationNumber } : {}),
     url: siteUrl,
     image: company.logo ? `${siteUrl}/api/media/${company.logo.id}?format=webp&width=640` : `${siteUrl}/opengraph-image`,
+    logo: company.logo ? `${siteUrl}/api/media/${company.logo.id}?format=webp&width=640` : `${siteUrl}${brandLogo.src}`,
     ...(company.shortDescription ? { description: company.shortDescription } : {}),
     ...(company.phoneHref ? { telephone: company.phoneHref } : {}),
     ...(company.email ? { email: company.email } : {}),

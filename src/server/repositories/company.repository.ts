@@ -9,6 +9,7 @@ import { db } from "@/server/db/client";
 const companyPublicSelect = {
   id: true,
   legalName: true,
+  registrationNumber: true,
   displayName: true,
   shortDescription: true,
   history: true,

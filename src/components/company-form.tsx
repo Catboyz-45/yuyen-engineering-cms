@@ -17,8 +17,8 @@ import { formText } from "@/lib/form-data";
 type MediaPreview = { id: string; originalName?: string | null; altText?: string | null };
 type Company = Record<string, unknown> & { logoMedia?: MediaPreview | null; gallery?: { media: MediaPreview }[] };
 const GALLERY_LIMIT = 12;
-type FieldKey = "legalName" | "displayName" | "shortDescription" | "history" | "vision" | "mission" | "values" | "address" | "phoneDisplay" | "phoneHref" | "email" | "lineLabel" | "lineUrl" | "facebookUrl" | "mapsUrl" | "mapsEmbedUrl" | "businessHours" | "seoTitle" | "seoDescription";
-type Field = { key: FieldKey; label: string; max: number; required?: boolean; multiline?: boolean; half?: boolean; type?: "email" | "url" | "tel"; pattern?: string; help?: string };
+type FieldKey = "legalName" | "registrationNumber" | "displayName" | "shortDescription" | "history" | "vision" | "mission" | "values" | "address" | "phoneDisplay" | "phoneHref" | "email" | "lineLabel" | "lineUrl" | "facebookUrl" | "mapsUrl" | "mapsEmbedUrl" | "businessHours" | "seoTitle" | "seoDescription";
+type Field = { key: FieldKey; label: string; max: number; required?: boolean; multiline?: boolean; half?: boolean; type?: "email" | "url" | "tel" | "numeric"; pattern?: string; help?: string };
 
 const field = (key: FieldKey, label: string, max: number, options: Omit<Field, "key" | "label" | "max"> = {}): Field => ({ key, label, max, ...options });
 
@@ -26,6 +26,7 @@ const field = (key: FieldKey, label: string, max: number, options: Omit<Field, "
 const groups = [
   { id: "company-identity", title: "ข้อมูลบริษัท", description: "ชื่อบริษัทและคำแนะนำสั้นๆ ที่ใช้ทั่วทั้งเว็บไซต์", fields: [
     field("legalName", "ชื่อบริษัทตามกฎหมาย", 200, { required: true, help: "ชื่อเต็มตามหนังสือรับรองบริษัท" }),
+    field("registrationNumber", "เลขทะเบียนนิติบุคคล", 13, { half: true, type: "numeric", pattern: String.raw`\d{13}`, help: "ตัวเลข 13 หลักตามหนังสือรับรองบริษัท แสดงที่ส่วนท้ายเว็บ" }),
     field("displayName", "ชื่อที่แสดง", 160, { required: true, help: "ชื่อสั้นที่ต่อท้ายชื่อทุกหน้าและแสดงในส่วนท้ายเว็บ" }),
     field("shortDescription", "คำอธิบายบริษัท", 500, { multiline: true, help: "ย่อหน้าสั้นใต้หัวข้อหน้าเกี่ยวกับเรา" }),
   ] },
@@ -150,7 +151,7 @@ export function CompanyForm() {
     return (
       <div className="form-group" key={item.key}>
         <label className={item.required ? "required" : ""} htmlFor={item.key}>{item.label}</label>
-        {item.multiline ? <textarea {...common} rows={item.key === "history" ? 5 : 3} /> : <input {...common} type={item.type === "tel" ? "text" : item.type ?? "text"} inputMode={item.type === "tel" ? "tel" : undefined} pattern={item.pattern} />}
+        {item.multiline ? <textarea {...common} rows={item.key === "history" ? 5 : 3} /> : <input {...common} type={item.type === "tel" || item.type === "numeric" ? "text" : item.type ?? "text"} inputMode={item.type === "tel" || item.type === "numeric" ? item.type : undefined} pattern={item.pattern} />}
         {item.help && <p className="help" id={`${item.key}-help`}>{item.help}</p>}
         {message && <p className="field-error" id={`${item.key}-error`}>{message}</p>}
       </div>

@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { isHttpsUrl } from "@/lib/links";
 import { safeMapEmbedUrl } from "@/lib/map-embed";
+import { isValidRegistrationNumber } from "@/lib/registration-number";
 import { db } from "@/server/db";
 import { CmsError } from "@/server/cms/errors";
 import { assertMedia } from "@/server/cms/content.service";
@@ -17,6 +18,7 @@ export const COMPANY_GALLERY_LIMIT = 12;
 
 export const companyInputSchema = z.object({
   legalName: z.string().trim().min(2).max(200),
+  registrationNumber: z.string().trim().refine(isValidRegistrationNumber, "เลขทะเบียนนิติบุคคลไม่ถูกต้อง กรุณาตรวจตัวเลข 13 หลักอีกครั้ง").nullable().optional(),
   displayName: z.string().trim().min(2).max(160),
   shortDescription: z.string().trim().max(500).nullable().optional(),
   history: z.string().trim().max(20_000).nullable().optional(),
