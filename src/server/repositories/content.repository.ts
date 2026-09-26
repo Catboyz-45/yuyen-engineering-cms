@@ -30,7 +30,7 @@ export class ServiceRepository {
   findPublishedBySlug(slug: string) {
     return db.service.findFirst({
       where: { slug, status: ContentStatus.PUBLISHED, deletedAt: null, publishedAt: { lte: new Date() } },
-      include: { coverMedia: { select: publicMediaSelect } },
+      include: { coverMedia: { select: publicMediaSelect }, gallery: { orderBy: { sortOrder: "asc" }, include: { media: { select: publicMediaSelect } } } },
     });
   }
 }

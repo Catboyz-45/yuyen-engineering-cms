@@ -155,7 +155,10 @@ export class ContentService {
       case "banners":
         return db.banner.findFirst({ where: { id: idOrSlug, ...visible }, include: { image: adminMedia } });
       case "services":
-        return db.service.findFirst({ where, include: { coverMedia: adminMedia } });
+        return db.service.findFirst({
+          where,
+          include: { coverMedia: adminMedia, gallery: { orderBy: { sortOrder: "asc" }, include: { media: adminMedia } } },
+        });
       case "products":
         return db.product.findFirst({
           where,
@@ -343,8 +346,9 @@ export class ContentService {
       }
       case "services": {
         const data = serviceSchema.parse(input);
-        await assertMedia(tx, [data.coverMediaId]);
-        return tx.service.create({ data: { ...data, publishedAt: publishedAt(data.status) } });
+        await assertMedia(tx, [data.coverMediaId, ...data.galleryMediaIds]);
+        const { galleryMediaIds, ...values } = data;
+        return tx.service.create({ data: { ...values, publishedAt: publishedAt(data.status), gallery: galleryRows(galleryMediaIds) } });
       }
       case "products": {
         const data = productSchema.parse(input);
@@ -400,11 +404,13 @@ export class ContentService {
       }
       case "services": {
         const data = serviceSchema.parse(input);
-        await assertMedia(tx, [data.coverMediaId]);
+        await assertMedia(tx, [data.coverMediaId, ...data.galleryMediaIds]);
         assertEditable(current.status, data.status);
+        const { galleryMediaIds, ...values } = data;
+        await tx.serviceMedia.deleteMany({ where: { serviceId: id } });
         const record = await tx.service.update({
           where: { id },
-          data: { ...data, publishedAt: publishedAt(data.status, current.publishedAt) },
+          data: { ...values, publishedAt: publishedAt(data.status, current.publishedAt), gallery: galleryRows(galleryMediaIds) },
         });
         return { record, slug: data.slug, status: data.status };
       }

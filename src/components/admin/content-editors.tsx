@@ -201,6 +201,7 @@ function ContentEditor({
         summary: string(form, "summary"),
         content: nullable(form, "content"),
         sortOrder: Number(string(form, "sortOrder") || 0),
+        galleryMediaIds: form.getAll("galleryMediaIds").map(String),
       };
     if (kind === "product") {
       let specifications: Record<string, string> | null = null;
@@ -269,7 +270,7 @@ function ContentEditor({
     const requestedPublication =
       kind === "news" ? dateTimeOrNull(formData, "publishedAt") : null;
     // ข้อมูลเก่าที่มีรูปเกินเพดาน ต้องลดรูปก่อนบันทึก บอกตั้งแต่หน้าจอแทนการรอเซิร์ฟเวอร์ปฏิเสธ
-    if ((kind === "product" || kind === "project") && formData.getAll("galleryMediaIds").length > GALLERY_LIMITS[kind]) {
+    if ((kind === "service" || kind === "product" || kind === "project") && formData.getAll("galleryMediaIds").length > GALLERY_LIMITS[kind]) {
       setError(`รูปในแกลเลอรีใส่ได้ไม่เกิน ${GALLERY_LIMITS[kind]} รูป กรุณาลบรูปที่เกินก่อนบันทึก`);
       return;
     }
@@ -409,7 +410,7 @@ function ContentEditor({
                 {kind === "service" && (
                   <>
                     <Field
-                      label="ข้อความเหนือหัวข้อ"
+                      label="ข้อความเล็กเหนือชื่อในการ์ดบริการ"
                       name="eyebrow"
                       defaultValue={value("eyebrow")}
                     />
@@ -632,7 +633,7 @@ function ContentEditor({
                   )}
                   onDirty={markDirty}
                 />
-                {(kind === "product" || kind === "project") && (
+                {(kind === "service" || kind === "product" || kind === "project") && (
                   <MediaUploader
                     name="galleryMediaIds"
                     title="แกลเลอรี"

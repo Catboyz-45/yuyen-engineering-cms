@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { ContentService } from "@/server/cms/content.service";
+import { referenceCount } from "@/server/media/references";
 import { TaxonomyService } from "@/server/cms/taxonomy.service";
 import { createSession, getSessionByToken, revokeUserSessions, rotateSession } from "@/server/auth/session";
 import type { ContentKind } from "@/server/cms/schemas";
@@ -97,6 +98,15 @@ suite("content, taxonomy and session lifecycle", () => {
     expect(json.coverMedia).toEqual({ id: images[0].id, originalName: "image-1.jpg", kind: "IMAGE", altText: "รูป 1" });
     expect(json.gallery.map((entry: { media: { id: string } }) => entry.media.id)).toEqual([images[1].id]);
     expect(JSON.stringify(record)).not.toContain("objectKey");
+
+    // บริการมีแกลเลอรีเหมือนสินค้า และรูปที่อยู่ในแกลเลอรีบริการถูกนับว่ากำลังใช้งาน จึงลบไฟล์ไม่ได้
+    const serviceImage = await db.media.create({ data: { kind: "IMAGE", objectKey: `media/${prefix}/image-service.webp`, originalName: "service.jpg", mimeType: "image/webp", sizeBytes: BigInt(12_345), status: "READY" } });
+    const withGallery = await make("services", { slug: `${prefix}-service-gallery`, title: `${prefix} Service gallery`, summary: "x", galleryMediaIds: [serviceImage.id, images[1].id], status: "DRAFT" });
+    const serviceRecord = JSON.parse(JSON.stringify(await content.get("services", withGallery.id)));
+    expect(serviceRecord.gallery.map((entry: { media: { id: string } }) => entry.media.id)).toEqual([serviceImage.id, images[1].id]);
+    expect(await referenceCount(serviceImage.id)).toBe(1);
+    await content.update("services", withGallery.id, { slug: `${prefix}-service-gallery`, title: `${prefix} Service gallery`, summary: "x", galleryMediaIds: [], status: "DRAFT" }, actor, context);
+    expect(await referenceCount(serviceImage.id)).toBe(0);
   });
 
   it("redirects the old address when a published slug changes", async () => {

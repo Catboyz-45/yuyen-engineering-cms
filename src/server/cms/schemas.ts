@@ -27,7 +27,8 @@ export const bannerSchema = z.object({
 export const serviceSchema = z.object({
   slug, title: z.string().trim().min(1).max(180), eyebrow: nullableText(80), summary: z.string().trim().min(1).max(500),
   content: nullableText(50_000), sortOrder: z.coerce.number().int().min(0).max(100_000).default(0), isFeatured: z.boolean().default(false),
-  isSearchable: z.boolean().default(true), seoTitle: nullableText(60), seoDescription: nullableText(160), coverMediaId: nullableId, ...common,
+  isSearchable: z.boolean().default(true), seoTitle: nullableText(60), seoDescription: nullableText(160), coverMediaId: nullableId,
+  galleryMediaIds: z.array(z.string().min(1).max(30)).max(GALLERY_LIMITS.service, `รูปในแกลเลอรีบริการใส่ได้ไม่เกิน ${GALLERY_LIMITS.service} รูป`).default([]), ...common,
 }).strict();
 
 export const productSchema = z.object({

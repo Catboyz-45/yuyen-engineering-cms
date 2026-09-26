@@ -156,6 +156,7 @@ model Service {
   purgeAt        DateTime?        @db.Timestamptz(3)
   createdAt      DateTime         @default(now()) @db.Timestamptz(3)
   updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+  gallery        ServiceMedia[]
   projects       ProjectService[]
 
   @@index([status, sortOrder])
@@ -315,6 +316,19 @@ model ProjectService {
   @@index([serviceId])
 }
 
+/// ตารางเชื่อมบริการกับรูป gallery หลายรูป พร้อมลำดับ
+model ServiceMedia {
+  serviceId String  @db.VarChar(30)
+  mediaId   String  @db.VarChar(30)
+  sortOrder Int     @default(0)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  media     Media   @relation(fields: [mediaId], references: [id], onDelete: Restrict)
+
+  @@id([serviceId, mediaId])
+  @@unique([serviceId, sortOrder])
+  @@index([mediaId])
+}
+
 /// หมวดข่าว เช่น ข่าวบริษัท บทความ หรือโปรโมชัน
 model NewsCategory {
   id        String    @id @default(cuid()) @db.VarChar(30)
@@ -388,6 +402,7 @@ model Media {
   companyGallery  CompanyMedia[]
   bannerImages    Banner[]       @relation("BannerImage")
   serviceCovers   Service[]      @relation("ServiceCover")
+  serviceGallery  ServiceMedia[]
   productCovers   Product[]      @relation("ProductCover")
   productCatalogs Product[]      @relation("ProductCatalog")
   productGallery  ProductMedia[]

@@ -10,6 +10,7 @@ vi.mock("next/cache", () => ({ unstable_cache: <T extends (...args: never[]) => 
 
 import { db } from "@/server/db";
 import { PublicContentService } from "@/server/services/public-content.service";
+import { publicReference } from "@/server/media/access";
 
 const suite = describe.runIf(process.env.RUN_INTEGRATION === "1");
 const prefix = `public-${randomUUID().slice(0, 8)}`;
@@ -55,6 +56,7 @@ suite("public content visibility", () => {
     await db.project.deleteMany({ where: { id: { in: ids.projects } } });
     await db.product.deleteMany({ where: { id: { in: ids.products } } });
     await db.service.deleteMany({ where: { id: { in: ids.services } } });
+    await db.media.deleteMany({ where: { objectKey: { startsWith: `media/${prefix}/` } } });
     await db.brand.deleteMany({ where: { id: brandId } });
     await db.productType.deleteMany({ where: { id: typeId } });
     await db.newsCategory.deleteMany({ where: { id: categoryId } });
@@ -96,6 +98,15 @@ suite("public content visibility", () => {
       expect(await service.getProject(invalid)).toBeNull();
       expect(await service.getNews(invalid)).toBeNull();
     }
+  });
+
+  it("returns a live service with its ordered gallery", async () => {
+    const images = await Promise.all([1, 2].map(n => db.media.create({ data: { kind: "IMAGE", objectKey: `media/${prefix}/service-${n}.webp`, originalName: `service-${n}.jpg`, mimeType: "image/webp", sizeBytes: BigInt(100), status: "READY" } })));
+    await db.serviceMedia.createMany({ data: [{ serviceId: ids.services[0], mediaId: images[1].id, sortOrder: 0 }, { serviceId: ids.services[0], mediaId: images[0].id, sortOrder: 1 }] });
+    const item = await service.getService(`${prefix}-service-live`);
+    expect(item?.gallery.map(entry => entry.media.id)).toEqual([images[1].id, images[0].id]);
+    const publicMedia = await db.media.count({ where: { id: { in: images.map(image => image.id) }, ...publicReference() } });
+    expect(publicMedia).toBe(2);
   });
 
   it("links a project only to services that are live", async () => {
