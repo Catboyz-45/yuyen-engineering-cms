@@ -43,6 +43,8 @@ suite("public content visibility", () => {
       ids.news.push((await db.news.create({ data: { slug: `${prefix}-news-${state}`, title: `${prefix} News ${state}`, summary: "x", categoryId, ...data } })).id);
     }
     ids.news.push((await db.news.create({ data: { slug: `${prefix}-news-scheduled`, title: `${prefix} News scheduled`, summary: "x", categoryId, status: "PUBLISHED", publishedAt: tomorrow } })).id);
+    // ผลงานที่เผยแพร่ผูกกับบริการทุกสถานะ: live, draft, archived, trashed
+    await db.projectService.createMany({ data: ids.services.map(serviceId => ({ projectId: ids.projects[0], serviceId })) });
     ids.banners.push((await db.banner.create({ data: { title: `${prefix} Banner`, status: "PUBLISHED", publishedAt: yesterday, sortOrder: 0 } })).id);
     ids.banners.push((await db.banner.create({ data: { title: `${prefix} Draft banner`, status: "DRAFT", sortOrder: 0 } })).id);
   });
@@ -94,6 +96,11 @@ suite("public content visibility", () => {
       expect(await service.getProject(invalid)).toBeNull();
       expect(await service.getNews(invalid)).toBeNull();
     }
+  });
+
+  it("links a project only to services that are live", async () => {
+    const project = await service.getProject(`${prefix}-project-live`);
+    expect(project?.services).toEqual([{ service: { slug: `${prefix}-service-live`, title: `${prefix} Service live` } }]);
   });
 
   it("returns the first live banner, active filters and company data", async () => {
