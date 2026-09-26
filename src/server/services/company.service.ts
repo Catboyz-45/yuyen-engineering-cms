@@ -7,6 +7,7 @@ import { z } from "zod";
 import { isHttpsUrl } from "@/lib/links";
 import { safeMapEmbedUrl } from "@/lib/map-embed";
 import { isValidRegistrationNumber } from "@/lib/registration-number";
+import { GALLERY_LIMITS } from "@/lib/gallery";
 import { db } from "@/server/db";
 import { CmsError } from "@/server/cms/errors";
 import { assertMedia } from "@/server/cms/content.service";
@@ -14,7 +15,7 @@ import { siteCopySchema } from "./site-copy";
 
 // ลิงก์ที่ผู้เยี่ยมชมกดได้ต้องเป็น https เท่านั้น กัน javascript:, data: และลิงก์ http ที่ไม่เข้ารหัส
 const optionalUrl = z.union([z.literal(""), z.string().trim().max(2000).url().refine(isHttpsUrl, "ลิงก์ต้องขึ้นต้นด้วย https://")]).transform((value) => value || null);
-export const COMPANY_GALLERY_LIMIT = 12;
+export const COMPANY_GALLERY_LIMIT = GALLERY_LIMITS.company;
 
 export const companyInputSchema = z.object({
   legalName: z.string().trim().min(2).max(200),

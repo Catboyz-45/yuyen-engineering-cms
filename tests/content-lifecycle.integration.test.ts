@@ -55,6 +55,7 @@ suite("content, taxonomy and session lifecycle", () => {
       if (kind === "projects") await db.project.deleteMany({ where: { id } });
       if (kind === "news") await db.news.deleteMany({ where: { id } });
     }
+    await db.media.deleteMany({ where: { objectKey: { startsWith: `media/${prefix}/` } } });
     await db.brand.deleteMany({ where: { slug: { startsWith: prefix } } });
     await db.productType.deleteMany({ where: { slug: { startsWith: prefix } } });
     await db.newsCategory.deleteMany({ where: { slug: { startsWith: prefix } } });
@@ -85,6 +86,17 @@ suite("content, taxonomy and session lifecycle", () => {
     await expect(content.transition("news", news.id, "publish", actor, context)).rejects.toMatchObject({ code: "INVALID_TRANSITION" });
     await content.transition("news", news.id, "unpublish", actor, context);
     expect(await content.get("news", news.id)).toMatchObject({ status: "DRAFT", publishedAt: null });
+  });
+
+  it("loads content with images for the editor without internal storage fields", async () => {
+    const images = await Promise.all([1, 2].map(n => db.media.create({ data: { kind: "IMAGE", objectKey: `media/${prefix}/image-${n}.webp`, originalName: `image-${n}.jpg`, mimeType: "image/webp", sizeBytes: BigInt(12_345), altText: `รูป ${n}`, status: "READY" } })));
+    const product = await make("products", { slug: `${prefix}-with-images`, name: `${prefix} With images`, model: `${prefix}-images`, summary: "x", brandId, productTypeId: typeId, coverMediaId: images[0].id, galleryMediaIds: [images[1].id], status: "DRAFT" });
+    const record = await content.get("products", product.id);
+    // หน้าแก้ไขรับข้อมูลเป็น JSON: ขนาดไฟล์ BigInt เคยทำให้แปลงไม่ได้และโหลดหน้าไม่ขึ้น
+    const json = JSON.parse(JSON.stringify(record));
+    expect(json.coverMedia).toEqual({ id: images[0].id, originalName: "image-1.jpg", kind: "IMAGE", altText: "รูป 1" });
+    expect(json.gallery.map((entry: { media: { id: string } }) => entry.media.id)).toEqual([images[1].id]);
+    expect(JSON.stringify(record)).not.toContain("objectKey");
   });
 
   it("redirects the old address when a published slug changes", async () => {

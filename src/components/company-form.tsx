@@ -14,9 +14,10 @@ import { MediaUploader } from "./admin/editor-ui";
 import { initialSiteCopy, readSiteCopy, SiteCopyFields } from "./admin/site-copy-fields";
 import { SectionNav } from "./admin/section-nav";
 import { formText } from "@/lib/form-data";
+import { GALLERY_LIMITS } from "@/lib/gallery";
 type MediaPreview = { id: string; originalName?: string | null; altText?: string | null };
 type Company = Record<string, unknown> & { logoMedia?: MediaPreview | null; gallery?: { media: MediaPreview }[] };
-const GALLERY_LIMIT = 12;
+const GALLERY_LIMIT = GALLERY_LIMITS.company;
 type FieldKey = "legalName" | "registrationNumber" | "displayName" | "shortDescription" | "history" | "vision" | "mission" | "values" | "address" | "phoneDisplay" | "phoneHref" | "email" | "lineLabel" | "lineUrl" | "facebookUrl" | "mapsUrl" | "mapsEmbedUrl" | "businessHours" | "seoTitle" | "seoDescription";
 type Field = { key: FieldKey; label: string; max: number; required?: boolean; multiline?: boolean; half?: boolean; type?: "email" | "url" | "tel" | "numeric"; pattern?: string; help?: string };
 
@@ -171,7 +172,7 @@ export function CompanyForm() {
               <div className="form-stack flush">
                 <MediaUploader name="logoMediaId" title="โลโก้บริษัท" multiple={false} describe={false} initial={preview(company.logoMedia)} onDirty={markDirty} />
                 <p className="help">แสดงที่หัวเว็บและท้ายเว็บคู่กับชื่อบริษัท จึงไม่ต้องใส่คำอธิบายรูป ใช้ไฟล์สี่เหลี่ยมจัตุรัสพื้นหลังโปร่งใสหรือพื้นขาว</p>
-                <MediaUploader name="galleryMediaIds" title={`รูปบริษัทสำหรับหน้าเกี่ยวกับเรา (สูงสุด ${GALLERY_LIMIT} รูป รูปแรกเป็นภาพหลัก)`} initial={(company.gallery ?? []).flatMap(entry => preview(entry.media))} onDirty={markDirty} />
+                <MediaUploader name="galleryMediaIds" title="รูปบริษัทสำหรับหน้าเกี่ยวกับเรา (รูปแรกเป็นภาพหลัก)" max={GALLERY_LIMIT} initial={(company.gallery ?? []).flatMap(entry => preview(entry.media))} onDirty={markDirty} />
               </div>
             ) : (
               <div className="form-grid">{group.fields.map(item => <div className={item.half ? "" : "span-2"} key={item.key}>{renderField(item)}</div>)}</div>

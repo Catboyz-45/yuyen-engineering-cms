@@ -898,27 +898,31 @@ select.filter-select {
   font-size: 0.84rem;
   margin-bottom: 24px;
 }
-/* หน้ารายละเอียด: ปุ่มย้อนกลับมุมซ้ายบนเป็นลำดับแรกของเส้นทาง ชื่อยาวขึ้นบรรทัดใหม่ได้ */
+/* หน้ารายละเอียด: ปุ่มย้อนกลับบรรทัดบนสุด เส้นทางหน้าอยู่บรรทัดถัดไป ชื่อยาวขึ้นบรรทัดใหม่ได้ */
 .detail-nav {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+.detail-nav .breadcrumbs {
   flex-wrap: wrap;
   row-gap: 6px;
+  margin-bottom: 0;
 }
+/* ลิงก์ตัวหนังสือ ไม่แย่งสายตาจากปุ่มติดต่อ แต่ยังกดง่ายบนมือถือ (สูง 44px) */
 .back-link {
-  min-height: 36px;
-  padding: 6px 14px 6px 10px;
-  border: 1px solid var(--line, #d7e0da);
-  border-radius: 999px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: var(--green-950);
+  gap: 8px;
+  color: var(--green-800);
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.6);
-  transition: background 0.18s ease, border-color 0.18s ease;
+  text-underline-offset: 4px;
 }
 .back-link:hover {
-  border-color: var(--green-700);
-  background: white;
+  color: var(--green-950);
+  text-decoration: underline;
 }
 .back-link svg {
   transition: transform 0.18s ease;

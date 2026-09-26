@@ -89,6 +89,7 @@ export function MediaUploader({
   multiple = true,
   pdf = false,
   describe = true,
+  max,
   initial = [],
   onDirty,
 }: Readonly<{
@@ -98,6 +99,8 @@ export function MediaUploader({
   pdf?: boolean;
   /** false สำหรับรูปตกแต่งที่มีข้อความเดียวกันอยู่ข้างๆ เช่น โลโก้ข้างชื่อบริษัท จึงไม่ต้องมีคำอธิบายรูป */
   describe?: boolean;
+  /** จำนวนไฟล์สูงสุด แสดงต่อท้ายหัวข้อ และไม่รับไฟล์เกินจำนวนนี้ */
+  max?: number;
   initial?: { id: string; name: string; preview?: string; altText?: string }[];
   onDirty?: () => void;
 }>) {
@@ -106,6 +109,12 @@ export function MediaUploader({
   const [files, setFiles] = useState<UploadItem[]>(
     initial.map((item) => ({ ...item, progress: 100, status: "ready" })),
   );
+  const [limitNotice, setLimitNotice] = useState("");
+  const limit = multiple ? (max ?? 30) : 1;
+  // ไฟล์ที่อัปโหลดไม่สำเร็จไม่ถูกบันทึก จึงไม่นับรวม
+  const used = files.filter((item) => item.status !== "error").length;
+  const full = multiple && used >= limit;
+  const label = max ? `${title} (สูงสุด ${max} ${pdf ? "ไฟล์" : "รูป"})` : title;
   const accepted = pdf
     ? "application/pdf,.pdf"
     : "image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp";
@@ -256,6 +265,7 @@ export function MediaUploader({
   }
   function remove(file: UploadItem) {
     onDirty?.();
+    setLimitNotice("");
     const control = controlsRef.current.get(file.id);
     if (control) {
       control.cancelled = true;
@@ -270,19 +280,29 @@ export function MediaUploader({
   function select(selected: FileList | null) {
     if (!selected?.length) return;
     onDirty?.();
-    const next = [...selected].slice(0, multiple ? 30 : 1);
+    const room = multiple ? limit - used : 1;
+    if (room <= 0) {
+      setLimitNotice(`ใส่ได้สูงสุด ${limit} รูป ลบรูปเดิมก่อนจึงเพิ่มรูปใหม่ได้`);
+      return;
+    }
+    const next = [...selected].slice(0, room);
+    setLimitNotice(
+      selected.length > room
+        ? `ใส่ได้อีก ${room} รูป ระบบจึงอัปโหลดเฉพาะ ${room} ไฟล์แรกจาก ${selected.length} ไฟล์ที่เลือก`
+        : "",
+    );
     if (!multiple) files.forEach(remove);
     for (const file of next) void upload(file);
   }
   const busy = files.some((item) => item.status === "uploading");
   return (
     <div className="form-group">
-      <label>{title}</label>
+      <label>{label}</label>
       <input
         ref={inputRef}
         className="sr-only"
         type="file"
-        aria-label={title}
+        aria-label={label}
         accept={accepted}
         multiple={multiple}
         onChange={(event) => {
@@ -293,7 +313,7 @@ export function MediaUploader({
       <button
         className="dropzone"
         type="button"
-        disabled={busy && !multiple}
+        disabled={(busy && !multiple) || full}
         onClick={() => inputRef.current?.click()}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
@@ -303,15 +323,17 @@ export function MediaUploader({
       >
         <span>
           <Upload size={25} />
-          <strong>ลากไฟล์มาวาง หรือเลือกไฟล์</strong>
+          <strong>{full ? `ครบ ${limit} รูปแล้ว` : "ลากไฟล์มาวาง หรือเลือกไฟล์"}</strong>
           <small>
             {pdf
               ? "PDF · ไม่เกิน 20 MB"
               : "JPEG, PNG หรือ WebP · ไม่เกิน 10 MB ต่อไฟล์"}
             {multiple ? " · เลือกได้หลายไฟล์" : ""}
+            {max ? ` · ใช้ไป ${used}/${max}` : ""}
           </small>
         </span>
       </button>
+      {limitNotice && <p className="field-error" role="status">{limitNotice}</p>}
       {files.length > 0 && (
         <div className="media-grid">
           {files.map((file) => (

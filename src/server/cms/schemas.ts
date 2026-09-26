@@ -4,6 +4,7 @@
  * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
  */
 import { z } from "zod";
+import { GALLERY_LIMITS } from "@/lib/gallery";
 import { isSafeHref } from "@/lib/links";
 
 export const contentKinds = ["banners", "services", "products", "projects", "news"] as const;
@@ -36,7 +37,7 @@ export const productSchema = z.object({
   seer: z.number().positive().max(9999).nullable().default(null), refrigerant: nullableText(50), priceLabel: z.string().trim().min(1).max(80).default("สอบถามราคา"),
   isFeatured: z.boolean().default(false), isSearchable: z.boolean().default(true), seoTitle: nullableText(60), seoDescription: nullableText(160),
   brandId: z.string().min(1).max(30), productTypeId: z.string().min(1).max(30), coverMediaId: nullableId, catalogMediaId: nullableId,
-  galleryMediaIds: z.array(z.string().min(1).max(30)).max(30).default([]), ...common,
+  galleryMediaIds: z.array(z.string().min(1).max(30)).max(GALLERY_LIMITS.product, `รูปในแกลเลอรีสินค้าใส่ได้ไม่เกิน ${GALLERY_LIMITS.product} รูป`).default([]), ...common,
 }).strict().superRefine((value, context) => { if (value.btuMin && value.btuMax && value.btuMin > value.btuMax) context.addIssue({ code: "custom", path: ["btuMax"], message: "BTU สูงสุดต้องไม่น้อยกว่าค่าต่ำสุด" }); });
 
 export const projectSchema = z.object({
@@ -44,7 +45,7 @@ export const projectSchema = z.object({
   customerName: nullableText(180), showCustomerName: z.boolean().default(false), summary: z.string().trim().min(1).max(500), content: nullableText(50_000),
   completedAt: z.coerce.date().nullable().default(null), isFeatured: z.boolean().default(false), isSearchable: z.boolean().default(true),
   seoTitle: nullableText(60), seoDescription: nullableText(160), coverMediaId: nullableId,
-  galleryMediaIds: z.array(z.string().min(1).max(30)).max(50).default([]), serviceIds: z.array(z.string().min(1).max(30)).max(30).default([]), ...common,
+  galleryMediaIds: z.array(z.string().min(1).max(30)).max(GALLERY_LIMITS.project, `รูปในแกลเลอรีผลงานใส่ได้ไม่เกิน ${GALLERY_LIMITS.project} รูป`).default([]), serviceIds: z.array(z.string().min(1).max(30)).max(30).default([]), ...common,
 }).strict().superRefine((value, context) => { if (value.showCustomerName && !value.customerName) context.addIssue({ code: "custom", path: ["customerName"], message: "ต้องระบุชื่อลูกค้าก่อนเปิดเผย" }); });
 
 export const newsSchema = z.object({

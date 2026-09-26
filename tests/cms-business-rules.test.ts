@@ -34,6 +34,15 @@ describe("CMS business rules", () => {
     expect(serviceSchema.safeParse({ slug: "ไม่ถูก", title: "x", summary: "x" }).success).toBe(false);
     expect(productSchema.safeParse({ slug: "test", name: "x", model: "x", summary: "x", brandId: "b", productTypeId: "t", btuMin: 18000, btuMax: 9000 }).success).toBe(false);
   });
+  it("caps gallery images at 12 per product and 50 per project", () => {
+    const ids = (count: number) => Array.from({ length: count }, (_, index) => `media-${index}`);
+    const product = { slug: "test", name: "x", model: "x", summary: "x", brandId: "b", productTypeId: "t" };
+    const project = { slug: "project", title: "x", projectType: "x", area: "x", summary: "x" };
+    expect(productSchema.safeParse({ ...product, galleryMediaIds: ids(12) }).success).toBe(true);
+    expect(productSchema.safeParse({ ...product, galleryMediaIds: ids(13) }).success).toBe(false);
+    expect(projectSchema.safeParse({ ...project, galleryMediaIds: ids(50) }).success).toBe(true);
+    expect(projectSchema.safeParse({ ...project, galleryMediaIds: ids(51) }).success).toBe(false);
+  });
   it("requires a customer name when disclosure is enabled", () => {
     expect(projectSchema.safeParse({ slug: "project", title: "x", projectType: "x", area: "x", summary: "x", showCustomerName: true }).success).toBe(false);
   });

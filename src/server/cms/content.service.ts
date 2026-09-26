@@ -124,6 +124,12 @@ function assertEditable(current: ContentStatus, next: ContentStatus) {
 function changedSlug(previous: string | null | undefined, next: string | undefined) {
   return previous && next && previous !== next ? { previous, next } : null;
 }
+/**
+ * ไฟล์ที่แนบกับเนื้อหาในหน้าแก้ไข ส่งเฉพาะช่องที่ฟอร์มใช้ ไม่ส่ง object key ของ storage และ sizeBytes
+ * (BigInt แปลงเป็น JSON ไม่ได้ ทำให้หน้าแก้ไขเนื้อหาที่มีรูปโหลดไม่ขึ้น)
+ */
+const adminMedia = { select: { id: true, originalName: true, kind: true, altText: true } } as const;
+
 function galleryRows(mediaIds: string[]) {
   return { create: mediaIds.map((mediaId, sortOrder) => ({ mediaId, sortOrder })) };
 }
@@ -147,16 +153,16 @@ export class ContentService {
     const where = { OR: [{ id: idOrSlug }, { slug: idOrSlug }], ...visible };
     switch (kind) {
       case "banners":
-        return db.banner.findFirst({ where: { id: idOrSlug, ...visible }, include: { image: true } });
+        return db.banner.findFirst({ where: { id: idOrSlug, ...visible }, include: { image: adminMedia } });
       case "services":
-        return db.service.findFirst({ where, include: { coverMedia: true } });
+        return db.service.findFirst({ where, include: { coverMedia: adminMedia } });
       case "products":
         return db.product.findFirst({
           where,
           include: {
-            coverMedia: true,
-            catalogMedia: true,
-            gallery: { orderBy: { sortOrder: "asc" }, include: { media: true } },
+            coverMedia: adminMedia,
+            catalogMedia: adminMedia,
+            gallery: { orderBy: { sortOrder: "asc" }, include: { media: adminMedia } },
             brand: true,
             productType: true,
           },
@@ -165,13 +171,13 @@ export class ContentService {
         return db.project.findFirst({
           where,
           include: {
-            coverMedia: true,
-            gallery: { orderBy: { sortOrder: "asc" }, include: { media: true } },
+            coverMedia: adminMedia,
+            gallery: { orderBy: { sortOrder: "asc" }, include: { media: adminMedia } },
             services: true,
           },
         });
       default:
-        return db.news.findFirst({ where, include: { coverMedia: true, category: true } });
+        return db.news.findFirst({ where, include: { coverMedia: adminMedia, category: true } });
     }
   }
 

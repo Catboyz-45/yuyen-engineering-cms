@@ -25,6 +25,7 @@ import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { LoadingLabel } from "../loading-label";
 import { setFlashMessage } from "@/lib/client-flash";
 import { formText } from "@/lib/form-data";
+import { GALLERY_LIMITS } from "@/lib/gallery";
 import {
   FieldErrors,
   fieldMessage,
@@ -267,6 +268,11 @@ function ContentEditor({
     const formData = new FormData(form);
     const requestedPublication =
       kind === "news" ? dateTimeOrNull(formData, "publishedAt") : null;
+    // ข้อมูลเก่าที่มีรูปเกินเพดาน ต้องลดรูปก่อนบันทึก บอกตั้งแต่หน้าจอแทนการรอเซิร์ฟเวอร์ปฏิเสธ
+    if ((kind === "product" || kind === "project") && formData.getAll("galleryMediaIds").length > GALLERY_LIMITS[kind]) {
+      setError(`รูปในแกลเลอรีใส่ได้ไม่เกิน ${GALLERY_LIMITS[kind]} รูป กรุณาลบรูปที่เกินก่อนบันทึก`);
+      return;
+    }
     setSaving(true);
     setError("");
     setFieldErrors({});
@@ -630,6 +636,7 @@ function ContentEditor({
                   <MediaUploader
                     name="galleryMediaIds"
                     title="แกลเลอรี"
+                    max={GALLERY_LIMITS[kind]}
                     initial={initialGallery(record.gallery)}
                     onDirty={markDirty}
                   />
