@@ -8,7 +8,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AlertCircle, ArrowRight, Eye, EyeOff, LoaderCircle, LockKeyhole, ShieldAlert } from "lucide-react";
+import { AlertCircle, ArrowRight, Eye, EyeOff, LoaderCircle, ShieldAlert } from "lucide-react";
 import { formText } from "@/lib/form-data";
 
 type LoginState = "idle" | "error" | "locked" | "submitting";
@@ -36,10 +36,7 @@ export function LoginForm() {
 
   return (
     <>
-      <div className="icon-box"><LockKeyhole size={22} /></div>
-      <p className="eyebrow" style={{ marginTop: 26 }}>ADMIN PORTAL</p>
       <h2 className="heading">เข้าสู่ระบบ</h2>
-      <p className="muted">กรอกชื่อผู้ใช้และรหัสผ่านเพื่อดำเนินการต่อ</p>
 
       {state === "error" && <div className="auth-alert error" role="alert"><AlertCircle size={19} /><div><strong>เข้าสู่ระบบไม่สำเร็จ</strong><p>ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง</p></div></div>}
       {state === "locked" && <div className="auth-alert warning" role="alert"><ShieldAlert size={19} /><div><strong>บัญชีถูกระงับชั่วคราว</strong><p>มีการลองเข้าสู่ระบบหลายครั้ง กรุณารอ 15 นาที หรือติดต่อ Super Admin</p></div></div>}
@@ -51,10 +48,8 @@ export function LoginForm() {
       </form>
       {/* แจ้งการใช้ข้อมูลไว้ใต้ปุ่มบนหน้าจอเดียวกัน ผู้ใช้เห็นก่อนส่งฟอร์ม และการล็อกอินไม่ใช่การยินยอมให้ติดตามเพื่อโฆษณา */}
       <aside className="login-privacy" aria-label="ข้อมูลส่วนบุคคลในการเข้าสู่ระบบ">
-        <p>เราใช้ข้อมูลบัญชีและคุกกี้ที่จำเป็นเพื่อยืนยันตัวตนและตรวจสิทธิ์ พร้อมบันทึกประวัติการเข้าสู่ระบบและการทำงานเพื่อความปลอดภัย</p>
-        <p><Link href="/privacy">นโยบายความเป็นส่วนตัว</Link> · <Link href="/cookies">นโยบายคุกกี้</Link> · <Link href="/terms">เงื่อนไขการใช้เว็บไซต์</Link></p>
+        ระบบใช้คุกกี้ที่จำเป็นและบันทึกการเข้าสู่ระบบเพื่อความปลอดภัย · <Link href="/privacy">นโยบายความเป็นส่วนตัว</Link> · <Link href="/cookies">นโยบายคุกกี้</Link> · <Link href="/terms">เงื่อนไขการใช้เว็บไซต์</Link>
       </aside>
-      <p className="muted" style={{ marginTop: 24, fontSize: ".75rem" }}>ระบบจำกัดจำนวนครั้งที่เข้าสู่ระบบไม่สำเร็จ และไม่เปิดเผยว่าชื่อผู้ใช้มีอยู่หรือไม่</p>
     </>
   );
 }

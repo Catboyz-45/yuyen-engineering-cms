@@ -2598,8 +2598,8 @@ fieldset.form-group {
 }
 .legal-links { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 32px; }
 .legal-links a { text-decoration: underline; text-underline-offset: 4px; }
-.login-privacy { margin-top: 24px; padding: 16px; background: #f0f6f2; border-radius: 12px; color: #244635; font-size: .875rem; line-height: 1.8; }
-.login-privacy p + p { margin-top: 8px; }
+.login-privacy { margin-top: 24px; color: var(--muted); font-size: .8125rem; line-height: 1.8; }
+.login-privacy a { white-space: nowrap; }
 .consent-map { width: 100%; }
 .consent-map .btn { white-space: normal; }
 .pending-contact {
