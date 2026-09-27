@@ -28,6 +28,7 @@ import { formText } from "@/lib/form-data";
 import { GALLERY_LIMITS } from "@/lib/gallery";
 import { SERVICE_ICONS } from "@/lib/service-icons";
 import { ServiceIcon } from "../service-icon";
+import { DateTimeField } from "./date-time-field";
 import {
   FieldErrors,
   fieldMessage,
@@ -540,11 +541,11 @@ function ContentEditor({
                       />
                     </div>
                     <div className="grid-2">
-                      <Field
+                      <DateField
                         label="วันที่เสร็จงาน"
                         name="completedAt"
-                        type="date"
-                        defaultValue={value("completedAt").slice(0, 10)}
+                        defaultValue={value("completedAt")}
+                        onDirty={markDirty}
                       />
                       <Field
                         label="ชื่อลูกค้า"
@@ -600,17 +601,14 @@ function ContentEditor({
                       defaultValue={value("categoryId")}
                       onDirty={markDirty}
                     />
-                    <Field
+                    <DateField
                       label="วันและเวลาที่เผยแพร่"
                       name="publishedAt"
-                      type="datetime-local"
-                      defaultValue={value("publishedAt").slice(0, 16)}
+                      withTime
+                      defaultValue={value("publishedAt")}
+                      help="หากกำหนดเวลาในอนาคต ข่าวจะยังไม่ปรากฏบนเว็บไซต์จนกว่าจะถึงเวลานั้น วันที่นี้จะถูกเก็บไว้แม้บันทึกเป็นฉบับร่าง"
+                      onDirty={markDirty}
                     />
-                    <p className="help">
-                      หากกำหนดเวลาในอนาคต
-                      ข่าวจะยังไม่ปรากฏบนเว็บไซต์จนกว่าจะถึงเวลานั้น
-                      วันที่นี้จะถูกเก็บไว้แม้บันทึกเป็นฉบับร่าง
-                    </p>
                     <Area
                       label="คำอธิบายสั้น"
                       name="summary"
@@ -957,6 +955,11 @@ function IconPicker({ defaultValue }: Readonly<{ defaultValue: string }>) {
       </div>
     </fieldset>
   );
+}
+/** ช่องวันที่ (และเวลา) พร้อมข้อความผิดพลาดจากการบันทึกครั้งล่าสุด */
+function DateField(props: Readonly<Omit<Parameters<typeof DateTimeField>[0], "error">>) {
+  const message = fieldMessage(useContext(ValidationContext), props.name);
+  return <DateTimeField {...props} error={message ?? undefined} />;
 }
 function Check({
   name,
