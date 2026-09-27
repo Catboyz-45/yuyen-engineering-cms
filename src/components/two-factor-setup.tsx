@@ -8,7 +8,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { AlertCircle, ArrowRight, Check, Copy, LoaderCircle, QrCode } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, Copy, LoaderCircle } from "lucide-react";
 
 /** สร้างส่วนหน้าจอ TwoFactorSetup; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function TwoFactorSetup() {
@@ -31,12 +31,7 @@ export function TwoFactorSetup() {
   }
   return (
     <>
-      <div className="icon-box">
-        <QrCode size={22} />
-      </div>
-      <p className="eyebrow" style={{ marginTop: 26 }}>
-        FIRST SIGN-IN · STEP 2 OF 3
-      </p>
+      <p className="auth-step">ขั้นตอนที่ 2 จาก 3</p>
       <h2 className="heading">ตั้งค่า Authenticator</h2>
       <p className="muted">เปิด Google Authenticator, Microsoft Authenticator หรือแอปที่รองรับ TOTP แล้วสแกน QR Code</p>
       {failed && (

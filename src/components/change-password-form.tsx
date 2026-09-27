@@ -7,7 +7,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, Check, Eye, EyeOff, KeyRound, LoaderCircle } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, Eye, EyeOff, LoaderCircle } from "lucide-react";
 import { setFlashMessage } from "@/lib/client-flash";
 
 /** สร้างส่วนหน้าจอ ChangePasswordForm; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
@@ -53,12 +53,7 @@ export function ChangePasswordForm() {
   const labels = ["อย่างน้อย 12 ตัวอักษร", "มีตัวพิมพ์ใหญ่", "มีตัวพิมพ์เล็ก", "มีตัวเลข", "มีอักขระพิเศษ"];
   return (
     <>
-      <div className="icon-box">
-        <KeyRound size={22} />
-      </div>
-      <p className="eyebrow" style={{ marginTop: 26 }}>
-        FIRST SIGN-IN · STEP 1 OF 3
-      </p>
+      <p className="auth-step">ขั้นตอนที่ 1 จาก 3</p>
       <h2 className="heading">ตั้งรหัสผ่านใหม่</h2>
       <p className="muted">รหัสผ่านชั่วคราวใช้ได้ครั้งเดียว กรุณาสร้างรหัสผ่านใหม่ก่อนใช้งานระบบ</p>
       {error && (

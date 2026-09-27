@@ -7,7 +7,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, KeyRound } from "lucide-react";
+import { AlertCircle, ArrowRight } from "lucide-react";
 import { LoadingLabel } from "./loading-label";
 import { setFlashMessage } from "@/lib/client-flash";
 
@@ -45,12 +45,6 @@ export function RecoveryLogin() {
 
   return (
     <>
-      <div className="icon-box">
-        <KeyRound size={22} />
-      </div>
-      <p className="eyebrow" style={{ marginTop: 26 }}>
-        ACCOUNT RECOVERY
-      </p>
       <h2 className="heading">ใช้ Recovery Code</h2>
       <p className="muted">
         กรอกรหัสที่ยังไม่เคยใช้ ระบบจะยกเลิกรหัสนี้ทันทีเมื่อเข้าสู่ระบบสำเร็จ
