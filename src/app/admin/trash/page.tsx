@@ -74,6 +74,7 @@ export default function TrashPage() {
             : "การดำเนินการนี้ไม่สามารถย้อนกลับได้",
         confirmLabel: operation === "restore" ? "กู้คืน" : "ลบถาวร",
         tone: operation === "delete" ? "danger" : undefined,
+        icon: operation === "restore" ? ArchiveRestore : undefined,
       }))
     )
       return;
@@ -92,7 +93,7 @@ export default function TrashPage() {
         toast(body.error ?? "ดำเนินการไม่สำเร็จ", "error");
         return;
       }
-      toast(operation === "restore" ? "กู้คืนแล้ว" : "ลบถาวรแล้ว");
+      toast(operation === "restore" ? `กู้คืน “${item.title}” แล้ว เป็นฉบับร่าง` : "ลบถาวรแล้ว");
       try {
         await load();
       } catch {
@@ -113,74 +114,77 @@ export default function TrashPage() {
       />
       {error && <div className="auth-alert warning">{error}</div>}
       <section className="panel">
-        {items.length ? (
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>รายการ</th>
-                  <th>ประเภท</th>
-                  <th>ลบถาวรวันที่</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <tr key={`${item.kind}-${item.id}`}>
-                    <td>
-                      <strong>{item.title}</strong>
-                    </td>
-                    <td>{names[item.kind]}</td>
-                    <td>
-                      {new Intl.DateTimeFormat("th-TH", {
-                        dateStyle: "medium",
-                      }).format(new Date(item.purgeAt))}
-                    </td>
-                    <td>
-                      <div className="row-actions">
+        {/* หัวตารางและท้ายตารางแสดงเสมอ ให้หน้าตาเหมือนตารางหน้าอื่นแม้ถังขยะว่าง */}
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>รายการ</th>
+                <th>ประเภท</th>
+                <th>ลบถาวรวันที่</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <tr key={`${item.kind}-${item.id}`}>
+                  <td>
+                    <strong>{item.title}</strong>
+                  </td>
+                  <td>{names[item.kind]}</td>
+                  <td>
+                    {new Intl.DateTimeFormat("th-TH", {
+                      dateStyle: "medium",
+                    }).format(new Date(item.purgeAt))}
+                  </td>
+                  <td>
+                    <div className="row-actions">
+                      <button type="button"
+                        className="btn btn-outline"
+                        disabled={pending !== null}
+                        aria-busy={pending === `${item.kind}-${item.id}`}
+                        onClick={() => action(item, "restore")}
+                      >
+                        {pending === `${item.kind}-${item.id}` ? (
+                          <>
+                            <LoaderCircle className="spin" size={15} />{" "}
+                            กำลังดำเนินการ…
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw size={15} /> กู้คืน
+                          </>
+                        )}
+                      </button>
+                      {role === "SUPER_ADMIN" && (
                         <button type="button"
-                          className="btn btn-outline"
+                          className="icon-btn"
                           disabled={pending !== null}
                           aria-busy={pending === `${item.kind}-${item.id}`}
-                          onClick={() => action(item, "restore")}
+                          onClick={() => action(item, "delete")}
+                          aria-label={`ลบ ${item.title} ถาวร`}
+                          title="ลบถาวร (เฉพาะ Super Admin)"
                         >
-                          {pending === `${item.kind}-${item.id}` ? (
-                            <>
-                              <LoaderCircle className="spin" size={15} />{" "}
-                              กำลังดำเนินการ…
-                            </>
-                          ) : (
-                            <>
-                              <RotateCcw size={15} /> กู้คืน
-                            </>
-                          )}
+                          <Trash2 size={16} />
                         </button>
-                        {role === "SUPER_ADMIN" && (
-                          <button type="button"
-                            className="icon-btn"
-                            disabled={pending !== null}
-                            aria-busy={pending === `${item.kind}-${item.id}`}
-                            onClick={() => action(item, "delete")}
-                            aria-label={`ลบ ${item.title} ถาวร`}
-                            title="ลบถาวร (เฉพาะ Super Admin)"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!items.length && (
           <div className="empty-panel">
             <ArchiveRestore size={30} aria-hidden="true" />
             <p>ถังขยะว่าง</p>
             <span>รายการที่ย้ายลงถังขยะจะอยู่ที่นี่ 30 วัน และกู้คืนได้ตลอดช่วงนั้น</span>
           </div>
         )}
+        <div className="pagination">
+          <span>ทั้งหมด {items.length} รายการ</span>
+        </div>
       </section>
     </>
   );
