@@ -109,6 +109,16 @@ output {
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
+/* ป้ายภาษาไทย: ไม่เว้นช่องไฟแบบตัวพิมพ์ใหญ่อังกฤษ ไม่ให้สระและวรรณยุกต์ดูแยกจากตัวอักษร */
+.eyebrow-th {
+  font-size: 0.86rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* สระและวรรณยุกต์บนของหัวข้อไทยสูงเกินบรรทัด เว้นระยะไม่ให้ชนป้ายเล็กด้านบน */
+.eyebrow + :is(h1, h2, h3) {
+  margin-top: 10px;
+}
 .display {
   margin: 0;
   color: var(--green-950);
@@ -1654,6 +1664,8 @@ a.metric-card:hover {
   color: var(--green-950);
 }
 .table-wrap {
+  /* position: relative เก็บข้อความซ่อนสำหรับโปรแกรมอ่านหน้าจอ (sr-only) ไว้ในกรอบเลื่อน ไม่ให้ดันหน้าให้กว้างเกินจอมือถือ */
+  position: relative;
   overflow-x: auto;
 }
 .data-table {

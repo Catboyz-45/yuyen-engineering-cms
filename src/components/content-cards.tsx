@@ -8,12 +8,13 @@ import { ArrowUpRight } from "lucide-react";
 import { ResponsiveMedia } from "./responsive-media";
 import { ServiceIcon } from "./service-icon";
 import type { ServiceIconKey } from "@/lib/service-icons";
+import { eyebrowClass } from "@/lib/eyebrow";
 
 type CardMedia = { id: string; altText?: string | null; width?: number | null; height?: number | null } | null;
 
 /** การ์ดบริการ: แสดงรูปปกเมื่อหน้าส่งมาให้ ถ้าไม่มีใช้ไอคอนเส้นของบริการนั้น */
 export function ServiceCard({ item }: Readonly<{ item: { slug: string; title: string; eyebrow: string; description: string; icon: ServiceIconKey; media?: CardMedia } }>) {
-  return <Link href={`/services/${item.slug}`} className="card card-hover service-card">{item.media && <ResponsiveMedia media={item.media} />}<div className="card-body">{!item.media && <span className="line-icon"><ServiceIcon name={item.icon} /></span>}<p className="eyebrow">{item.eyebrow}</p><h3 className="subheading">{item.title}</h3><p className="muted">{item.description}</p><span className="card-more">ดูรายละเอียด <ArrowUpRight size={17} aria-hidden="true" /></span></div></Link>;
+  return <Link href={`/services/${item.slug}`} className="card card-hover service-card">{item.media && <ResponsiveMedia media={item.media} />}<div className="card-body">{!item.media && <span className="line-icon"><ServiceIcon name={item.icon} /></span>}<p className={eyebrowClass(item.eyebrow)}>{item.eyebrow}</p><h3 className="subheading">{item.title}</h3><p className="muted">{item.description}</p><span className="card-more">ดูรายละเอียด <ArrowUpRight size={17} aria-hidden="true" /></span></div></Link>;
 }
 
 /** สร้างส่วนหน้าจอ ProductCard; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */

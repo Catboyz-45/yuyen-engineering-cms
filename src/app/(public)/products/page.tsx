@@ -10,6 +10,7 @@ import {
   PublicPagination,
 } from "@/components/public-pagination";
 import { createMetadata } from "@/lib/seo";
+import { formatBtuRange } from "@/lib/btu";
 import { PublicContentService } from "@/server/services/public-content.service";
 import { resolveSiteCopy } from "@/server/services/site-copy";
 import { ThemeSelect } from "@/components/theme-select";
@@ -65,10 +66,7 @@ export default async function ProductsPage({
     name: item.name,
     brand: item.brand.name,
     type: item.productType.name,
-    btu:
-      item.btuMin && item.btuMax
-        ? `${item.btuMin.toLocaleString()}–${item.btuMax.toLocaleString()} BTU`
-        : "สอบถามขนาด",
+    btu: formatBtuRange(item.btuMin, item.btuMax),
     feature: item.summary,
     tone: "silver",
     media: item.coverMedia,

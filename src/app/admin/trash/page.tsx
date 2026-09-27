@@ -115,7 +115,7 @@ export default function TrashPage() {
       {error && <div className="auth-alert warning">{error}</div>}
       <section className="panel">
         {/* หัวตารางและท้ายตารางแสดงเสมอ ให้หน้าตาเหมือนตารางหน้าอื่นแม้ถังขยะว่าง */}
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="ตารางรายการในถังขยะ">
           <table className="data-table">
             <thead>
               <tr>

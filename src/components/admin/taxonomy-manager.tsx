@@ -249,7 +249,7 @@ export function TaxonomyManager({
           </div>
         </form>
         <section className="panel">
-          <div className="table-wrap">
+          <div className="table-wrap" tabIndex={0} role="region" aria-label={`ตาราง${title}`}>
             <table className="data-table">
               <thead>
                 <tr>

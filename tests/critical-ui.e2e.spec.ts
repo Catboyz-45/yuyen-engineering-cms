@@ -123,6 +123,9 @@ test.describe("authenticated CMS interaction", () => {
       await page.getByLabel("SEO title").fill(`SEO ${values}`);
       await page.getByLabel("หัวข้อหน้าเกี่ยวกับเรา").fill(`หัวข้อ ${values}`);
       await page.getByLabel("จุดเด่นที่ 1 — หัวข้อ").fill(`จุดเด่น ${values}`);
+      await page.getByLabel("ตัวเลขที่ 1 — จำนวน").fill("321");
+      await page.getByLabel("ตัวเลขที่ 1 — หน่วย").fill("+");
+      await page.getByLabel("ตัวเลขที่ 1 — คำอธิบาย").fill(`ตัวเลข ${values}`);
       await page.getByLabel("ป้ายเล็กบนภาพหน้าแรก").fill("");
       await page.getByLabel("เบอร์โทรที่แสดง").fill("");
       await page.getByLabel("เบอร์โทรสำหรับลิงก์").fill("");
@@ -135,8 +138,23 @@ test.describe("authenticated CMS interaction", () => {
 
       await page.goto("/");
       await expect(page).toHaveTitle(`SEO ${values}`);
-      await expect(page.getByText(`จุดเด่น ${values}`)).toBeVisible();
+      // มีตัวเลข กล่องขาวใต้ภาพแสดงตัวเลข (ข้อความจริงสำหรับโปรแกรมอ่านหน้าจอเป็นค่าสุดท้ายเสมอ ไม่ต้องรอนับ)
+      const numbers = page.locator(".stats-card-numbers");
+      await expect(numbers.getByText(`ตัวเลข ${values}`)).toBeVisible();
+      await expect(numbers.locator(".sr-only").first()).toHaveText("321+");
+      await expect(page.getByText(`จุดเด่น ${values}`)).toHaveCount(0);
       await expect(page.locator(".hero-badge")).toHaveCount(0);
+
+      // ลบตัวเลขออกหมด กล่องขาวกลับไปแสดงจุดเด่นแทน
+      await page.goto("/admin/company");
+      for (let index = 1; index <= 4; index += 1) {
+        for (const part of ["จำนวน", "หน่วย", "คำอธิบาย"]) await page.getByLabel(`ตัวเลขที่ ${index} — ${part}`).fill("");
+      }
+      await page.getByRole("button", { name: "บันทึกการเปลี่ยนแปลง" }).click();
+      await expect(page.getByText("บันทึกข้อมูลบริษัทเรียบร้อยแล้ว")).toBeVisible();
+      await page.goto("/");
+      await expect(page.locator(".stats-card-numbers")).toHaveCount(0);
+      await expect(page.getByText(`จุดเด่น ${values}`)).toBeVisible();
 
       await page.goto("/about");
       await expect(page.getByText(values, { exact: true })).toBeVisible();

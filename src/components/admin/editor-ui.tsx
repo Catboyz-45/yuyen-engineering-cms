@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useModalAccessibility } from "@/hooks/use-modal-accessibility";
+import { eyebrowClass } from "@/lib/eyebrow";
 
 /** สร้างส่วนหน้าจอ FormSection; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
 export function FormSection({
@@ -492,7 +493,7 @@ export function PreviewModal({
         </div>
         <section className="page-hero">
           <div className="container">
-            <p className="eyebrow">{eyebrow}</p>
+            <p className={eyebrowClass(eyebrow)}>{eyebrow}</p>
             <h1 className="display">{title || "ชื่อเนื้อหา"}</h1>
             <p className="lead">
               {description || "รายละเอียดเนื้อหาจะแสดงในตำแหน่งนี้"}

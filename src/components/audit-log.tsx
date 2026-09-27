@@ -52,7 +52,7 @@ export function AuditLog() {
       </div>
       {error && <div className="auth-alert warning" role="alert">{error}</div>}
       <section className="panel">
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="ตารางประวัติการทำงาน">
           <table className="data-table" aria-busy={loading}>
             <thead><tr><th>กิจกรรม</th><th>ผู้ดำเนินการ</th><th>ผลลัพธ์</th><th>วันและเวลา</th></tr></thead>
             <tbody>

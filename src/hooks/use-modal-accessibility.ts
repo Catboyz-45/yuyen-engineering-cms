@@ -13,6 +13,22 @@ const focusableSelector = [
   "textarea:not([disabled])", "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
+// Safari ไม่ย้ายโฟกัสไปที่ปุ่มเมื่อคลิกด้วยเมาส์ (document.activeElement ยังเป็น body) ตอนปิดหน้าต่างจึงคืนโฟกัสไม่ถูกที่
+// จำปุ่มหรือลิงก์ที่กดล่าสุดไว้เป็นทางสำรอง ผู้ใช้คีย์บอร์ดจะกลับมาที่ปุ่มเดิมได้ในทุกเบราว์เซอร์
+// ปุ่มที่กดก่อนหน้าต่างเปิดไม่เกินเวลานี้ถือว่าเป็นปุ่มที่เปิดหน้าต่าง
+const PRESS_OPENS_DIALOG_MS = 1500;
+let lastPressed: { element: HTMLElement; at: number } | null = null;
+if (typeof document !== "undefined") {
+  document.addEventListener("pointerdown", event => {
+    const element = event.target instanceof Element ? event.target.closest<HTMLElement>(focusableSelector) : null;
+    if (element) lastPressed = { element, at: Date.now() };
+  }, true);
+}
+/** ใช้คืนโฟกัสได้เฉพาะ element จริงที่ยังอยู่ในหน้า ไม่ใช่ body */
+function focusTarget(element: HTMLElement | null | undefined) {
+  return element && element !== document.body && element.isConnected ? element : null;
+}
+
 type ModalAccessibilityOptions = {
   active?: boolean;
   containerRef: RefObject<HTMLElement | null>;
@@ -45,7 +61,9 @@ export function useModalAccessibility({ active = true, containerRef, initialFocu
     }
     // Dialogs mounted already active never pass through the inactive branch; focus is still on the trigger here.
     const mountFocus = document.activeElement instanceof HTMLElement && !containerRef.current?.contains(document.activeElement) ? document.activeElement : null;
-    const previousFocus = restoreFocusRef?.current ?? returnFocusRef.current ?? mountFocus;
+    const pressed = lastPressed && Date.now() - lastPressed.at < PRESS_OPENS_DIALOG_MS && !containerRef.current?.contains(lastPressed.element) ? lastPressed.element : null;
+    // ปุ่มที่เพิ่งกดมาก่อน: ใน Safari ค่าอื่นเป็นแค่ element ที่เคยโฟกัสไว้ก่อนหน้า (เช่น main) ไม่ใช่ปุ่มที่เปิดหน้าต่าง
+    const previousFocus = focusTarget(pressed) ?? focusTarget(restoreFocusRef?.current) ?? focusTarget(returnFocusRef.current) ?? focusTarget(mountFocus);
     const bodyOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 

@@ -104,7 +104,7 @@ function StatFields({ initial }: Readonly<{ initial: StatItem[] }>) {
             <input id={`copy-stats-${index}-value`} name={`copy.stats.${index}.value`} className="field" inputMode="numeric" pattern="[0-9,]*" maxLength={9} defaultValue={initial[index]?.value ?? ""} />
           </div>
           <div className="form-group">
-            <label htmlFor={`copy-stats-${index}-suffix`}>หน่วยหรือเครื่องหมาย</label>
+            <label htmlFor={`copy-stats-${index}-suffix`}>ตัวเลขที่ {index + 1} — หน่วย</label>
             <input id={`copy-stats-${index}-suffix`} name={`copy.stats.${index}.suffix`} className="field" maxLength={STAT_LIMITS.suffix} placeholder="เช่น + หรือ ปี" defaultValue={initial[index]?.suffix ?? ""} />
           </div>
           <div className="form-group">

@@ -13,7 +13,7 @@ export function LegalDocument({ title, summary, sections, notice }: Readonly<{ t
   return (
     <article className="container legal-document">
       <header className="stack">
-        <p className="eyebrow">ข้อมูลการใช้เว็บไซต์</p>
+        <p className="eyebrow eyebrow-th">ข้อมูลการใช้เว็บไซต์</p>
         <h1 className="heading">{title}</h1>
         <p className="lead">{summary}</p>
         <p className="muted">

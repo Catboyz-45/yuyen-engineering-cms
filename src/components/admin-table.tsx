@@ -216,7 +216,7 @@ export function AdminTablePage({
         </div>
       )}
       <section className="panel">
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label={`ตาราง${title}`}>
           <table className="data-table" aria-busy={loading}>
             <thead>
               <tr>

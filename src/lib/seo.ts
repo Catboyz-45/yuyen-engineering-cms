@@ -46,3 +46,9 @@ export function createMetadata({
     },
   };
 }
+
+/**
+ * หน้ารายละเอียดที่ไม่พบ (ไม่มี slug นี้ หรือยังเป็นฉบับร่าง) ต้องห้ามเครื่องมือค้นหาเก็บเสมอ
+ * หน้าส่งแบบทยอย (streaming) สถานะอาจเป็น 200 แม้แสดงหน้าไม่พบ จึงกำหนด noindex ตรงนี้ ไม่พึ่งจังหวะของ Next
+ */
+export const notFoundMetadata: Metadata = { title: "ไม่พบหน้าที่ต้องการ", robots: { index: false, follow: false } };

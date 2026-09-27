@@ -71,7 +71,7 @@ export default async function DashboardPage() {
 
       <section className="dash-hero" aria-labelledby="dash-hero-title">
         <div className="dash-hero-copy">
-          <p className="eyebrow">เริ่มงานได้เลย</p>
+          <p className="eyebrow eyebrow-th">เริ่มงานได้เลย</p>
           <h2 id="dash-hero-title">อัปเดตเว็บไซต์บริษัทได้ในไม่กี่ขั้นตอน</h2>
           <p>เพิ่มหรือแก้ไขเนื้อหา กดเผยแพร่ แล้วหน้าเว็บจะแสดงผลทันที</p>
         </div>

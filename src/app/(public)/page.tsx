@@ -17,6 +17,7 @@ import { TypingHeadline } from "@/components/type-text";
 import { CountUp, CountUpFallback } from "@/components/count-up";
 import { BrandStrip } from "@/components/brand-strip";
 import { resolveServiceIcon } from "@/lib/service-icons";
+import { formatBtuRange } from "@/lib/btu";
 
 /** SEO ของหน้าแรกมาจากช่อง SEO ในข้อมูลบริษัท ถ้าเว้นว่างใช้ค่าเริ่มต้น */
 export async function generateMetadata() {
@@ -37,7 +38,7 @@ export default async function HomePage() {
   const serviceHasPhotos = featuredServices.every(item => item.coverMedia);
   const services = featuredServices.map(item => ({ slug: item.slug, title: item.title, eyebrow: item.eyebrow ?? "SERVICE", description: item.summary, icon: resolveServiceIcon(item), media: serviceHasPhotos ? item.coverMedia : null }));
   const highlightIcons = [ShieldCheck, Clock3, Headphones];
-  const products = productResult.items.map(item => ({ slug: item.slug, name: item.name, brand: item.brand.name, type: item.productType.name, btu: item.btuMin && item.btuMax ? `${item.btuMin.toLocaleString()}–${item.btuMax.toLocaleString()} BTU` : "สอบถามขนาด", feature: item.summary, tone: "silver", media: item.coverMedia }));
+  const products = productResult.items.map(item => ({ slug: item.slug, name: item.name, brand: item.brand.name, type: item.productType.name, btu: formatBtuRange(item.btuMin, item.btuMax), feature: item.summary, tone: "silver", media: item.coverMedia }));
   const projects = projectRecords.items.map(item => ({ slug: item.slug, title: item.title, category: item.projectType, area: item.area, summary: item.summary, tone: "office", media: item.coverMedia }));
   const news = newsResult.items.map(item => ({ slug: item.slug, title: item.title, category: item.category.name, date: formatThaiDate(item.publishedAt), summary: item.summary, tone: "mint", media: item.coverMedia }));
   return (
