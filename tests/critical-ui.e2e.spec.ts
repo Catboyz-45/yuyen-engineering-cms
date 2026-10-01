@@ -55,9 +55,11 @@ test("ผู้ใช้ทั่วไปค้นหาและกรอง�
 
   const typeSelect = page.getByRole("combobox", { name: "กรองตามประเภท" });
   await typeSelect.focus();
-  const scrollBefore = await page.evaluate(() => window.scrollY);
   await page.keyboard.press("ArrowDown");
   await expect(typeSelect).toHaveAttribute("aria-expanded", "true");
+  // ตอนเปิด หน้าอาจเลื่อนเล็กน้อยให้เห็นทั้งรายการ แต่ลูกศรที่เลื่อนไปมาในรายการต้องไม่เลื่อนหน้า (Safari เลื่อนหน้าเป็นค่าเริ่มต้น)
+  await expect(page.getByRole("listbox", { name: "กรองตามประเภท" })).toBeInViewport({ ratio: 1 });
+  const scrollBefore = await page.evaluate(() => window.scrollY);
   await page.keyboard.press("ArrowDown");
   expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
   await expect(page.locator('input[name="type"]')).toHaveValue("");

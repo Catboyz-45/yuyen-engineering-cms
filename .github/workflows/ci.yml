@@ -93,8 +93,21 @@ jobs:
         run: docker build --tag yuyen-engineering:ci .
 
   e2e:
+    # ชุดเดียวกันรันแยก job ต่อเบราว์เซอร์ (webkit = เอนจินของ Safari) แต่ละ job ได้ฐานข้อมูลและ bucket ใหม่ของตัวเอง
+    name: e2e (${{ matrix.browser }})
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chromium
+            app_url: http://localhost:3000
+            https_port: ""
+          # WebKit รับ cookie แบบ Secure เฉพาะผ่าน HTTPS จึงทดสอบผ่าน scripts/https-test-proxy.ts
+          - browser: webkit
+            app_url: https://localhost:3443
+            https_port: "3443"
     services:
       postgres:
         image: postgres:17-alpine
@@ -127,10 +140,11 @@ jobs:
       CI: true
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_e2e?schema=public
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/yuyen_e2e?schema=public
-      # Must match Playwright's localhost baseURL: the production session cookie is Secure,
-      # and Playwright only returns Secure cookies over plain HTTP to localhost.
-      APP_URL: http://localhost:3000
-      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      # Must match Playwright's baseURL: the production session cookie is Secure. Chromium
+      # accepts it over plain HTTP to localhost; WebKit needs the HTTPS test proxy.
+      APP_URL: ${{ matrix.app_url }}
+      NEXT_PUBLIC_SITE_URL: ${{ matrix.app_url }}
+      E2E_HTTPS_PORT: ${{ matrix.https_port }}
       # Throwaway credentials for the isolated CI database only.
       E2E_ADMIN_USERNAME: e2e-owner
       E2E_ADMIN_PASSWORD: ci-only-temporary-password-1A!
@@ -168,11 +182,13 @@ jobs:
       - name: Create isolated object-storage bucket
         # minio/mc can no longer be pulled from Docker Hub; the project's own S3 SDK needs no extra image.
         run: npx tsx scripts/ensure-test-bucket.ts
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BROWSERS: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: playwright-report/
           retention-days: 7

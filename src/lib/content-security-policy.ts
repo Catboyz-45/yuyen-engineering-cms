@@ -10,8 +10,19 @@ const mapFrameSources = [
   "https://maps.google.com/maps/embed/",
 ];
 
-/** ประกอบ CSP; storageOrigins คือปลายทางของ signed URL ที่ต้องโหลดรูปและอัปโหลดไฟล์ได้ */
-export function buildContentSecurityPolicy({ nodeEnv, storageOrigins }: { nodeEnv: string | undefined; storageOrigins: readonly string[] }) {
+/** เครื่องตัวเอง (localhost) ไม่มี HTTPS: Safari/WebKit อัปเกรดคำขอไป localhost เป็น https ด้วย ซึ่งทำให้สคริปต์ทุกตัวโหลดไม่ได้ */
+function isLoopbackHttp(appUrl: string | undefined) {
+  if (!appUrl) return false;
+  try {
+    const url = new URL(appUrl);
+    return url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** ประกอบ CSP; storageOrigins คือปลายทางของ signed URL ที่ต้องโหลดรูปและอัปโหลดไฟล์ได้ appUrl ใช้งดอัปเกรด HTTPS เฉพาะการทดสอบบนเครื่องตัวเอง */
+export function buildContentSecurityPolicy({ nodeEnv, storageOrigins, appUrl }: { nodeEnv: string | undefined; storageOrigins: readonly string[]; appUrl?: string }) {
   const storage = storageOrigins.map((origin) => ` ${origin}`).join("");
   const directives = [
     "default-src 'self'",
@@ -26,7 +37,7 @@ export function buildContentSecurityPolicy({ nodeEnv, storageOrigins }: { nodeEn
     `script-src 'self' 'unsafe-inline'${nodeEnv === "development" ? " 'unsafe-eval'" : ""}`,
     `connect-src 'self'${storage}`,
     "media-src 'self' blob:",
-    ...(nodeEnv === "production" ? ["upgrade-insecure-requests"] : []),
+    ...(nodeEnv === "production" && !isLoopbackHttp(appUrl) ? ["upgrade-insecure-requests"] : []),
   ];
   return directives.join("; ");
 }

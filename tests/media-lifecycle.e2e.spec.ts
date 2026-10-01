@@ -126,7 +126,7 @@ test.describe("media lifecycle", () => {
       expect(new Set(processedImage?.variants.map(item => item.format))).toEqual(new Set(["WEBP", "AVIF"]));
       expect(media.items.find(item => item.id === pdfId)?.kind).toBe("PDF");
 
-      const anonymous = await playwright.request.newContext({ baseURL: origin });
+      const anonymous = await playwright.request.newContext({ baseURL: origin, ignoreHTTPSErrors: true });
       try {
         expect((await anonymous.get(`/api/media/${imageId}`, { maxRedirects: 0 })).status()).toBe(404);
 

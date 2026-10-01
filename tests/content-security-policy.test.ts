@@ -46,6 +46,15 @@ describe("content security policy", () => {
     expect(policy.endsWith("upgrade-insecure-requests")).toBe(true);
   });
 
+  it("skips the HTTPS upgrade only for a production build tested on this machine over plain HTTP", () => {
+    for (const appUrl of ["http://localhost:3000", "http://127.0.0.1:3000", "http://[::1]:3000"]) {
+      expect(buildContentSecurityPolicy({ nodeEnv: "production", storageOrigins: [], appUrl })).not.toContain("upgrade-insecure-requests");
+    }
+    for (const appUrl of ["https://localhost:3000", "https://www.example.co.th", "http://www.example.co.th", "http://localhost.example.co.th", "not a url", undefined]) {
+      expect(buildContentSecurityPolicy({ nodeEnv: "production", storageOrigins: [], appUrl })).toContain("upgrade-insecure-requests");
+    }
+  });
+
   it("only relaxes eval and HTTPS upgrades outside production", () => {
     const development = buildContentSecurityPolicy({ nodeEnv: "development", storageOrigins: [] });
     expect(directive(development, "script-src")).toContain("'unsafe-eval'");

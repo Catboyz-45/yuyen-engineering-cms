@@ -88,7 +88,7 @@ export function DateTimeField({
 
   // ปฏิทินที่เปิดลงไปเลยขอบล่างของจอ: เลื่อนหน้าให้เห็นทั้งปฏิทิน ไม่ต้องเลื่อนหาเอง
   useEffect(() => {
-    if (open) gridRef.current?.closest(".date-picker-popover")?.scrollIntoView({ block: "nearest" });
+    if (open) gridRef.current?.closest(".date-picker-popover")?.scrollIntoView({ block: "nearest", behavior: "instant" });
   }, [open]);
 
   // ย้ายโฟกัสไปวันที่กำลังเลือกทุกครั้งที่เปิดปฏิทินหรือเลื่อนด้วยคีย์บอร์ด

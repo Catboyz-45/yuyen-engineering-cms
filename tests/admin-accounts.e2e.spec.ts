@@ -23,7 +23,7 @@ async function signInAndEnroll(
   temporaryPassword: string,
   permanentPassword: string,
 ): Promise<EnrolledAccount> {
-  const context = await playwright.request.newContext({ baseURL });
+  const context = await playwright.request.newContext({ baseURL, ignoreHTTPSErrors: true });
   const headers = { Origin: origin };
   const login = await context.post("/api/auth/login", {
     headers,
@@ -148,13 +148,13 @@ test.describe("administrator account lifecycle", () => {
       const resetPassword = await superAccount.context.post(`/api/admin/users/${targetId}/reset-password`, { headers, data: {} });
       expect(resetPassword.status()).toBe(200);
       const resetPasswordBody = (await resetPassword.json()) as { temporaryPassword: string };
-      const oldPasswordLogin = await playwright.request.newContext({ baseURL });
+      const oldPasswordLogin = await playwright.request.newContext({ baseURL, ignoreHTTPSErrors: true });
       contexts.push(oldPasswordLogin);
       expect((await oldPasswordLogin.post("/api/auth/login", {
         headers,
         data: { username: targetUsername, password: targetPermanent },
       })).status()).toBe(401);
-      const resetLogin = await playwright.request.newContext({ baseURL });
+      const resetLogin = await playwright.request.newContext({ baseURL, ignoreHTTPSErrors: true });
       contexts.push(resetLogin);
       const resetLoginResponse = await resetLogin.post("/api/auth/login", {
         headers,
@@ -175,7 +175,7 @@ test.describe("administrator account lifecycle", () => {
         headers,
         data: { isActive: false },
       })).status()).toBe(200);
-      const disabledLogin = await playwright.request.newContext({ baseURL });
+      const disabledLogin = await playwright.request.newContext({ baseURL, ignoreHTTPSErrors: true });
       contexts.push(disabledLogin);
       expect((await disabledLogin.post("/api/auth/login", {
         headers,
@@ -202,7 +202,7 @@ test.describe("administrator account lifecycle", () => {
         data: { action: "restore" },
       })).status()).toBe(200);
 
-      const recoveryContext = await playwright.request.newContext({ baseURL });
+      const recoveryContext = await playwright.request.newContext({ baseURL, ignoreHTTPSErrors: true });
       contexts.push(recoveryContext);
       expect((await recoveryContext.post("/api/auth/login", {
         headers,

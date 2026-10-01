@@ -29,7 +29,8 @@ for (const viewport of viewports) {
 }
 
 test("หน้า public หลักผ่าน WCAG 2 A/AA อัตโนมัติ", async ({ page }) => {
-  await page.goto("/");
+  // รอให้หน้านิ่งก่อน: dev server บน WebKit เปลี่ยน URL ซ้ำหลังโหลด ทำให้ axe ที่เริ่มเร็วเกินไปหลุดกลางทาง
+  await page.goto("/", { waitUntil: "networkidle" });
   await expect(page.locator(".skeleton")).toHaveCount(0);
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   expect(results.violations).toEqual([]);

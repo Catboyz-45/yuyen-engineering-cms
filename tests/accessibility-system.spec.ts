@@ -114,14 +114,20 @@ for (const route of cmsRoutes) {
   });
 }
 
-test("ลำดับ Tab และ focus indicator บน Public navigation", async ({ page }) => {
+/** Safari บน macOS ข้ามลิงก์และปุ่มเมื่อกด Tab (ผู้ใช้ต้องกด Option+Tab) ส่วน WebKit บน Linux ใน CI ใช้ Tab ปกติ */
+function tabKey(browserName: string, shift = false) {
+  const key = process.platform === "darwin" && browserName === "webkit" ? "Alt+Tab" : "Tab";
+  return shift ? `Shift+${key}` : key;
+}
+
+test("ลำดับ Tab และ focus indicator บน Public navigation", async ({ page, browserName }) => {
   await page.goto("/");
   await waitForPage(page);
-  await page.keyboard.press("Tab");
+  await page.keyboard.press(tabKey(browserName));
   await expect(page.getByRole("link", { name: "ข้ามไปยังเนื้อหาหลัก" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("main")).toBeFocused();
-  await page.keyboard.press("Tab");
+  await page.keyboard.press(tabKey(browserName));
   const focused = page.locator(":focus");
   await expect(focused).toBeVisible();
   const outline = await focused.evaluate(element => {
@@ -133,16 +139,17 @@ test("ลำดับ Tab และ focus indicator บน Public navigation", a
   expect(outline.color).not.toBe("rgba(0, 0, 0, 0)");
 });
 
-test("ลำดับ Tab และ focus indicator บน CMS", async ({ page }) => {
+test("ลำดับ Tab และ focus indicator บน CMS", async ({ page, browserName }) => {
   await addCmsSession(page);
-  await page.goto("/admin");
-  await page.keyboard.press("Tab");
+  await page.goto("/admin", { waitUntil: "networkidle" });
+  await waitForPage(page);
+  await page.keyboard.press(tabKey(browserName));
   await expect(page.getByRole("link", { name: "ข้ามไปยังเนื้อหาหลัก" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page.locator("#admin-content")).toBeFocused();
 });
 
-test("Dialog ผู้ดูแล trap focus, Escape และคืน focus", async ({ page }) => {
+test("Dialog ผู้ดูแล trap focus, Escape และคืน focus", async ({ page, browserName }) => {
   await addCmsSession(page);
   await page.goto("/admin/admins");
   const trigger = page.getByRole("button", { name: "เพิ่มผู้ดูแล" });
@@ -151,7 +158,7 @@ test("Dialog ผู้ดูแล trap focus, Escape และคืน focus",
   const dialog = page.getByRole("dialog", { name: "เพิ่มผู้ดูแล" });
   await expect(dialog).toBeVisible();
   await expect(page.getByLabel("ชื่อที่แสดง")).toBeFocused();
-  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press(tabKey(browserName, true));
   await expect(page.getByRole("button", { name: "ปิด" })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();

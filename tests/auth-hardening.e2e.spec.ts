@@ -43,7 +43,7 @@ function token(secret: string, username: string) {
 }
 
 async function context(playwright: { request: APIRequest }) {
-  const result = await playwright.request.newContext({ baseURL });
+  const result = await playwright.request.newContext({ baseURL, ignoreHTTPSErrors: true });
   contexts.push(result);
   return result;
 }

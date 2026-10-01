@@ -106,6 +106,20 @@ The test runner validates the database URL and then exposes it to Prisma as
 database name does not clearly identify an isolated test database. Do not copy
 production credentials into `.env.test`.
 
+Playwright runs in Chromium by default. Set `PLAYWRIGHT_BROWSERS` to run the
+same suites in WebKit, the engine behind Safari. Use one browser per fresh test
+database and bucket, because some workflows (temporary passwords and first 2FA
+enrollment) can only run once. CI runs the E2E job once per browser.
+
+WebKit only accepts the production `Secure` session cookie over HTTPS, so the
+production-build E2E run in WebKit goes through a throwaway self-signed HTTPS
+proxy (`scripts/https-test-proxy.ts`, test use only, requires `openssl`):
+
+```bash
+npx playwright install webkit
+PLAYWRIGHT_BROWSERS=webkit E2E_HTTPS_PORT=3443 APP_URL=https://localhost:3443 NEXT_PUBLIC_SITE_URL=https://localhost:3443 npm run test:e2e
+```
+
 ## CMS retention job
 
 CMS records use soft deletion and remain restorable for 30 days. Schedule this

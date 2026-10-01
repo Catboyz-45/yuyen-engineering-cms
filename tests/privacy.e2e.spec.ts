@@ -53,7 +53,8 @@ test("แผนที่รอการเลือก ปิดได้ แล
     googleRequests += 1;
     await route.fulfill({ contentType: "text/html", body: '<!doctype html><html lang="th"><title>แผนที่ทดสอบ</title><body>แผนที่จำลอง</body></html>' });
   });
-  await page.goto("/contact");
+  // รอให้ JavaScript ของหน้าพร้อมก่อนกดปุ่มยินยอม (WebKit โหลดช้ากว่าและปุ่มยังไม่ทำงานก่อน hydrate)
+  await page.goto("/contact", { waitUntil: "networkidle" });
   const consent = page.getByRole("region", { name: "แผนที่และความเป็นส่วนตัว" });
   const open = consent.getByRole("button", { name: "ยินยอมและโหลดแผนที่", exact: true });
   await expect(open).toBeVisible();

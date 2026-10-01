@@ -104,6 +104,8 @@ npm run build
 
 Integration/E2E ต้องใช้ฐานข้อมูลทดสอบแยกตาม `.env.test.example` ห้ามชี้ไป production รายละเอียดอยู่ใน README และ `docs/DATABASE.md`
 
+ชุด Playwright รันบน Chromium เป็นค่าเริ่มต้น ถ้าจะทดสอบบน Safari (WebKit) ให้ตั้ง `PLAYWRIGHT_BROWSERS=webkit` และใช้ฐานข้อมูลทดสอบชุดใหม่ต่อหนึ่งเบราว์เซอร์ CI รันชุด E2E แยก job ทั้ง Chromium และ WebKit
+
 ## หลักการดูแลคอมเมนต์
 
 - แก้คอมเมนต์พร้อมโค้ดทุกครั้งที่พฤติกรรมเปลี่ยน
