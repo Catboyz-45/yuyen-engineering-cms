@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: API /api/media/[id] ส่งต่อไปยัง signed URL ของไฟล์ เฉพาะไฟล์ที่เนื้อหาเผยแพร่อยู่ใช้ หรือผู้ดูแลที่ยืนยันตัวตนแล้ว
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: ไฟล์ของเนื้อหาฉบับร่างหรือในถังขยะจะตอบว่าไม่พบ (404) สำหรับผู้เยี่ยมชม
+ */
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { currentSession } from "@/server/auth/session";

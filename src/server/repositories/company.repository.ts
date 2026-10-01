@@ -1,14 +1,21 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชั้น repository company.repository เป็นจุดอ่านและเขียนฐานข้อมูลของโดเมนนี้ เพื่อไม่ให้ UI ติดต่อฐานข้อมูลโดยตรง
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import type { Company, Prisma } from "@prisma/client";
 import { db } from "@/server/db/client";
 
 const companyPublicSelect = {
   id: true,
   legalName: true,
+  registrationNumber: true,
   displayName: true,
   shortDescription: true,
   history: true,
   vision: true,
   mission: true,
+  values: true,
   address: true,
   phoneDisplay: true,
   phoneHref: true,
@@ -21,7 +28,9 @@ const companyPublicSelect = {
   businessHours: true,
   seoTitle: true,
   seoDescription: true,
+  siteCopy: true,
   logoMedia: { select: { id: true, objectKey: true, altText: true, width: true, height: true } },
+  gallery: { orderBy: { sortOrder: "asc" }, select: { media: { select: { id: true, altText: true, width: true, height: true } } } },
 } satisfies Prisma.CompanySelect;
 
 export class CompanyRepository {

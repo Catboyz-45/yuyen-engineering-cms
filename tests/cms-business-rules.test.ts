@@ -1,14 +1,25 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชุดทดสอบ cms-business-rules.test ยืนยันว่าพฤติกรรมสำคัญยังถูกต้องเมื่อมีการแก้โค้ด
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import { describe, expect, it } from "vitest";
 import { ContentStatus } from "@prisma/client";
-import { canTransition, retentionDate } from "@/server/cms/rules";
+import { canTransition, newsPublicationDate, retentionDate } from "@/server/cms/rules";
 import { productSchema, projectSchema, serviceSchema } from "@/server/cms/schemas";
 
 describe("CMS business rules", () => {
-  it("allows only explicit content transitions", () => {
-    expect(canTransition(ContentStatus.DRAFT, ContentStatus.PUBLISHED)).toBe(true);
-    expect(canTransition(ContentStatus.PUBLISHED, ContentStatus.ARCHIVED)).toBe(true);
-    expect(canTransition(ContentStatus.ARCHIVED, ContentStatus.PUBLISHED)).toBe(false);
-    expect(canTransition(ContentStatus.ARCHIVED, ContentStatus.DRAFT)).toBe(true);
+  it("allows only the complete explicit content transition matrix", () => {
+    const expected = {
+      DRAFT: { DRAFT: true, PUBLISHED: true, ARCHIVED: true },
+      PUBLISHED: { DRAFT: true, PUBLISHED: true, ARCHIVED: true },
+      ARCHIVED: { DRAFT: true, PUBLISHED: false, ARCHIVED: true },
+    } as const;
+
+    for (const from of Object.values(ContentStatus)) {
+      for (const to of Object.values(ContentStatus)) {
+        expect(canTransition(from, to), `${from} -> ${to}`).toBe(expected[from][to]);
+      }
+    }
   });
   it("calculates retention at exactly 30 days", () => {
     const now = new Date("2026-08-01T00:00:00.000Z");
@@ -23,7 +34,25 @@ describe("CMS business rules", () => {
     expect(serviceSchema.safeParse({ slug: "ไม่ถูก", title: "x", summary: "x" }).success).toBe(false);
     expect(productSchema.safeParse({ slug: "test", name: "x", model: "x", summary: "x", brandId: "b", productTypeId: "t", btuMin: 18000, btuMax: 9000 }).success).toBe(false);
   });
+  it("caps gallery images at 12 per service or product and 50 per project", () => {
+    const ids = (count: number) => Array.from({ length: count }, (_, index) => `media-${index}`);
+    const product = { slug: "test", name: "x", model: "x", summary: "x", brandId: "b", productTypeId: "t" };
+    const project = { slug: "project", title: "x", projectType: "x", area: "x", summary: "x" };
+    expect(productSchema.safeParse({ ...product, galleryMediaIds: ids(12) }).success).toBe(true);
+    expect(productSchema.safeParse({ ...product, galleryMediaIds: ids(13) }).success).toBe(false);
+    expect(projectSchema.safeParse({ ...project, galleryMediaIds: ids(50) }).success).toBe(true);
+    expect(projectSchema.safeParse({ ...project, galleryMediaIds: ids(51) }).success).toBe(false);
+    const service = { slug: "service", title: "x", summary: "x" };
+    expect(serviceSchema.safeParse({ ...service, galleryMediaIds: ids(12) }).success).toBe(true);
+    expect(serviceSchema.safeParse({ ...service, galleryMediaIds: ids(13) }).success).toBe(false);
+  });
   it("requires a customer name when disclosure is enabled", () => {
     expect(projectSchema.safeParse({ slug: "project", title: "x", projectType: "x", area: "x", summary: "x", showCustomerName: true }).success).toBe(false);
+  });
+  it("preserves a scheduled news date for drafts and published content", () => {
+    const scheduled = new Date("2026-11-01T02:00:00.000Z");
+    expect(newsPublicationDate(scheduled, ContentStatus.DRAFT)).toEqual(scheduled);
+    expect(newsPublicationDate(scheduled, ContentStatus.PUBLISHED)).toEqual(scheduled);
+    expect(newsPublicationDate(null, ContentStatus.DRAFT)).toBeNull();
   });
 });

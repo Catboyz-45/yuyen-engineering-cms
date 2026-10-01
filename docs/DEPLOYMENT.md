@@ -11,29 +11,55 @@
 
 1. สำรองฐานข้อมูลและทดสอบ restore ล่าสุด
 2. สร้าง image จาก commit/tag ที่ผ่าน GitHub Actions โดย public URL เป็น build-time configuration
-   ส่วน Content-Security-Policy คำนวณ origin ของ S3 จาก `S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION` และ
-   `S3_FORCE_PATH_STYLE` ตอน runtime จึงไม่ต้อง build image ใหม่เมื่อเปลี่ยน storage:
+   ส่วน origin ของ S3 ใน Content-Security-Policy คำนวณตอนรันจาก `S3_PUBLIC_ENDPOINT` (หรือ `S3_ENDPOINT`),
+   `S3_BUCKET`, `S3_REGION` และ `S3_FORCE_PATH_STYLE` จึงไม่ต้อง build image ใหม่เมื่อเปลี่ยน storage:
 
 ```bash
 docker build \
   --build-arg NEXT_PUBLIC_SITE_URL=https://www.example.co.th \
   -t yuyen:<tag> .
 ```
+
 3. ตรวจ migration: `docker compose run --rm ops db:migrate:status`
 4. Apply migration หนึ่งครั้งจาก release job: `docker compose run --rm ops db:migrate:deploy`
 5. เริ่ม application: `docker compose up -d app`
 6. ตรวจ `/api/health/live` และ `/api/health/ready` ต้องตอบ HTTP 200
 7. Smoke test หน้าแรก, login, CMS, รูปภาพ และ audit log ก่อนสลับ traffic
 
-ตั้ง `TRUSTED_PROXY_COUNT` ให้เท่ากับจำนวน reverse proxy/load balancer ที่ต่อ `X-Forwarded-For` ก่อนถึงแอป
-(ปกติ 1) ถ้าให้แอปรับ traffic ตรงโดยไม่มี proxy ให้ตั้งเป็น 0 ค่าที่ผิดทำให้ IP ใน audit log และ rate limit
-ราย IP ไม่ถูกต้อง แต่ rate limit รายบัญชีและ 2FA ยังทำงานตามปกติ
-
-ระบบจำกัดการลองรหัสผ่านและรหัส 2FA ตาม `AUTH_RATE_LIMIT_ATTEMPTS` และ `AUTH_RATE_LIMIT_MINUTES` แยกตามบัญชี
-เมื่อครบจำนวนจะล็อกชั่วคราวและเพิ่มเวลาเป็นเท่าตัวทุกครั้งที่ผิดซ้ำ (สูงสุด 8 เท่า) หากบัญชีถูกล็อก Super Admin
-สามารถรีเซ็ตรหัสผ่านหรือ 2FA ให้ ซึ่งจะปลดล็อกบัญชีนั้นด้วย
+ระบบจำกัดการลองรหัสผ่านและรหัส 2FA ตาม `AUTH_RATE_LIMIT_ATTEMPTS` และ `AUTH_RATE_LIMIT_MINUTES` ทั้งต่อบัญชี
+และต่อ IP (ต่อ IP ให้โควตามากกว่า 5 เท่าเพราะสำนักงานเดียวกันใช้ IP ร่วมกัน) รหัส 2FA การตั้งค่า 2FA และรหัสกู้คืน
+ใช้โควตาร่วมกัน ระบบนับครั้งก่อนตรวจรหัสเสมอ จึงยิงคำขอพร้อมกันให้เกินโควตาไม่ได้ ก่อนครบโควตาจะหน่วงเวลาทีละน้อย
+เมื่อครบจะล็อกชั่วคราวและเพิ่มเวลาเป็นเท่าตัวทุกครั้งที่ผิดซ้ำ (สูงสุด 8 เท่า) หากบัญชีถูกล็อก Super Admin
+สามารถรีเซ็ตรหัสผ่านหรือ 2FA ให้ ซึ่งจะปลดล็อกบัญชีนั้นด้วย การจำกัดราย IP ต้องตั้ง `AUTH_TRUSTED_PROXY_HOPS`
+ให้ถูกตามหัวข้อด้านล่าง
 
 ห้ามใช้ `prisma migrate dev`, `prisma db push` หรือ development seed ใน production
+
+## แพลตฟอร์มที่รองรับ
+
+ระบบออกแบบให้รันเป็น container ต่อเนื่อง (Docker Compose หรือบริการที่รัน container ได้)
+Production บังคับ `MALWARE_SCAN_MODE=required` จึงต้องเข้าถึง ClamAV (`CLAMAV_HOST`/`CLAMAV_PORT`)
+ได้จากแอป บริการแบบ serverless เช่น Vercel ไม่มี ClamAV ให้ ถ้าใช้จะอัปโหลดไฟล์ไม่ได้และ
+`/api/health/ready` จะตอบ 503 ห้ามปิดการสแกนใน production เพื่อเลี่ยงปัญหานี้ และห้ามส่งไฟล์
+ไป clamd ข้ามอินเทอร์เน็ตโดยไม่มีช่องทางเข้ารหัส งาน cleanup ตามรอบก็ต้องมี scheduler ภายนอกเช่นกัน
+
+## Reverse proxy และ IP สำหรับ Rate Limit
+
+ค่าเริ่มต้น `AUTH_TRUSTED_PROXY_HOPS=0` จะไม่เชื่อ `X-Forwarded-For` ที่ผู้ใช้ส่งมา
+และรวมคำขอที่ระบุ IP ไม่ได้ไว้ใน bucket แบบ fail-closed เดียวกัน ก่อนเปิดใช้ต้องยืนยัน
+เส้นทางเครือข่ายจริงและให้ reverse proxy/load balancer เขียนทับหรือ append header อย่าง
+ถูกต้อง แล้วตั้งเป็นจำนวน proxy ที่บริษัทควบคุมระหว่างผู้ใช้กับแอป เช่น:
+
+```dotenv
+# ผู้ใช้ -> reverse proxy ที่ควบคุม -> application
+AUTH_TRUSTED_PROXY_HOPS="1"
+```
+
+หากมี CDN และ reverse proxy ที่ควบคุมสองชั้นให้ใช้ `2` ระบบเลือก address จากด้านขวา
+ของ chain ตามจำนวนดังกล่าว จึงไม่ใช้ค่าปลอมที่ผู้ใช้เติมทางซ้าย ห้ามคัดลอกค่า `1`
+ไป Production โดยไม่ตรวจ topology และควรทดสอบ login rate limit จากภายนอกหลัง deploy
+ทุกครั้ง หาก proxy ส่งรูปแบบอื่นให้คงค่า `0` จนกว่าจะเพิ่ม adapter สำหรับ provider นั้น
+โดยเฉพาะ
 
 ## Bootstrap Super Admin
 
@@ -44,6 +70,34 @@ docker compose run --rm ops auth:bootstrap
 ```
 
 คำสั่งเป็น idempotent และจะไม่แก้บัญชีที่มีอยู่ ลบ secret ชั่วคราวทันทีหลังสร้างบัญชี จากนั้นเจ้าของต้อง login เพื่อเปลี่ยนรหัสผ่านและตั้ง TOTP
+
+## หมุนคีย์เข้ารหัส TOTP
+
+`TOTP_ENCRYPTION_KEY` คือคีย์เดิมเวอร์ชัน 1 และต้องเก็บไว้ระหว่างการย้าย กำหนด keyring ผ่าน secret manager แล้วเลือกเวอร์ชันปัจจุบัน เช่น:
+
+```dotenv
+TOTP_ENCRYPTION_KEY="<base64-key-version-1>"
+TOTP_ENCRYPTION_KEYS='{"1":"<base64-key-version-1>","2":"<base64-key-version-2>"}'
+TOTP_ENCRYPTION_CURRENT_VERSION="2"
+```
+
+คีย์แต่ละตัวต้องเป็นข้อมูลสุ่ม 32 ไบต์ในรูป Base64 เมื่อผู้ดูแลยืนยัน TOTP หรือเข้าหน้าตั้งค่า 2FA ระบบจะถอดรหัสด้วย `totpKeyVersion` เดิมและเข้ารหัสใหม่ด้วยคีย์ปัจจุบันโดยอัตโนมัติ Google Authenticator และ Recovery Codes จึงไม่เปลี่ยน
+
+1. สำรองฐานข้อมูลและทดสอบ restore
+2. เพิ่มคีย์ใหม่ใน keyring โดยห้ามลบคีย์เก่า
+3. เปลี่ยน `TOTP_ENCRYPTION_CURRENT_VERSION` แล้ว deploy
+4. ตรวจการย้ายด้วยคำสั่งอ่านอย่างเดียว:
+
+```sql
+SELECT "totpKeyVersion", COUNT(*)
+FROM "Admin"
+WHERE "totpSecretEncrypted" IS NOT NULL
+GROUP BY "totpKeyVersion";
+```
+
+5. เก็บคีย์เก่าไว้จนบัญชีเวอร์ชันนั้นเป็นศูนย์ และ backup ที่อาจต้องใช้คีย์เก่าหมดอายุตาม retention แล้ว จึงนำคีย์เก่าออก
+
+หากไม่มีคีย์ตรงกับ `totpKeyVersion` ระบบจะปฏิเสธการถอดรหัส ห้ามแก้หมายเลขเวอร์ชันในฐานข้อมูลหรือทิ้งคีย์เก่าก่อนย้ายเสร็จ
 
 ## Backup และ restore
 
@@ -75,12 +129,48 @@ pg_restore --exit-on-error --no-owner --no-acl --dbname="$RESTORE_DATABASE_URL" 
 ```cron
 15 2 * * * cd /opt/yuyen && docker compose run --rm ops cms:purge-expired
 45 2 * * * cd /opt/yuyen && docker compose run --rm ops media:cleanup
+10 3 * * * cd /opt/yuyen && docker compose run --rm ops auth:cleanup
 ```
 
-งานทั้งสองควรรันวันละครั้งด้วย distributed/scheduler lock, timeout 30 นาที และ alert เมื่อ exit code ไม่เป็นศูนย์ ตรวจ audit `RETENTION_PURGE_COMPLETED` และ storage cleanup backlog ทุกสัปดาห์ เก็บ audit อย่างน้อย 180 วัน
+`auth:cleanup` ลบ session ที่หมดอายุ ถูกเพิกถอน หรือหมดอายุจากการไม่ใช้งานแล้วเกิน
+`AUTH_SESSION_RETENTION_DAYS` (ค่าเริ่มต้น 30 วัน) และลบ throttle ที่หมดผลแล้วเกิน
+`AUTH_THROTTLE_RETENTION_DAYS` (ค่าเริ่มต้น 7 วัน) โดยไม่ลบ session ที่ยัง active หรือ
+throttle ที่ยังล็อกอยู่ งานบันทึก audit `AUTH_RETENTION_CLEANUP_COMPLETED` พร้อมจำนวนที่ลบ
+
+งานทั้งหมดควรรันวันละครั้งด้วย distributed/scheduler lock, timeout 30 นาที และ alert เมื่อ exit code ไม่เป็นศูนย์ ตรวจ audit `RETENTION_PURGE_COMPLETED`, `AUTH_RETENTION_CLEANUP_COMPLETED` และ storage cleanup backlog ทุกสัปดาห์ เก็บ audit อย่างน้อย 180 วัน
 
 ## Monitoring
 
 - Liveness ใช้ `/api/health/live`; readiness ใช้ `/api/health/ready`
 - Alert เมื่อ readiness ล้มเหลวต่อเนื่อง, HTTP 5xx สูง, login failure ผิดปกติ, disk/database ใกล้เต็ม หรือ cleanup ล้มเหลว
 - Health endpoint ไม่ทดแทน synthetic login และไม่ตรวจ object storage เพื่อไม่ให้ storage outage นำ app ออกจาก load balancer ทั้งหมด
+
+## จำนวน connection ฐานข้อมูล
+
+Prisma เปิด connection pool ต่อ 1 process ขนาดเริ่มต้นเท่ากับจำนวน CPU × 2 + 1 ถ้ารันหลาย instance หรือใช้ PostgreSQL แบบ managed ที่จำกัด connection ให้กำหนด `connection_limit` ใน `DATABASE_URL` เอง และให้ (จำนวน instance × connection_limit) น้อยกว่า `max_connections` ของฐานข้อมูล โดยเหลือที่ไว้สำหรับงาน cleanup, backup และผู้ดูแล:
+
+```bash
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/yuyen?schema=public&connection_limit=10&pool_timeout=10"
+```
+
+ผล load test บนเครื่องพัฒนา (ด้านล่าง) ใช้ connection สูงสุด 8 สำหรับหน้าเว็บสาธารณะ และ 35 สำหรับหลังบ้านเมื่อไม่ได้จำกัด pool บนเครื่อง 10 CPU
+
+## Load test (ทดสอบโหลด)
+
+`npm run test:load` เพิ่มจำนวนผู้ใช้พร้อมกันเป็นช่วงๆ แล้ววัดเวลาตอบ (p50/p95/p99) และอัตรา error ผู้ใช้จำลองขอหน้าต่อเนื่องโดยไม่หยุดพัก จึงหนักกว่าผู้เข้าชมจริงหลายเท่า สคริปต์ยิงได้เฉพาะเครื่องตัวเอง ถ้าจะทดสอบ staging ต้องตั้ง `LOAD_TEST_ALLOW_REMOTE=staging-only` เอง **ห้ามทดสอบกับ production จริงหรือเว็บของผู้อื่น**
+
+```bash
+# หน้าเว็บสาธารณะ: เพิ่มเป็น 10, 25, 50, 100, 200 ผู้ใช้ ช่วงละ 20 วินาที
+LOAD_TEST_BASE_URL=https://staging.example.co.th LOAD_TEST_ALLOW_REMOTE=staging-only LOAD_TEST_STAGES=10,25,50,100,200 npm run test:load
+# หลังบ้าน: ใช้ session ของบัญชีทดสอบบน staging เท่านั้น
+LOAD_TEST_SCENARIO=cms LOAD_TEST_SESSION_TOKENS=token1,token2 npm run test:load
+```
+
+ผ่านเมื่อ p95 ไม่เกิน 1,000 ms และ error ไม่เกิน 1% (ปรับได้ด้วย `LOAD_TEST_P95_LIMIT_MS`, `LOAD_TEST_ERROR_LIMIT`) ผลบนเครื่องพัฒนา (1 ต.ค. 2569, production build 1 process, PostgreSQL ในเครื่องเดียวกัน, ข้อมูลตัวอย่างไม่มีรูป):
+
+| สถานการณ์ | ผู้ใช้พร้อมกัน | คำขอ/วินาที | p95 | error |
+| --- | --- | --- | --- | --- |
+| หน้าเว็บสาธารณะ | 10 / 50 / 100 / 200 | ~590–655 | 23 / 93 / 176 / 335 ms | 0% |
+| หลังบ้าน | 5 / 10 / 25 | ~500–530 | 17 / 29 / 67 ms | 0% |
+
+ข้อจำกัด: ตัวเลขนี้ใช้หาคอขวด ไม่ใช่ความจุของ server จริง เพราะเครื่องสร้างโหลดกับเครื่องที่ถูกทดสอบเป็นเครื่องเดียวกัน, ยังไม่มีรูปจริงจึงไม่ได้วัดการย่อรูป (`/_next/image`) ซึ่งกินแรงที่สุด และไม่ได้วัดการบันทึกพร้อมกันจำนวนมาก ต้องรันซ้ำบน staging หลังใส่ข้อมูลและรูปจริง

@@ -1,8 +1,22 @@
+/**
+ * หน้าที่ของไฟล์นี้: ชั้น repository taxonomy.repository เป็นจุดอ่านและเขียนฐานข้อมูลของโดเมนนี้ เพื่อไม่ให้ UI ติดต่อฐานข้อมูลโดยตรง
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: อ่านคำอธิบายนี้ก่อน แล้วไล่ดูชื่อฟังก์ชันและคอมเมนต์ใกล้กฎสำคัญด้านล่าง
+ */
 import { db } from "@/server/db/client";
 
 export class TaxonomyRepository {
   listActiveBrands() {
     return db.brand.findMany({ where: { isActive: true, deletedAt: null }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
+  }
+
+  /** แถบแบรนด์หน้าแรก: เลือกเฉพาะชื่อและโลโก้ที่แสดงต่อสาธารณะได้ */
+  listBrandStrip() {
+    return db.brand.findMany({
+      where: { isActive: true, deletedAt: null },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, logoMedia: { select: { id: true, altText: true, width: true, height: true } } },
+    });
   }
 
   listActiveProductTypes() {

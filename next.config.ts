@@ -1,6 +1,10 @@
+/**
+ * หน้าที่ของไฟล์นี้: ไฟล์ตั้งค่า next.config.ts อธิบายให้เครื่องมือ build, test หรือ lint ทำงานสอดคล้องกัน
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import type { NextConfig } from "next";
 
-// Content-Security-Policy is set per request in src/proxy.ts because it depends on runtime storage settings.
+// Content-Security-Policy ตั้งใน src/proxy.ts เพราะต้องใช้ storage origin ตอนรัน ไม่ใช่ตอน build
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
@@ -15,6 +19,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   typedRoutes: false,
+  // ปิด streaming metadata: ให้ title, description, canonical และ Open Graph จาก generateMetadata อยู่ใน <head>
+  // ของ HTML ครั้งแรกเสมอ แม้ผู้เข้าชมหรือ crawler ไม่รัน JavaScript (หน้าสาธารณะรอข้อมูลก่อนส่งอยู่แล้ว)
+  htmlLimitedBots: /.*/,
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

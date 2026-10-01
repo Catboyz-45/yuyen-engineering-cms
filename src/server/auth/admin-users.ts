@@ -1,3 +1,8 @@
+/**
+ * หน้าที่ของไฟล์นี้: จัดการบัญชีผู้ดูแล (สร้าง แก้ไข รีเซ็ต ย้ายลงถังขยะ กู้คืน ลบถาวร) พร้อมกฎ Super Admin คนสุดท้าย
+ *
+ * หมายเหตุสำหรับผู้อ่านที่ไม่เขียนโค้ด: ลบถาวรจะลบข้อมูลส่วนตัวและรหัสทั้งหมด แต่คงแถวไว้ให้ประวัติการทำงานยังอ้างถึงได้
+ */
 import "server-only";
 import type { AdminRole, Prisma } from "@prisma/client";
 import { db } from "@/server/db";
@@ -52,7 +57,7 @@ export async function resetAdminPassword(userId: string) {
 export async function resetAdminTwoFactor(userId: string) {
   const user = await serializable(async tx => {
     await findLiveAdmin(tx, userId);
-    const updated = await tx.admin.update({ where: { id: userId }, data: { twoFactorEnabled: false, totpSecretEncrypted: null, totpKeyVersion: null } });
+    const updated = await tx.admin.update({ where: { id: userId }, data: { twoFactorEnabled: false, totpSecretEncrypted: null, totpKeyVersion: null, lastTotpTimeStep: null } });
     await tx.recoveryCode.deleteMany({ where: { adminId: userId } });
     await tx.session.updateMany({ where: { adminId: userId, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: "TWO_FACTOR_RESET" } });
     return updated;
@@ -65,7 +70,7 @@ export async function trashAdmin(actorId: string, userId: string) {
   await serializable(async tx => {
     const target = await findLiveAdmin(tx, userId);
     await assertSuperAdminRemains(tx, target);
-    await tx.admin.update({ where: { id: userId }, data: { deletedAt: new Date(), purgeAt: retentionDate() } });
+    await tx.admin.update({ where: { id: userId }, data: { isActive: false, deletedAt: new Date(), purgeAt: retentionDate() } });
     await tx.session.updateMany({ where: { adminId: userId, revokedAt: null }, data: { revokedAt: new Date(), revokeReason: "ACCOUNT_TRASHED" } });
   });
 }

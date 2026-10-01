@@ -1,11 +1,15 @@
+/**
+ * หน้าที่ของไฟล์นี้: คำสั่งดูแลระบบ cleanup-media; รันจากเครื่องหรือเซิร์ฟเวอร์ที่เชื่อถือได้ตามคู่มือใน docs
+ * ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
+ */
 import "dotenv/config";
 import { db } from "../src/server/db/client";
-import { referenceCount } from "../src/server/media/service";
+import { referenceCount } from "../src/server/media/references";
 import { storage } from "../src/server/storage/s3";
 
 async function main() {
   const now = new Date();
-  const candidates = await db.media.findMany({ where: { OR: [{ status: { in: ["UPLOADING", "PROCESSING", "FAILED"] }, uploadExpiresAt: { lte: now } }, { deletedAt: { not: null }, purgeAt: { lte: now } }] }, take: 100, include: { variants: { select: { objectKey: true } } } });
+  const candidates = await db.media.findMany({ where: { OR: [{ status: { in: ["UPLOADING", "PROCESSING", "FAILED"] }, uploadExpiresAt: { lte: now } }, { status: "READY", deletedAt: null, orphanExpiresAt: { lte: now } }, { deletedAt: { not: null }, purgeAt: { lte: now } }] }, take: 100, include: { variants: { select: { objectKey: true } } } });
   for (const media of candidates) {
     if (await referenceCount(media.id)) continue;
     const objectKeys = [...new Set([media.objectKey, ...media.variants.map(item => item.objectKey)])];
@@ -25,4 +29,9 @@ async function main() {
   }
 }
 
-main().catch(error => { process.stderr.write(`${error instanceof Error ? error.message : "Media cleanup failed"}\n`); process.exitCode = 1; }).finally(() => db.$disconnect());
+main()
+  .catch(error => {
+    console.error(error instanceof Error ? error.message : "Media cleanup failed");
+    process.exitCode = 1;
+  })
+  .finally(() => db.$disconnect());

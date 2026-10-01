@@ -1,3 +1,6 @@
+# หน้าที่ของไฟล์นี้: เปิดแอปและ PostgreSQL สำหรับพัฒนาในเครื่อง โดยรับค่าลับจาก environment
+# รหัสผ่านทุกตัวต้องตั้งใน .env (ดู .env.example) ไฟล์นี้ไม่มีค่าเริ่มต้นของรหัสผ่าน
+# ผู้อ่านทั่วไปควรดูคู่มือใน docs ควบคู่กับคอมเมนต์ใกล้กฎสำคัญ
 name: yuyen-engineering
 services:
   postgres:
@@ -5,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: yuyen
       POSTGRES_USER: yuyen
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-local-development-only}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ตั้ง POSTGRES_PASSWORD ใน .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -22,7 +25,7 @@ services:
     command: server /data --console-address :9001
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin-local-only}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?ตั้ง MINIO_ROOT_PASSWORD ใน .env}
     volumes:
       - minio_data:/data
     ports:
@@ -35,6 +38,20 @@ services:
       retries: 20
     restart: unless-stopped
 
+  clamav:
+    image: clamav/clamav:1.5.3-debian13-slim
+    ports:
+      - "127.0.0.1:3310:3310"
+    volumes:
+      - clamav_signatures:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+      interval: 15s
+      timeout: 5s
+      start_period: 90s
+      retries: 20
+    restart: unless-stopped
+
   app:
     build:
       context: .
@@ -44,15 +61,25 @@ services:
       - path: .env
         required: false
     environment:
-      DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/yuyen?schema=public
+      DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:?ตั้ง POSTGRES_PASSWORD ใน .env}@postgres:5432/yuyen?schema=public
       S3_ENDPOINT: http://minio:9000
+      # เบราว์เซอร์เรียก signed URL เอง จึงต้องเป็นชื่อที่เข้าถึงจากเครื่องผู้ใช้ได้ ไม่ใช่ minio:9000
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_FORCE_PATH_STYLE: "true"
+      S3_CONNECTION_TIMEOUT_MS: ${S3_CONNECTION_TIMEOUT_MS:-5000}
+      S3_REQUEST_TIMEOUT_MS: ${S3_REQUEST_TIMEOUT_MS:-30000}
+      MALWARE_SCAN_MODE: required
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-30000}
     ports:
       - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      clamav:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
@@ -71,15 +98,26 @@ services:
       - path: .env
         required: false
     environment:
-      DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/yuyen?schema=public
+      DATABASE_URL: postgresql://yuyen:${POSTGRES_PASSWORD:?ตั้ง POSTGRES_PASSWORD ใน .env}@postgres:5432/yuyen?schema=public
       S3_ENDPOINT: http://minio:9000
+      # เบราว์เซอร์เรียก signed URL เอง จึงต้องเป็นชื่อที่เข้าถึงจากเครื่องผู้ใช้ได้ ไม่ใช่ minio:9000
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_FORCE_PATH_STYLE: "true"
+      S3_CONNECTION_TIMEOUT_MS: ${S3_CONNECTION_TIMEOUT_MS:-5000}
+      S3_REQUEST_TIMEOUT_MS: ${S3_REQUEST_TIMEOUT_MS:-30000}
+      MALWARE_SCAN_MODE: required
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-30000}
     depends_on:
       postgres:
         condition: service_healthy
       minio:
         condition: service_healthy
+      clamav:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   minio_data:
+  clamav_signatures:

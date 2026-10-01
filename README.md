@@ -37,6 +37,14 @@ See [docs/DATABASE.md](docs/DATABASE.md) before creating or migrating a database
 [คู่มือผู้ดูแลภาษาไทย](docs/ADMIN-MANUAL-TH.md) และ
 [แผนนำเข้าข้อมูล/UAT](docs/DATA-MIGRATION-AND-UAT.md)
 
+เอกสารสำหรับผู้ที่ไม่มีพื้นฐานโค้ด:
+
+- [ภาพรวมโปรเจกต์ภาษาไทย](docs/PROJECT-GUIDE-TH.md)
+- [รายการ API ทั้งหมด](docs/API-REFERENCE-TH.md)
+- [คำอธิบายฐานข้อมูล 21 ตาราง](docs/DATABASE-GUIDE-TH.md)
+- [วิธีอ่านโค้ดและคอมเมนต์](docs/CODE-READING-GUIDE-TH.md)
+- [นโยบายความเป็นส่วนตัวและการประกาศใช้](docs/PRIVACY-OPERATIONS-TH.md)
+
 ```bash
 npm run db:generate
 npm run db:validate
@@ -81,21 +89,57 @@ run `RECOVERY_ADMIN_USERNAME=<username> RECOVERY_TEMPORARY_PASSWORD=<temporary> 
 all sessions and requires fresh password and 2FA setup. Never run it as a routine
 password-reset path.
 
+## Isolated test configuration
+
+Tests that write data never use the development `DATABASE_URL` directly. Create
+an ignored `.env.test` and set `TEST_DATABASE_URL` to a separate database whose
+name contains `test`, `e2e`, or `sandbox`:
+
+```bash
+cp .env.test.example .env.test
+npm run db:test:migrate:deploy
+npm run test:integration
+```
+
+The test runner validates the database URL and then exposes it to Prisma as
+`DATABASE_URL`. It refuses to start when `TEST_DATABASE_URL` is missing or the
+database name does not clearly identify an isolated test database. Do not copy
+production credentials into `.env.test`.
+
+Playwright runs in Chromium by default. Set `PLAYWRIGHT_BROWSERS` to run the
+same suites in WebKit, the engine behind Safari. Use one browser per fresh test
+database and bucket, because some workflows (temporary passwords and first 2FA
+enrollment) can only run once. CI runs the E2E job once per browser.
+
+WebKit only accepts the production `Secure` session cookie over HTTPS, so the
+production-build E2E run in WebKit goes through a throwaway self-signed HTTPS
+proxy (`scripts/https-test-proxy.ts`, test use only, requires `openssl`):
+
+```bash
+npx playwright install webkit
+PLAYWRIGHT_BROWSERS=webkit E2E_HTTPS_PORT=3443 APP_URL=https://localhost:3443 NEXT_PUBLIC_SITE_URL=https://localhost:3443 npm run test:e2e
+```
+
 ## CMS retention job
 
 CMS records use soft deletion and remain restorable for 30 days. Schedule this
-idempotent command once per day from a trusted worker:
+idempotent commands once per day from a trusted worker after configuring
+`DATABASE_URL`:
 
 ```bash
 npm run cms:purge-expired
+npm run auth:cleanup
 ```
 
-The command permanently removes only expired records whose required references
-can be deleted safely and writes a system audit event. Trashed administrator
-accounts are anonymized instead of deleted so audit history keeps a stable actor.
-It loads the same server environment as the application (`DATABASE_URL`,
-`APP_URL`, `NEXT_PUBLIC_SITE_URL`, `SESSION_SECRET`, `TOTP_ENCRYPTION_KEY`). Back up the production
-database and test restore procedures before enabling the schedule.
+The CMS command permanently removes only expired records whose required
+references can be deleted safely. Trashed administrator accounts are anonymized
+instead of deleted so audit history keeps a stable actor. The authentication
+command retains inactive sessions for 30 days and expired throttle records for
+7 days by default; both values are configurable. Each command writes a system
+audit event and loads the same server environment as the application
+(`DATABASE_URL`, `APP_URL`, `NEXT_PUBLIC_SITE_URL`, `SESSION_SECRET`,
+`TOTP_ENCRYPTION_KEY`). Back up the production database and test restore
+procedures before enabling the schedule.
 
 ## Media storage
 
@@ -127,11 +171,22 @@ npm run media:cleanup
 
 ## Confirmed public contact data
 
-Public contact actions read from `NEXT_PUBLIC_COMPANY_*` values documented in
-`.env.example`. Until the company owner confirms a value, LINE, Facebook, the
-office address, and Google Maps are deliberately shown as pending instead of
-linking visitors to an invented destination. Restart the development server
-after changing public environment values.
+Company details, contact channels, logo, and About-page photos are edited in
+the CMS (ข้อมูลบริษัท). The first save creates the company record; no seed is
+needed in production. Once that record exists, the site shows only CMS values
+and hides empty fields.
+
+`NEXT_PUBLIC_COMPANY_*` values in `.env.example` are used only before the first
+CMS save, with a visible sample-data label. Until then, LINE, Facebook, the
+office address, and Google Maps are shown as pending instead of linking to an
+invented destination. Built-in sample phone, email, and LINE values are used in
+development only; production hides any value that is not set.
+
+The privacy, cookie, and terms pages stay drafts (labelled and `noindex`) until
+a Super Admin fills in the privacy contact email, service providers, and
+retention periods under นโยบายเว็บไซต์ and approves them. The approval is tied
+to `legalRevision` in `src/lib/legal.ts`: change that value whenever the policy
+text changes, and the pages return to draft until they are approved again.
 
 Product catalog downloads use approved PDFs from the configured private
 S3-compatible storage. Products without an attached catalog return 404.

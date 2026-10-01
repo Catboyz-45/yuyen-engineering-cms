@@ -1,6 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/server/db";
+import { randomInt } from "node:crypto";
 
 const MAX_ATTEMPTS = 4;
 
@@ -15,7 +16,7 @@ export async function serializable<T>(callback: (tx: Prisma.TransactionClient) =
     try { return await db.$transaction(callback, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }); }
     catch (error) {
       if (attempt >= MAX_ATTEMPTS || !isSerializationFailure(error)) throw error;
-      await new Promise(resolve => setTimeout(resolve, 25 * 2 ** attempt + Math.random() * 25));
+      await new Promise(resolve => setTimeout(resolve, 25 * 2 ** attempt + randomInt(25)));
     }
   }
 }
