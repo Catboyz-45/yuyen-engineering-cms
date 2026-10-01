@@ -144,3 +144,33 @@ throttle ที่ยังล็อกอยู่ งานบันทึก 
 - Liveness ใช้ `/api/health/live`; readiness ใช้ `/api/health/ready`
 - Alert เมื่อ readiness ล้มเหลวต่อเนื่อง, HTTP 5xx สูง, login failure ผิดปกติ, disk/database ใกล้เต็ม หรือ cleanup ล้มเหลว
 - Health endpoint ไม่ทดแทน synthetic login และไม่ตรวจ object storage เพื่อไม่ให้ storage outage นำ app ออกจาก load balancer ทั้งหมด
+
+## จำนวน connection ฐานข้อมูล
+
+Prisma เปิด connection pool ต่อ 1 process ขนาดเริ่มต้นเท่ากับจำนวน CPU × 2 + 1 ถ้ารันหลาย instance หรือใช้ PostgreSQL แบบ managed ที่จำกัด connection ให้กำหนด `connection_limit` ใน `DATABASE_URL` เอง และให้ (จำนวน instance × connection_limit) น้อยกว่า `max_connections` ของฐานข้อมูล โดยเหลือที่ไว้สำหรับงาน cleanup, backup และผู้ดูแล:
+
+```bash
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/yuyen?schema=public&connection_limit=10&pool_timeout=10"
+```
+
+ผล load test บนเครื่องพัฒนา (ด้านล่าง) ใช้ connection สูงสุด 8 สำหรับหน้าเว็บสาธารณะ และ 35 สำหรับหลังบ้านเมื่อไม่ได้จำกัด pool บนเครื่อง 10 CPU
+
+## Load test (ทดสอบโหลด)
+
+`npm run test:load` เพิ่มจำนวนผู้ใช้พร้อมกันเป็นช่วงๆ แล้ววัดเวลาตอบ (p50/p95/p99) และอัตรา error ผู้ใช้จำลองขอหน้าต่อเนื่องโดยไม่หยุดพัก จึงหนักกว่าผู้เข้าชมจริงหลายเท่า สคริปต์ยิงได้เฉพาะเครื่องตัวเอง ถ้าจะทดสอบ staging ต้องตั้ง `LOAD_TEST_ALLOW_REMOTE=staging-only` เอง **ห้ามทดสอบกับ production จริงหรือเว็บของผู้อื่น**
+
+```bash
+# หน้าเว็บสาธารณะ: เพิ่มเป็น 10, 25, 50, 100, 200 ผู้ใช้ ช่วงละ 20 วินาที
+LOAD_TEST_BASE_URL=https://staging.example.co.th LOAD_TEST_ALLOW_REMOTE=staging-only LOAD_TEST_STAGES=10,25,50,100,200 npm run test:load
+# หลังบ้าน: ใช้ session ของบัญชีทดสอบบน staging เท่านั้น
+LOAD_TEST_SCENARIO=cms LOAD_TEST_SESSION_TOKENS=token1,token2 npm run test:load
+```
+
+ผ่านเมื่อ p95 ไม่เกิน 1,000 ms และ error ไม่เกิน 1% (ปรับได้ด้วย `LOAD_TEST_P95_LIMIT_MS`, `LOAD_TEST_ERROR_LIMIT`) ผลบนเครื่องพัฒนา (1 ต.ค. 2569, production build 1 process, PostgreSQL ในเครื่องเดียวกัน, ข้อมูลตัวอย่างไม่มีรูป):
+
+| สถานการณ์ | ผู้ใช้พร้อมกัน | คำขอ/วินาที | p95 | error |
+| --- | --- | --- | --- | --- |
+| หน้าเว็บสาธารณะ | 10 / 50 / 100 / 200 | ~590–655 | 23 / 93 / 176 / 335 ms | 0% |
+| หลังบ้าน | 5 / 10 / 25 | ~500–530 | 17 / 29 / 67 ms | 0% |
+
+ข้อจำกัด: ตัวเลขนี้ใช้หาคอขวด ไม่ใช่ความจุของ server จริง เพราะเครื่องสร้างโหลดกับเครื่องที่ถูกทดสอบเป็นเครื่องเดียวกัน, ยังไม่มีรูปจริงจึงไม่ได้วัดการย่อรูป (`/_next/image`) ซึ่งกินแรงที่สุด และไม่ได้วัดการบันทึกพร้อมกันจำนวนมาก ต้องรันซ้ำบน staging หลังใส่ข้อมูลและรูปจริง

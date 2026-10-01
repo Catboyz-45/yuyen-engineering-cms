@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Browser, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import * as OTPAuth from "otpauth";
 
 // Runs against a database where the bootstrap command created E2E_ADMIN_USERNAME with a temporary
@@ -66,19 +66,29 @@ async function signIn(page: Page, username: string, password: string, secret: st
   await expect(page).toHaveURL(/\/admin$/);
 }
 
+// ทุก context ที่เปิดในเทสต์ต้องปิดเมื่อจบ ไม่เช่นนั้นหน้าเก่าค้างอยู่ใน browser เดียวกันจนเทสต์ถัดไปช้าหรือค้าง (เห็นชัดใน WebKit)
+const openContexts: BrowserContext[] = [];
+async function newPage(browser: Browser) {
+  const context = await browser.newContext();
+  openContexts.push(context);
+  return context.newPage();
+}
+test.afterEach(async () => {
+  await Promise.all(openContexts.splice(0).map(context => context.close()));
+});
+
 async function ownerPage(browser: Browser) {
-  const page = await (await browser.newContext()).newPage();
+  const page = await newPage(browser);
   await signIn(page, ownerUsername!, ownerPassword, ownerSecret);
   return page;
 }
 
-/**
- * Public pages stream behind loading.tsx, so a missing record cannot change the already-sent 200 status;
- * Next.js renders the not-found page and injects a noindex robots tag instead.
- */
+/** Trashed or unpublished content answers with a real 404 not-found page that search engines must not index. */
 async function expectHiddenFromPublic(request: APIRequestContext, path: string, text: string) {
-  const body = await (await request.get(path)).text();
-  expect(body).toContain('<meta name="robots" content="noindex"/>');
+  const response = await request.get(path);
+  expect(response.status()).toBe(404);
+  const body = await response.text();
+  expect(body).toMatch(/<meta name="robots" content="noindex[^"]*"\/>/);
   expect(body).toContain("ไม่พบหน้าที่ต้องการ");
   expect(body).not.toContain(text);
 }
@@ -117,26 +127,24 @@ test("a service is created, published, trashed and restored", async ({ browser }
   await page.getByRole("button", { name: /บันทึกและเผยแพร่/ }).click();
   await expect(page).toHaveURL(/\/admin\/services$/);
 
-  const visitor = await browser.newContext();
-  const publicPage = await visitor.newPage();
+  const publicPage = await newPage(browser);
   await publicPage.goto(`/services/${slug}`);
   await expect(publicPage.getByRole("heading", { level: 1 })).toContainText(title);
 
   const { items } = await cmsJson<{ items: Array<{ id: string; slug: string }> }>(page.request, "GET", `/api/admin/content/services?query=${encodeURIComponent(title)}`);
   const id = items.find(item => item.slug === slug)!.id;
   await cmsJson(page.request, "POST", `/api/admin/content/services/${id}/transition`, { action: "trash" });
-  await expectHiddenFromPublic(visitor.request, `/services/${slug}`, title);
+  await expectHiddenFromPublic(publicPage.request, `/services/${slug}`, title);
 
   await page.goto("/admin/trash");
   await page.getByRole("row", { name: new RegExp(title) }).getByRole("button", { name: /กู้คืน/ }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "กู้คืน" }).click();
   await expect(page.getByRole("row", { name: new RegExp(title) })).toHaveCount(0);
   // Restored content returns as a draft and stays hidden until it is published again.
-  await expectHiddenFromPublic(visitor.request, `/services/${slug}`, title);
+  await expectHiddenFromPublic(publicPage.request, `/services/${slug}`, title);
   await cmsJson(page.request, "POST", `/api/admin/content/services/${id}/transition`, { action: "publish" });
   await publicPage.goto(`/services/${slug}`);
   await expect(publicPage.getByRole("heading", { level: 1 })).toContainText(title);
-  await visitor.close();
 });
 
 test("a new administrator must change the temporary password, and a reset forces it again", async ({ browser }) => {
@@ -153,7 +161,7 @@ test("a new administrator must change the temporary password, and a reset forces
   expect(temporaryPassword.length).toBeGreaterThan(12);
   await owner.getByRole("button", { name: "รับทราบและปิด" }).click();
 
-  const editor = await (await browser.newContext()).newPage();
+  const editor = await newPage(browser);
   const editorSecret = await completeFirstSignIn(editor, username, temporaryPassword, "E2e-Editor-Password-1!");
   await expect(editor.locator(".sidebar-user")).toContainText(displayName);
   await expect(editor.locator(".sidebar").getByRole("link", { name: "ผู้ดูแลระบบ" })).toHaveCount(0);
@@ -186,7 +194,7 @@ test("visitors find published products by name, brand and BTU", async ({ browser
   await cmsJson(owner.request, "POST", "/api/admin/content/products", { slug: `e2e-product-${runId}`, name: `แอร์ทดสอบ ${runId}`, model, summary: "สินค้าสำหรับทดสอบการค้นหา", btuMin: 9000, btuMax: 12000, brandId: brand.item.id, productTypeId: type.item.id, status: "PUBLISHED" });
   await cmsJson(owner.request, "POST", "/api/admin/content/products", { slug: `e2e-draft-${runId}`, name: `แอร์ฉบับร่าง ${runId}`, model: `${model}-DRAFT`, summary: "ต้องไม่แสดงบนเว็บไซต์", brandId: brand.item.id, productTypeId: type.item.id, status: "DRAFT" });
 
-  const visitor = await (await browser.newContext()).newPage();
+  const visitor = await newPage(browser);
   await visitor.goto("/products");
   await visitor.getByPlaceholder("ค้นหาชื่อหรือรุ่น").fill(model);
   await visitor.getByRole("combobox", { name: "กรองตามยี่ห้อ" }).click();

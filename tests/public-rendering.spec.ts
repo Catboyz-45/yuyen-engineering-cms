@@ -16,35 +16,33 @@ async function delayClientNavigation(page: Page, milliseconds = 1_500) {
   });
 }
 
-for (const browserName of ["chromium", "webkit"] as const) {
-  test(`${browserName}: หน้าสาธารณะแสดงเนื้อหาครบเมื่อปิด JavaScript`, async ({ playwright, request }) => {
-    test.setTimeout(120_000);
-    const routes: string[] = [...publicRoutes];
-    for (const collection of detailCollections) {
-      const html = await (await request.get(collection)).text();
-      const detail = html.match(new RegExp(`href="(${collection}/[^"/?#]+)"`))?.[1];
-      if (detail) routes.push(detail);
+// เบราว์เซอร์มาจาก project ใน playwright.config.ts (PLAYWRIGHT_BROWSERS) จึงรันทั้ง Chromium และ WebKit ได้โดยไม่ต้องวนเอง
+test("หน้าสาธารณะแสดงเนื้อหาครบเมื่อปิด JavaScript", async ({ browser, request }) => {
+  test.setTimeout(120_000);
+  const routes: string[] = [...publicRoutes];
+  for (const collection of detailCollections) {
+    const html = await (await request.get(collection)).text();
+    const detail = html.match(new RegExp(`href="(${collection}/[^"/?#]+)"`))?.[1];
+    if (detail) routes.push(detail);
+  }
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    for (const route of routes) {
+      const response = await page.goto(route);
+      expect(response?.status(), route).toBe(200);
+      await expect(page.locator("main h1"), route).toBeVisible();
+      // เนื้อหาที่ stream หลัง Suspense fallback จะอยู่ใน <div hidden id="S:n"> จนกว่าสคริปต์จะสลับตำแหน่ง
+      await expect(page.locator('div[hidden][id^="S:"]'), route).toHaveCount(0);
+      await expect(page.locator(".skeleton"), route).toHaveCount(0);
+      // metadata จาก generateMetadata ต้องอยู่ใน <head> ของ HTML ครั้งแรก ไม่ใช่ stream ตามมาภายหลัง
+      await expect(page.locator('head link[rel="canonical"]'), route).toHaveCount(1);
+      await expect(page.locator('head meta[name="description"]'), route).toHaveCount(1);
     }
-    const browser = await playwright[browserName].launch();
-    try {
-      const context = await browser.newContext({ javaScriptEnabled: false });
-      const page = await context.newPage();
-      for (const route of routes) {
-        const response = await page.goto(route);
-        expect(response?.status(), route).toBe(200);
-        await expect(page.locator("main h1"), route).toBeVisible();
-        // เนื้อหาที่ stream หลัง Suspense fallback จะอยู่ใน <div hidden id="S:n"> จนกว่าสคริปต์จะสลับตำแหน่ง
-        await expect(page.locator('div[hidden][id^="S:"]'), route).toHaveCount(0);
-        await expect(page.locator(".skeleton"), route).toHaveCount(0);
-        // metadata จาก generateMetadata ต้องอยู่ใน <head> ของ HTML ครั้งแรก ไม่ใช่ stream ตามมาภายหลัง
-        await expect(page.locator('head link[rel="canonical"]'), route).toHaveCount(1);
-        await expect(page.locator('head meta[name="description"]'), route).toHaveCount(1);
-      }
-    } finally {
-      await browser.close();
-    }
-  });
-}
+  } finally {
+    await context.close();
+  }
+});
 
 test("slug ที่ไม่มีอยู่ตอบ HTTP 404 จริง ไม่ใช่ 200 แบบ stream", async ({ request }) => {
   for (const collection of detailCollections) {
@@ -55,9 +53,10 @@ test("slug ที่ไม่มีอยู่ตอบ HTTP 404 จริง �
 
 test("การนำทางด้วยลิงก์แสดงแถบกำลังโหลดและ aria-busy จนหน้าใหม่พร้อม", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
+  // ตั้งการหน่วงก่อนเปิดหน้า: production build prefetch หน้าปลายทางตั้งแต่โหลดเสร็จ ถ้าหน่วงทีหลัง หน้าใหม่จะมาเร็วจนจับสถานะกำลังโหลดไม่ทัน
+  await delayClientNavigation(page);
   await page.goto("/");
   await expect(page.locator("main h1")).toBeVisible();
-  await delayClientNavigation(page);
   await page.locator(".nav-links").getByRole("link", { name: "สินค้า" }).click();
   await expect(page.locator(".route-progress")).toBeVisible();
   await expect(page.locator("#main-content")).toHaveAttribute("aria-busy", "true");
@@ -68,9 +67,10 @@ test("การนำทางด้วยลิงก์แสดงแถบ�
 
 test("เมนูมือถือเปิดค้างพร้อมแถบกำลังโหลดจนเปลี่ยนหน้าเสร็จ", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  // ตั้งการหน่วงก่อนเปิดหน้า: production build prefetch หน้าปลายทางตั้งแต่โหลดเสร็จ ถ้าหน่วงทีหลัง หน้าใหม่จะมาเร็วจนจับสถานะกำลังโหลดไม่ทัน
+  await delayClientNavigation(page);
   await page.goto("/");
   await expect(page.locator("main h1")).toBeVisible();
-  await delayClientNavigation(page);
   await page.getByRole("button", { name: "เปิดเมนู" }).click();
   const drawer = page.getByRole("dialog", { name: "เมนูหลักบนมือถือ" });
   await drawer.getByRole("link", { name: "ข่าวสาร" }).click();
