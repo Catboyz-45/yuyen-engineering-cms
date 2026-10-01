@@ -63,10 +63,30 @@ function restoresDraft(row: Row, action: RowAction) {
 function actionLabel(row: Row, action: RowAction) {
   return restoresDraft(row, action) ? "นำกลับเป็นฉบับร่าง" : actionLabels[action];
 }
+const kindNoun: Record<Kind, string> = {
+  banners: "แบนเนอร์",
+  services: "บริการ",
+  products: "สินค้า",
+  projects: "ผลงาน",
+  news: "ข่าว",
+};
+/** หัวข้อกล่องยืนยันเป็นคำถามสั้นๆ ส่วนชื่อรายการแสดงแยกในกรอบ หัวข้อจึงไม่ยาวหลายบรรทัด */
+function actionTitle(row: Row, action: RowAction, kind: Kind) {
+  const item = `${kindNoun[kind]}นี้`;
+  if (restoresDraft(row, action)) return `นำ${item}กลับเป็นฉบับร่าง?`;
+  if (action === "trash") return `ย้าย${item}ไปถังขยะ?`;
+  return `${actionLabels[action]}${item}?`;
+}
+/** บอกผลที่จะเกิดบนเว็บไซต์ และบอกว่าย้อนกลับได้อย่างไร */
 function actionDescription(row: Row, action: RowAction) {
-  if (action === "trash") return "รายการจะถูกซ่อนและกู้คืนได้ภายใน 30 วัน";
   if (restoresDraft(row, action)) return "รายการจะกลับมาเป็นฉบับร่างและยังไม่แสดงบนเว็บไซต์ จากนั้นจึงแก้ไขหรือเผยแพร่ใหม่ได้";
-  return "ระบบจะบันทึกการเปลี่ยนแปลงนี้ใน Audit Log";
+  const descriptions: Record<RowAction, string> = {
+    publish: "รายการจะแสดงบนเว็บไซต์ทันที หรือตามวันเวลาเผยแพร่ที่ตั้งไว้",
+    unpublish: "รายการจะหายจากเว็บไซต์และกลับเป็นฉบับร่าง แก้ไขหรือเผยแพร่ใหม่ได้ภายหลัง",
+    archive: "รายการจะไม่แสดงบนเว็บไซต์ แต่ยังเก็บไว้ในระบบ นำกลับเป็นฉบับร่างได้ทุกเมื่อ",
+    trash: "รายการจะถูกซ่อนจากเว็บไซต์ และกู้คืนได้จากถังขยะภายใน 30\u00a0วัน",
+  };
+  return descriptions[action];
 }
 
 /** สร้างส่วนหน้าจอ AdminTablePage; รับข้อมูลผ่านพารามิเตอร์แล้วคืน React elements สำหรับแสดงผล */
@@ -126,7 +146,8 @@ export function AdminTablePage({
   async function transition(row: Row, action: RowAction) {
     const label = actionLabel(row, action);
     const accepted = await confirm({
-      title: `${label} “${row.title}”?`,
+      title: actionTitle(row, action, kind),
+      subject: row.title,
       description: actionDescription(row, action),
       confirmLabel: label,
       tone: action === "trash" ? "danger" : undefined,

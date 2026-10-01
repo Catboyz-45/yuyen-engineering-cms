@@ -1252,7 +1252,7 @@ select.filter-select {
   animation: dialog-in 0.2s ease;
 }
 .dialog h2 {
-  margin: 18px 0 8px;
+  margin: 0 0 12px;
   color: var(--green-950);
   font-size: 1.35rem;
 }
@@ -1260,6 +1260,21 @@ select.filter-select {
   margin: 0;
   color: var(--muted);
   line-height: 1.65;
+}
+.dialog .dialog-subject {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--green-950);
+  background: var(--cream-50);
+  font-weight: 600;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
 }
 .dialog-icon {
   width: 50px;
@@ -1270,13 +1285,12 @@ select.filter-select {
   color: var(--warning);
   background: #fff4e8;
 }
+.dialog .dialog-icon {
+  margin-bottom: 18px;
+}
 .dialog-icon.danger {
   color: var(--danger);
   background: #fff0ee;
-}
-.dialog-icon.neutral {
-  color: var(--green-700);
-  background: var(--mint-100);
 }
 .dialog-actions {
   margin-top: 26px;

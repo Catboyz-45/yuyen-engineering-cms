@@ -7,19 +7,20 @@
 
 import type { RefObject } from "react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, AlertTriangle, CheckCircle2, CircleHelp, Info, X, type LucideIcon } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { useModalAccessibility } from "@/hooks/use-modal-accessibility";
 import { FLASH_EVENT, takeFlashMessage } from "@/lib/client-flash";
 
 export type ToastTone = "success" | "info" | "warning" | "error";
 type Toast = { id: number; message: string; tone: ToastTone };
 type ConfirmOptions = {
+  /** คำถามสั้นๆ เช่น “เก็บถาวรแบนเนอร์นี้?” ไม่ใส่ชื่อรายการ เพราะชื่อยาวทำให้หัวข้อขึ้นหลายบรรทัด */
   title: string;
+  /** ชื่อรายการที่กำลังจะถูกกระทำ แสดงในกรอบแยกใต้หัวข้อ */
+  subject?: string;
   description: string;
   confirmLabel?: string;
   tone?: "default" | "danger";
-  /** ไอคอนของการกระทำ ไม่ใส่ = ป้ายเตือนสำหรับการกระทำอันตราย หรือเครื่องหมายคำถามสำหรับการกระทำทั่วไป */
-  icon?: LucideIcon;
 };
 type PendingConfirmation = ConfirmOptions & { resolve: (confirmed: boolean) => void };
 
@@ -87,9 +88,8 @@ function ConfirmationDialog({ confirmation, dialogRef, cancelRef, onClose }: Rea
   const close = useCallback(() => onClose(false), [onClose]);
   useModalAccessibility({ containerRef: dialogRef, backdropRef, initialFocusRef: cancelRef, onClose: close });
   const danger = confirmation.tone === "danger";
-  // ป้ายเตือนสีส้ม/แดงใช้กับการกระทำที่เสียหายได้เท่านั้น การกระทำทั่วไปอย่างกู้คืนใช้โทนเขียว
-  const Icon = confirmation.icon ?? (danger ? AlertTriangle : CircleHelp);
-  return <div ref={backdropRef} className="dialog-backdrop"><dialog open ref={dialogRef} className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-description" tabIndex={-1}><span className={`dialog-icon ${danger ? "danger" : "neutral"}`}><Icon size={24} aria-hidden="true" /></span><h2 id="confirm-title">{confirmation.title}</h2><p id="confirm-description">{confirmation.description}</p><div className="dialog-actions"><button type="button" ref={cancelRef} className="btn btn-outline" onClick={close}>ยกเลิก</button><button type="button" className={`btn ${danger ? "btn-danger" : "btn-dark"}`} onClick={() => onClose(true)}>{confirmation.confirmLabel ?? "ยืนยัน"}</button></div></dialog></div>;
+  // ป้ายเตือนสีแดงมีเฉพาะการกระทำที่เสียหายได้ กล่องทั่วไปไม่มีไอคอน กล่องอันตรายจึงเด่นตั้งแต่แวบแรก
+  return <div ref={backdropRef} className="dialog-backdrop"><dialog open ref={dialogRef} className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby={confirmation.subject ? "confirm-subject confirm-description" : "confirm-description"} tabIndex={-1}>{danger && <span className="dialog-icon danger"><AlertTriangle size={24} aria-hidden="true" /></span>}<h2 id="confirm-title">{confirmation.title}</h2>{confirmation.subject && <p id="confirm-subject" className="dialog-subject">{confirmation.subject}</p>}<p id="confirm-description">{confirmation.description}</p><div className="dialog-actions"><button type="button" ref={cancelRef} className="btn btn-outline" onClick={close}>ยกเลิก</button><button type="button" className={`btn ${danger ? "btn-danger" : "btn-dark"}`} onClick={() => onClose(true)}>{confirmation.confirmLabel ?? "ยืนยัน"}</button></div></dialog></div>;
 }
 
 /** React Hook useUI รวม state และพฤติกรรมฝั่ง browser เพื่อให้คอมโพเนนต์เรียกใช้ตามกฎเดียวกัน */

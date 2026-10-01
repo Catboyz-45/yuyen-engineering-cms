@@ -160,7 +160,8 @@ export function TaxonomyManager({
     if (pending) return;
     if (
       !(await confirm({
-        title: `ย้าย “${item.name}” ไปถังขยะ?`,
+        title: "ย้ายรายการนี้ไปถังขยะ?",
+        subject: item.name,
         description: "ทำได้เฉพาะรายการที่ไม่มีเนื้อหาอ้างอิง",
         confirmLabel: "ย้ายไปถังขยะ",
         tone: "danger",

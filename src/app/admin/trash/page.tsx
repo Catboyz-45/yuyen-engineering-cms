@@ -67,14 +67,14 @@ export default function TrashPage() {
     if (
       pending ||
       !(await confirm({
-        title: `${operation === "restore" ? "กู้คืน" : "ลบถาวร"} “${item.title}”?`,
+        title: operation === "restore" ? "กู้คืนรายการนี้?" : "ลบรายการนี้ถาวร?",
+        subject: item.title,
         description:
           operation === "restore"
             ? "รายการจะกลับเข้าสู่ระบบโดยยังไม่เผยแพร่"
             : "การดำเนินการนี้ไม่สามารถย้อนกลับได้",
         confirmLabel: operation === "restore" ? "กู้คืน" : "ลบถาวร",
         tone: operation === "delete" ? "danger" : undefined,
-        icon: operation === "restore" ? ArchiveRestore : undefined,
       }))
     )
       return;
