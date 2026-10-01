@@ -7,5 +7,6 @@ import nextVitals from "eslint-config-next/core-web-vitals";
 
 export default defineConfig([
   ...nextVitals,
-  globalIgnores([".next/**", "node_modules/**", "coverage/**"]),
+  // .claude/** คือสำเนางานชั่วคราว (worktree) ของ Claude Code บนเครื่องนักพัฒนา ไม่ใช่โค้ดของโปรเจกต์
+  globalIgnores([".next/**", "node_modules/**", "coverage/**", ".claude/**"]),
 ]);
