@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { safeMapEmbedUrl } from "@/lib/map-embed";
+import { focusNextFrame } from "@/lib/focus";
 
 function mapStatus(shown: boolean, loaded: boolean) {
   if (!shown) return "แผนที่ยังไม่เชื่อมต่อกับ Google";
@@ -16,19 +17,20 @@ export function ConsentMap({ embedUrl }: Readonly<{ embedUrl: string }>) {
   const [allowedUrl, setAllowedUrl] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const loadButton = useRef<HTMLButtonElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const shown = url !== null && allowedUrl === url;
 
   // คงโฟกัสไว้ที่ปุ่มเปิดหลังปิด iframe เพื่อให้ใช้งานต่อด้วยคีย์บอร์ดได้
   function closeMap() {
     setAllowedUrl(null);
     setLoaded(false);
-    requestAnimationFrame(() => loadButton.current?.focus());
+    focusNextFrame(() => loadButton.current, () => sectionRef.current);
   }
 
   if (!url) return <p className="card-body">แผนที่ยังไม่พร้อมใช้งาน กรุณาใช้ช่องทางติดต่อบริษัทที่แสดงในหน้านี้</p>;
 
   return (
-    <section className="consent-map" aria-label="แผนที่และความเป็นส่วนตัว">
+    <section ref={sectionRef} className="consent-map" aria-label="แผนที่และความเป็นส่วนตัว">
       <div className="card-body stack">
         <h2 className="subheading">แผนที่ Google Maps</h2>
         <p>เมื่อเลือกโหลดแผนที่ Google จะได้รับข้อมูลการเชื่อมต่อ เช่น IP และข้อมูลเบราว์เซอร์ และอาจใช้คุกกี้ตามการตั้งค่าของคุณ คุณอ่านข้อมูลติดต่อได้โดยไม่ต้องเปิดแผนที่</p>

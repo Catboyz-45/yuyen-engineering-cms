@@ -88,3 +88,23 @@ test("dropdown ตัวกรองรองรับคีย์บอร์�
   await expect(brandSelect).toContainText("Daikin");
   await expect(page.locator('input[name="brand"]')).toHaveValue("daikin");
 });
+
+test("เลือกค่าใน dropdown แล้วย้ายไปช่องอื่นทันที โฟกัสไม่ถูกดึงกลับ", async ({ page }) => {
+  // หน่วงเฟรมถัดไปให้ช้าเหมือนเครื่องที่กำลังทำงานหนัก: เดิม dropdown ดึงโฟกัสกลับมาที่ตัวเองหลังผู้ใช้กด Tab ไปแล้ว
+  await page.addInitScript(() => {
+    const original = window.requestAnimationFrame.bind(window);
+    window.requestAnimationFrame = callback => original(time => window.setTimeout(() => callback(time), 150));
+  });
+  await page.goto("/products", { waitUntil: "networkidle" });
+  const typeSelect = page.getByRole("combobox", { name: "กรองตามประเภท" });
+  const brandSelect = page.getByRole("combobox", { name: "กรองตามยี่ห้อ" });
+  await typeSelect.focus();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await brandSelect.focus();
+  await page.waitForTimeout(400);
+  await expect(brandSelect).toBeFocused();
+  await page.keyboard.type("D");
+  await page.keyboard.press("Enter");
+  await expect(brandSelect).toContainText("Daikin");
+});

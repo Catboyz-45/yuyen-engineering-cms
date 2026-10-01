@@ -7,6 +7,7 @@
 
 import { CSSProperties, KeyboardEvent, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
+import { focusIsAround, focusNextFrame } from "@/lib/focus";
 
 type MenuAction = { label: string; disabled?: boolean; onSelect: () => void };
 
@@ -29,23 +30,23 @@ export function AccountActionsMenu({ userName, actions }: Readonly<{ userName: s
   const menuId = useId();
   const enabledIndexes = actions.flatMap((action, index) => action.disabled ? [] : [index]);
 
-  const focusItem = (index: number) => requestAnimationFrame(() => itemRefs.current[index]?.focus({ preventScroll: true }));
+  const focusItem = (index: number) => focusNextFrame(() => itemRefs.current[index], () => rootRef.current, { preventScroll: true });
   // ไม่มีรายการที่กดได้ (เช่นบัญชีตัวเอง): โฟกัสที่ตัวเมนูแทน โปรแกรมอ่านหน้าจอจึงอ่านเมนูได้และกด Escape ปิดได้
   const openMenu = () => {
     setOpen(true);
     if (enabledIndexes.length) focusItem(enabledIndexes[0]);
-    else requestAnimationFrame(() => menuRef.current?.focus({ preventScroll: true }));
+    else focusNextFrame(() => menuRef.current, () => rootRef.current, { preventScroll: true });
   };
-  const closeMenu = (restoreFocus = false) => { setOpen(false); if (restoreFocus) requestAnimationFrame(() => triggerRef.current?.focus()); };
+  const closeMenu = (restoreFocus = false) => { setOpen(false); if (restoreFocus) focusNextFrame(() => triggerRef.current, () => rootRef.current); };
 
   useEffect(() => {
     if (!open) return;
     const closeOutside = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) closeMenu(false);
     };
-    // Escape ปิดเมนูได้เสมอ แม้โฟกัสยังอยู่ที่ปุ่มเปิดเมนู
+    // Escape ปิดเมนูได้เสมอ แม้โฟกัสยังไม่ได้ย้ายเข้าเมนู (ยังอยู่ที่ปุ่ม หรือที่กรอบตารางเมื่อคลิกใน Safari)
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== "Escape" || !rootRef.current?.contains(document.activeElement)) return;
+      if (event.key !== "Escape" || !focusIsAround(rootRef.current)) return;
       event.preventDefault();
       closeMenu(true);
     };

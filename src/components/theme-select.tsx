@@ -8,6 +8,7 @@
 import { Check, ChevronDown } from "lucide-react";
 import { KeyboardEvent, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { themeSelectNavigationIndex, type ThemeSelectNavigationKey } from "@/lib/theme-select-keyboard";
+import { focusNextFrame } from "@/lib/focus";
 
 export type ThemeSelectOption = { label: string; value: string };
 
@@ -57,7 +58,7 @@ export function ThemeSelect({ name, label, options, defaultValue = "", value: co
   const close = useCallback((restoreFocus = false) => {
     setOpen(false);
     setActiveIndex(selectedIndex);
-    if (restoreFocus) window.requestAnimationFrame(() => triggerRef.current?.focus());
+    if (restoreFocus) focusNextFrame(() => triggerRef.current, () => rootRef.current);
   }, [selectedIndex]);
 
   const openAt = useCallback((index: number) => {
@@ -72,7 +73,7 @@ export function ThemeSelect({ name, label, options, defaultValue = "", value: co
     setValue(option.value);
     setActiveIndex(index);
     setOpen(false);
-    window.requestAnimationFrame(() => triggerRef.current?.focus());
+    focusNextFrame(() => triggerRef.current, () => rootRef.current);
   }, [options, setValue]);
 
   useEffect(() => {

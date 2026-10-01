@@ -121,7 +121,8 @@ function tabKey(browserName: string, shift = false) {
 }
 
 test("ลำดับ Tab และ focus indicator บน Public navigation", async ({ page, browserName }) => {
-  await page.goto("/");
+  // รอให้หน้านิ่งก่อนกด Tab: dev server บน WebKit เปลี่ยน URL ซ้ำหลังโหลด ซึ่งล้างโฟกัสที่เพิ่งกด
+  await page.goto("/", { waitUntil: "networkidle" });
   await waitForPage(page);
   await page.keyboard.press(tabKey(browserName));
   await expect(page.getByRole("link", { name: "ข้ามไปยังเนื้อหาหลัก" })).toBeFocused();
@@ -151,7 +152,7 @@ test("ลำดับ Tab และ focus indicator บน CMS", async ({ page, 
 
 test("Dialog ผู้ดูแล trap focus, Escape และคืน focus", async ({ page, browserName }) => {
   await addCmsSession(page);
-  await page.goto("/admin/admins");
+  await page.goto("/admin/admins", { waitUntil: "networkidle" });
   const trigger = page.getByRole("button", { name: "เพิ่มผู้ดูแล" });
   await trigger.focus();
   await trigger.click();
@@ -169,7 +170,7 @@ test("เมนูจัดการผู้ดูแลไม่ถูกก�
   await addCmsSession(page);
   for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport);
-    await page.goto("/admin/admins");
+    await page.goto("/admin/admins", { waitUntil: "networkidle" });
     const trigger = page.getByRole("button", { name: /^เมนู / }).first();
     await trigger.click();
     const menu = page.getByRole("menu");
@@ -193,7 +194,7 @@ test("เมนูจัดการผู้ดูแลไม่ถูกก�
 
 test("confirmation dialog trap focus, ปิดด้วย Escape และคืน focus", async ({ page }) => {
   await addCmsSession(page);
-  await page.goto("/admin/products");
+  await page.goto("/admin/products", { waitUntil: "networkidle" });
   const trigger = page.getByRole("button", { name: /ย้าย .* ไปถังขยะ/ }).first();
   await trigger.focus();
   await trigger.click();
