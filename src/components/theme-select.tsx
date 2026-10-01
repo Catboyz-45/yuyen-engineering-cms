@@ -98,6 +98,11 @@ export function ThemeSelect({ name, label, options, defaultValue = "", value: co
     };
   }, [open]);
 
+  // รายการที่เปิดลงไปเลยขอบล่างของจอ: เลื่อนหน้าให้เห็นทั้งรายการ ไม่ต้องเลื่อนหาเอง
+  useEffect(() => {
+    if (open) menuRef.current?.scrollIntoView({ block: "nearest" });
+  }, [open]);
+
   useLayoutEffect(() => {
     if (!open) return;
     const menu = menuRef.current;

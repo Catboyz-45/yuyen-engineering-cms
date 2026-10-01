@@ -158,6 +158,32 @@ test("Dialog ผู้ดูแล trap focus, Escape และคืน focus",
   await expect(trigger).toBeFocused();
 });
 
+test("เมนูจัดการผู้ดูแลไม่ถูกกรอบตารางตัด กดได้ทุกรายการ และปิดด้วย Escape", async ({ page }) => {
+  await addCmsSession(page);
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/admin/admins");
+    const trigger = page.getByRole("button", { name: /^เมนู / }).first();
+    await trigger.click();
+    const menu = page.getByRole("menu");
+    await expect(menu).toBeVisible();
+    // ทุกรายการต้องเป็นสิ่งที่อยู่บนสุด ณ จุดนั้น (ไม่ถูกกรอบตารางที่เลื่อนได้ตัดหรือบัง) และกรอบตารางต้องไม่เลื่อนขึ้นลง
+    const state = await page.evaluate(() => ({
+      reachable: [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].map(item => {
+        const box = item.getBoundingClientRect();
+        return document.elementFromPoint(box.left + 8, box.top + box.height / 2)?.closest('[role="menuitem"]') === item && box.bottom <= window.innerHeight;
+      }),
+      tableScrollTop: document.querySelector(".table-wrap")?.scrollTop ?? 0,
+    }));
+    expect(state.reachable.length).toBeGreaterThan(0);
+    expect(state.reachable.every(Boolean)).toBe(true);
+    expect(state.tableScrollTop).toBe(0);
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+    await expect(trigger).toBeFocused();
+  }
+});
+
 test("confirmation dialog trap focus, ปิดด้วย Escape และคืน focus", async ({ page }) => {
   await addCmsSession(page);
   await page.goto("/admin/products");

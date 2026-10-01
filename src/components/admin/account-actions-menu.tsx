@@ -5,7 +5,7 @@
  */
 "use client";
 
-import { KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import { CSSProperties, KeyboardEvent, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 
 type MenuAction = { label: string; disabled?: boolean; onSelect: () => void };
@@ -23,12 +23,19 @@ export function AccountActionsMenu({ userName, actions }: Readonly<{ userName: s
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [placement, setPlacement] = useState<CSSProperties>();
   const menuId = useId();
   const enabledIndexes = actions.flatMap((action, index) => action.disabled ? [] : [index]);
 
-  const focusItem = (index: number) => requestAnimationFrame(() => itemRefs.current[index]?.focus());
-  const openMenu = () => { setOpen(true); if (enabledIndexes.length) focusItem(enabledIndexes[0]); };
+  const focusItem = (index: number) => requestAnimationFrame(() => itemRefs.current[index]?.focus({ preventScroll: true }));
+  // ไม่มีรายการที่กดได้ (เช่นบัญชีตัวเอง): โฟกัสที่ตัวเมนูแทน โปรแกรมอ่านหน้าจอจึงอ่านเมนูได้และกด Escape ปิดได้
+  const openMenu = () => {
+    setOpen(true);
+    if (enabledIndexes.length) focusItem(enabledIndexes[0]);
+    else requestAnimationFrame(() => menuRef.current?.focus({ preventScroll: true }));
+  };
   const closeMenu = (restoreFocus = false) => { setOpen(false); if (restoreFocus) requestAnimationFrame(() => triggerRef.current?.focus()); };
 
   useEffect(() => {
@@ -36,8 +43,39 @@ export function AccountActionsMenu({ userName, actions }: Readonly<{ userName: s
     const closeOutside = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) closeMenu(false);
     };
+    // Escape ปิดเมนูได้เสมอ แม้โฟกัสยังอยู่ที่ปุ่มเปิดเมนู
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape" || !rootRef.current?.contains(document.activeElement)) return;
+      event.preventDefault();
+      closeMenu(true);
+    };
     document.addEventListener("pointerdown", closeOutside);
-    return () => document.removeEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  // เมนูอยู่ในกรอบตารางที่เลื่อนซ้าย-ขวาได้ ซึ่งตัดทุกอย่างที่ล้นกรอบ จึงวางเมนูแบบ fixed ตามตำแหน่งปุ่มบนจอ
+  // และเปิดขึ้นด้านบนเมื่อด้านล่างมีที่ไม่พอ
+  useLayoutEffect(() => {
+    if (!open) return;
+    const place = () => {
+      const trigger = triggerRef.current?.getBoundingClientRect();
+      const height = menuRef.current?.offsetHeight ?? 0;
+      if (!trigger) return;
+      const below = trigger.bottom + 6;
+      const top = below + height > window.innerHeight - 8 ? Math.max(8, trigger.top - 6 - height) : below;
+      setPlacement({ top, right: Math.max(8, window.innerWidth - trigger.right) });
+    };
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
   }, [open]);
 
   function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
@@ -46,7 +84,6 @@ export function AccountActionsMenu({ userName, actions }: Readonly<{ userName: s
   }
 
   function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Escape") { event.preventDefault(); closeMenu(true); return; }
     if (event.key === "Tab") { closeMenu(false); return; }
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
@@ -58,7 +95,7 @@ export function AccountActionsMenu({ userName, actions }: Readonly<{ userName: s
 
   return <div className="account-menu" ref={rootRef}>
     <button ref={triggerRef} className="icon-btn" type="button" aria-label={`เมนู ${userName}`} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? menuId : undefined} onClick={() => open ? closeMenu(false) : openMenu()} onKeyDown={handleTriggerKeyDown}><MoreHorizontal size={17} /></button>
-    {open && <div className="account-menu-items" id={menuId} role="menu" tabIndex={-1} aria-label={`การจัดการ ${userName}`} onKeyDown={handleMenuKeyDown}>
+    {open && <div ref={menuRef} className="account-menu-items" style={placement} id={menuId} role="menu" tabIndex={-1} aria-label={`การจัดการ ${userName}`} onKeyDown={handleMenuKeyDown}>
       {actions.map((action, index) => <button ref={element => { itemRefs.current[index] = element; }} key={action.label} type="button" role="menuitem" tabIndex={-1} disabled={action.disabled} onClick={() => { closeMenu(false); action.onSelect(); }}>{action.label}</button>)}
     </div>}
   </div>;

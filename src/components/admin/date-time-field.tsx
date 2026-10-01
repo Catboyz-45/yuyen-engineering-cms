@@ -86,9 +86,14 @@ export function DateTimeField({
     return () => document.removeEventListener("pointerdown", outside);
   }, [open]);
 
+  // ปฏิทินที่เปิดลงไปเลยขอบล่างของจอ: เลื่อนหน้าให้เห็นทั้งปฏิทิน ไม่ต้องเลื่อนหาเอง
+  useEffect(() => {
+    if (open) gridRef.current?.closest(".date-picker-popover")?.scrollIntoView({ block: "nearest" });
+  }, [open]);
+
   // ย้ายโฟกัสไปวันที่กำลังเลือกทุกครั้งที่เปิดปฏิทินหรือเลื่อนด้วยคีย์บอร์ด
   useEffect(() => {
-    if (open) gridRef.current?.querySelector<HTMLButtonElement>('[tabindex="0"]')?.focus();
+    if (open) gridRef.current?.querySelector<HTMLButtonElement>('[tabindex="0"]')?.focus({ preventScroll: true });
   }, [open, focused]);
 
   function change(next: () => void) {
